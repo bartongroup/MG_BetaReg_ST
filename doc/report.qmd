@@ -70,6 +70,39 @@ gt_table <- function(s) {
 } 
 ```
 
+# Background
+
+This Section was written by DeepSeek.
+
+MPCs (Multipotent Progenitor Cells), endocrine progenitors, and beta cells are all related to the development and function of the pancreas, particularly in the context of diabetes research and regenerative medicine. Here's a breakdown of each:
+
+## MPCs (Multipotent Progenitor Cells)
+
+ - Definition: MPCs are stem-like cells that have the potential to differentiate into multiple cell types within a specific lineage. In the pancreas, MPCs are early progenitor cells that can give rise to various pancreatic cell types, including both exocrine (e.g., acinar cells) and endocrine (e.g., alpha, beta, delta cells) lineages.
+
+ - Role: During pancreatic development, MPCs are crucial for forming the different cell types that make up the pancreas. They are multipotent, meaning they are not yet fully specialized and can still choose between different developmental paths.
+
+## Endocrine Progenitors
+
+ - Definition: Endocrine progenitors are a more specialized type of progenitor cell that is committed to becoming part of the endocrine pancreas. The endocrine pancreas is responsible for producing hormones like insulin, glucagon, and somatostatin, which regulate blood sugar levels.
+
+ - Role: These cells are derived from MPCs and are specifically destined to differentiate into the hormone-producing cells of the pancreas, including beta cells, alpha cells, and delta cells. They are a key intermediate step in the development of functional endocrine cells.
+
+## Beta Cells
+
+ - Definition: Beta cells are a type of endocrine cell found in the pancreatic islets of Langerhans. They are responsible for producing, storing, and releasing insulin, the hormone that lowers blood glucose levels.
+
+ - Role: Beta cells play a critical role in maintaining glucose homeostasis. In type 1 diabetes, beta cells are destroyed by the immune system, leading to insulin deficiency. In type 2 diabetes, beta cell dysfunction and insulin resistance are key factors in the disease progression.
+
+ - Regeneration: Research into MPCs and endocrine progenitors is particularly important for diabetes treatment, as scientists aim to regenerate or replace beta cells in diabetic patients.
+
+## Connection Between These Cells
+
+During pancreatic development, MPCs give rise to endocrine progenitors, which then differentiate into specialized endocrine cells, including beta cells.
+
+Understanding this developmental pathway is critical for regenerative medicine approaches aimed at generating new beta cells for diabetes treatment, either by stimulating endogenous progenitors or by differentiating stem cells in the lab.
+
+In summary, MPCs are early, multipotent cells that can become various pancreatic cell types, endocrine progenitors are more specialized cells committed to the endocrine lineage, and beta cells are the final, functional cells that produce insulin.
 
 # Proposal
 
