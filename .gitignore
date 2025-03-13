@@ -9,6 +9,7 @@ data/
 fig/
 tab/
 cache/
+papers/
 doc/*
 !doc/report.qmd
 !doc/_targets.yaml
