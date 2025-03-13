@@ -1,0 +1,15 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.DS_Store
+_targets/
+raw/
+data/
+fig/
+tab/
+cache/
+doc/*
+!doc/report.qmd
+!doc/_targets.yaml
+!doc/report.scss

@@ -1,0 +1,16 @@
+tidyverse
+Matrix
+data.table
+R.utils
+Seurat
+ape
+assertthat
+biomaRt
+DelayedArray
+cowplot
+ggridges
+ggbeeswarm
+readxl
+janitor
+jsonlite
+patchwork

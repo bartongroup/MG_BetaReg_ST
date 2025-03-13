@@ -1,0 +1,173 @@
+---
+title: "Beta cell regeneration project"
+subtitle: "Embryonic pancreas ST-seq" 
+author:
+  - name: Marek Gierlinski
+    affiliations: Data Analysis Group
+    note: "Creator of this report"
+  - name: James Cantley
+    affiliations: Systems Medicine
+  - name: Greg Jackson
+    affiliation: Systems Medicine
+date: today
+date-format: "D MMMM YYYY"
+execute:
+  echo: false
+  cache: true
+  warning: false
+format:
+  html:
+    theme:
+      - journal
+      - report.scss
+    toc: true
+    number-sections: true
+self-contained: true
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+```{r libraries}
+#| label: libraries
+#| cache: false
+suppressPackageStartupMessages({
+  library(ggplot2)
+  library(dplyr)
+  library(tidyr)
+  library(purrr)
+  library(forcats)
+  library(targets)
+  library(gt)
+  library(cowplot)
+})
+tar_config_set(store = "../_targets")
+```
+
+```{r config}
+tar_load(config)
+```
+
+```{r}
+#| label: functions
+N <- function(n) {
+  prettyNum(n, big.mark = ",")
+}
+
+gt_table <- function(s) {
+  s |> 
+    gt::gt() |> 
+    gt::tab_options(
+      table.align = "center",
+      heading.align = "center",
+      data_row.padding = gt::px(3)
+    ) |> 
+    gt::opt_table_font(
+      font = c(
+        gt::default_fonts()
+      )
+    )
+} 
+```
+
+
+# Proposal
+
+This is analysis of 10X VisiumHD STseq experiment of the embryonic pancreas at 8wpc – the key time in development when insulin producing beta cell form.
+ 
+## Analysis methods to prepare/explore:
+
+1. Identifying marker genes from the established developmental pathway of progenitor to beta cell, and then uses these to highlight areas to analyse DE genes (as well as GO terms, processes, signalling pathways) associated with these stages of beta cell formation. Think also about pseudo time from progenitor to differentiated beta cells. Also consider if these are discrete stages of development (as per the dogma) or more of a continuum.
+
+2. Application of FlowSig* to identify gene modules related to intracellular signalling for each stage of beta cell formation.
+
+3. Comparison with adult pancreatic STseq and RNAseq: are interesting DE genes or gene modules present in the adult pancreas?
+
+4. Combining our 8wpc VisiumHD STseq with 12+wpc Visium STseq from Olaniru et al. to get a spatial developmental walk.
+
+5. Analysing if any DE genes identified are related to T1D/T2D risk alleles or monogenic diabetes gene mutants.
+
+6. Analysis of druggable pathways (e.g. receptors or pathways with known agonists/antagonists).
+ 
+ 
+## Note on FlowSig:
+
+This is a really neat technique has just been published in nature methods, which can work with STseq data and infer information exchange between cells based on matching up ligands and receptors within the transcriptomics data.
+
+ - [Overview](https://www.readcube.com/nde/eyJhbGciOiJFUzI1NiJ9.eyJkb2kiOiIxMC4xMDM4L25kZS8xNTQ4NzA5MS8yMDI0LzIxLzEwIn0._SK1rKphi1zIQ2OrA88wPka_6jP12HCSge5G5z8-UK8R4_UR6j5yp3IQNcJn8P0pJdaSlOhfg6clGxqhJY4z8w#p=34)
+ - [Full article](https://www.readcube.com/nde/eyJhbGciOiJFUzI1NiJ9.eyJkb2kiOiIxMC4xMDM4L25kZS8xNTQ4NzA5MS8yMDI0LzIxLzEwIn0._SK1rKphi1zIQ2OrA88wPka_6jP12HCSge5G5z8-UK8R4_UR6j5yp3IQNcJn8P0pJdaSlOhfg6clGxqhJY4z8w#p=48)
+
+They even apply this to STseq from the mouse embryo to identify a gene module regulated by an activator-inhibitor system from two competing ligands. It seems this technique is particularly relevant for developmental studies where you have transcription factor gradients and changing signalling networks.
+
+
+
+# Resources {#sec-resources}
+
+## Interactive data explorer {#sec-shiny-app}
+
+
+## Downloads
+
+
+## Code
+
+-   [R code in GitHub](https://github.com/bartongroup/MG_BetaReg_ST)
+
+# Session info {#sec-session-info}
+
+```{r}
+#| label: session-info
+#| cache: false
+targets::tar_load(session_info)
+```
+
+```{r}
+#| label: gt_session
+gt_session <- function(s) {
+  s |> 
+    gt::gt() |> 
+    gt::tab_options(
+      table.align = "left",
+      data_row.padding = gt::px(3)
+    )
+#    gt::opt_table_font(
+#      font = c(
+#        gt::google_font(name = "Roboto Mono"),
+#        gt::default_fonts()
+#      )
+#    )
+}
+```
+
+### Platform
+
+```{r}
+#| label: session-info-platform
+#| cache: false
+session_info$platform |>
+  unlist() |>
+  tibble::as_tibble(rownames = "Setting") |> 
+  dplyr::rename(Value = value) |> 
+  gt_session() |> 
+  gt::cols_width(
+    Setting ~ gt::px(150)
+  )
+```
+
+### Packages
+
+```{r}
+#| label: session-info-packages
+#| cache: false
+session_info$packages |>
+  tibble::as_tibble() |>
+  dplyr::filter(attached == TRUE) |> 
+  dplyr::select(Package = package, Version = loadedversion, Date = date, Source = source) |> 
+  gt_session() |> 
+  gt::cols_width(
+    Package ~ gt::px(150),
+    Version ~ gt::px(80),
+    Date ~ gt::px(150),
+    Source ~ gt::px(400)
+  )
+```
