@@ -137,8 +137,8 @@ They even apply this to STseq from the mouse embryo to identify a gene module re
 
 ```{r}
 #| label: fig-counts
-#| fig-cap: Total numbers of cells (left) and reads (right) in each sample.
-#| fig-width: 5
+#| fig-cap: Total numbers of cells (left) and reads (middle) and the median number of genes per cell (right) in each sample.
+#| fig-width: 8
 #| fig-height: 3
 tar_read(fig_counts)
 ```
@@ -162,6 +162,15 @@ tar_load(starts_with("fig_count_det"))
 plot_grid(fig_count_det_1, fig_count_det_2, fig_count_det_3, fig_count_det_4, labels = 1:4)
 ```
 
+# Sample 1
+
+## Clustering
+
+```{r}
+#| label: fig-umap-clusters
+#| fig-cap: UMAP reduction at different clustering levels. 
+knitr::include_graphics("../fig/umap_spatial_1.png") 
+```
 
 
 # Resources {#sec-resources}

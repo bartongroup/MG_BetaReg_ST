@@ -37,37 +37,36 @@ targets_main <- function() {
       
       # Create Seurat object
       seu = load_visium_data(DATA_PATH, mito_genes) |> NormalizeData(),
-      seu_clust = cluster_seurat(seu, ident_res = RESOLUTION),
+      seu_clust = cluster_seurat(seu, ident_res = RESOLUTION, resolutions = c(0.05, 0.1, 0.125, 0.15, 0.175, 0.2, 0.25, 0.3, 0.4)),
       cluster_markers = find_cluster_markers(seu_clust),
 
       # Gene detection
-      gene_detection = get_gene_detection(seu),
-      cell_data = get_cell_data(seu),
+      gene_detection = get_gene_detection(seu) |> tibble::add_column(sample = NAME),
+      cell_data = get_cell_data(seu)|> tibble::add_column(sample = NAME),
       tbl_cuts = make_table_cuts(params),
 
 
       # Figures
       fig_marginals = plot_cell_marginals(cell_data, params, with_vlines = FALSE),
-      fig_count_det = plot_count_det(cell_data, params, with_lines = FALSE)
+      fig_count_det = plot_count_det(cell_data, params, with_lines = FALSE),
+      png_umap_spatial = plot_umap_spatial(seu_clust) |> gs("umap_spatial", NAME, 8, 32)
     )
   )
 
-  merged_data <- tar_plan(
-    cell_data_all = bind_rows(cell_data_1, cell_data_2, cell_data_3, cell_data_4, .id = "sample"),
-    cell_count_all = cell_data_all |> count(sample),
-    read_count_all = cell_data_all |> summarise(n = sum(total_count), .by = "sample")
+  combine_samples <- list(
+    tar_combine(cell_data_all, map_experiments$cell_data, command = bind_rows(!!!.x)),
+    tar_combine(gene_detection_all, map_experiments$gene_detection, command = bind_rows(!!!.x))
   )
 
   for_report <- tar_plan(
-    fig_counts = plot_all_counts(cell_data_all)
+    fig_counts = plot_all_counts(cell_data_all, gene_detection_all)
   )
-
 
   c(
     setup_experiment,
     get_annotations,
     map_experiments,
-    merged_data,
+    combine_samples,
     for_report
   )
 

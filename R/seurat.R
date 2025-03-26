@@ -104,8 +104,8 @@ get_gene_detection <- function(seu, group_var = "cell_type", layer = "counts") {
   # Create numeric detection matrix (0 or 1), grouped column sums
   X <- DelayedArray::colsum(as(mtx > 0, "dMatrix"), groups)
   # Remove zero-only genes
-  X[rowSums(X) > 0, ] |> 
-    as_tibble(rownames = "gene_id")
+  X[rowSums(X) > 0, , drop = FALSE] |> 
+    as_tibble(rownames = "gene_symbol")
 }
 
 
@@ -115,15 +115,18 @@ get_resolution_columns <- function(v, suffix = "Spatial.008um") {
 }
 
 
-
+# Algorithm = 4 selects Leiden algorithm. Leiden improves on Louvain by providing a guarantee of connected
+# clusters and generally produces higher-quality clusters by resolving issues such as disconnected or
+# fragmented clusters that Louvain can sometimes create.
 cluster_seurat <- function(seu, dims = 1:40, resolutions = c(0.1, 0.125, 0.15, 0.175, 0.2, 0.25, 0.3, 0.4),
-                           ident_res = 0.2, seed = 42, res_suffix = "Spatial.008um", min_group_count = 3) {
+                           ident_res = 0.2, seed = 42, res_suffix = "Spatial.008um", min_group_count = 3,
+                           algorithm = 4) {
   seu <- seu |> 
     FindVariableFeatures() |> 
     ScaleData() |> 
     RunPCA() |> 
     FindNeighbors(dims = dims) |> 
-    FindClusters(resolution = resolutions, random.seed = seed)
+    FindClusters(resolution = resolutions, random.seed = seed, algorithm = algorithm)
     
   # Set selected resolution as Ident (will be used by default)
   res <- get_resolution_columns(ident_res, suffix = res_suffix)

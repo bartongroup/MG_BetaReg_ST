@@ -6,8 +6,8 @@ th <- ggplot2::theme_bw() +
   )
 
 
-gs <- function(gg, exprm, name, width, height) {
-  ggsave(filename = file.path("fig", paste0(exprm, "_", name, ".png")), plot = gg, device = "png",
+gs <- function(gg, name, sample, width, height) {
+  ggsave(filename = file.path("fig", paste0(name, "_", sample, ".png")), plot = gg, device = "png",
          width = width, height = height, dpi = 300)
 }
 
@@ -106,25 +106,32 @@ plot_count_det <- function(cell_data, params, with_lines = TRUE) {
   return(pl)
 }
 
-plot_all_counts <- function(cell_data_all) {
+plot_all_counts <- function(cell_data_all, gene_detection_all) {
+  pl_ <- function(d, ylab) {
+    ggplot(d, aes(x = sample, y = n)) +
+    th +
+    geom_col() +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+    labs(x = "Sample", y = ylab)
+  }
+
   pl1 <- cell_data_all |> 
     count(sample) |> 
-    ggplot(aes(x = sample, y = n)) +
-    th +
-    geom_col() +
-    scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
-    labs(x = "Sample", y = "Cell count")
+    pl_("Cell count")
+
+  pl3 <- gene_detection_all |> 
+    summarise(n = median(blank), .by = "sample") |> 
+    pl_("Median gene count per cell")
+
   pl2 <- cell_data_all |> 
     summarise(n = sum(total_count) / 1e6, .by = "sample") |> 
-    ggplot(aes(x = sample, y = n)) +
-    th +
-    geom_col() +
-    scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
-    labs(x = "Sample", y = "Read count (millions)")
-  plot_grid(pl1, pl2, nrow = 1)
+    pl_("Total read count (millions)")
+
+
+  plot_grid(pl1, pl2, pl3, nrow = 1)
 }
 
-plot_seurat_clusters <- function(seu, resolutions = NULL, with_legend = FALSE, label = TRUE, ...) {
+plot_umap_clusters <- function(seu, resolutions = NULL, with_legend = FALSE, label = TRUE, ...) {
   if(is.null(resolutions)) {
     resols <- names(seu@meta.data) |> str_subset("snn_res")
   } else {
@@ -134,7 +141,7 @@ plot_seurat_clusters <- function(seu, resolutions = NULL, with_legend = FALSE, l
   P <- map(resols, function(res) {
     Idents(seu) <- res
     r <- str_remove(res, "^.*res\\.")
-    dp <- DimPlot(seu, reduction = "umap", label = label, label.size = 6, ...) +
+    dp <- DimPlot(seu, reduction = "umap", label = label, ...) +
       labs(title = r)
     if(!with_legend)
       dp <- dp + theme(legend.position = "none")
@@ -143,3 +150,121 @@ plot_seurat_clusters <- function(seu, resolutions = NULL, with_legend = FALSE, l
   plot_grid(plotlist = P)
 }
 
+plot_spatial_clusters <- function(seu, resolutions = NULL, with_legend = FALSE, label = TRUE, ...) {
+  if(is.null(resolutions)) {
+    resols <- names(seu@meta.data) |> str_subset("snn_res")
+  } else {
+    resols <-  get_resolution_columns(resolutions)
+  }
+  
+  P <- map(resols, function(res) {
+    Idents(seu) <- res
+    r <- str_remove(res, "^.*res\\.")
+    dp <- SpatialDimPlot(seu, label = label, repel = TRUE, image.alpha = 0, ...) +
+      labs(title = r)
+    if(!with_legend)
+      dp <- dp + theme(legend.position = "none")
+    dp
+  })
+  plot_grid(plotlist = P)
+}
+
+
+plot_spatial <- function(seu, resolution, point_size = 0.5, gene = NULL) {
+  res <- get_resolution_columns(resolution)
+  thm <- th +
+    theme(
+      axis.text = element_blank(),
+      axis.ticks = element_blank()
+    )
+  
+  sp <- GetTissueCoordinates(seu) |> 
+    as_tibble()
+
+  if(!is.null(gene)) {
+    x <- GetAssayData(seu, slot = "data")[gene, ]
+    ex <- tibble(
+      cell = names(x),
+      expression = x
+    )
+    pl <- inner_join(sp, ex, by = "cell") |> 
+      ggplot(aes(x = y, y = -x, colour = expression)) +
+        thm +
+        geom_point(size = point_size) +
+        scale_colour_viridis_c(option = "cividis") +
+        labs(x = NULL, y = NULL)
+  } else {
+    cl <- seu@meta.data |> 
+      as_tibble(rownames = "cell") |> 
+      select(cell, cluster = res)
+
+    pl <- inner_join(sp, cl, by = "cell") |> 
+      ggplot(aes(x = y, y = -x, colour = cluster)) +
+      thm +
+      geom_point(size = point_size) +
+      scale_fill_brewer() +
+      labs(x = NULL, y = NULL)
+  }
+
+  pl
+}
+
+
+plot_umap_spatial <- function(seu, resolutions = NULL, umap_point_size = 0.1, spatial_point_size = 0.2, label_size = 5) {
+  thm <- th +
+    theme(
+      axis.text = element_blank(),
+      axis.ticks = element_blank(),
+      legend.position = "none"
+    )
+  
+  if(is.null(resolutions)) {
+    resols <- names(seu@meta.data) |> str_subset("snn_res")
+  } else {
+    resols <-  get_resolution_columns(resolutions)
+  }
+
+  str_res <- resols |> str_extract("\\d\\.\\d+$")
+
+  sp <- GetTissueCoordinates(seu) |> 
+    as_tibble()
+  um <- FetchData(seu, vars = c("umap_1", "umap_2")) |> 
+    as_tibble(rownames = "cell")
+
+
+  pl <- map(resols, function(res) {
+
+    cl <- seu@meta.data |> 
+      as_tibble(rownames = "cell") |> 
+      select(cell, cluster = res)
+
+    umcl <- inner_join(um, cl, by = "cell") 
+
+    cl_med <- umcl |> 
+      group_by(cluster) |> 
+      summarise(
+        x = mean(umap_1),
+        y = mean(umap_2)
+      )
+
+    pl1 <- umcl |> 
+      ggplot(aes(x = umap_1, y = umap_2, colour = cluster)) +
+      thm +
+      geom_point(size = umap_point_size) +
+      geom_text(data = cl_med, aes(x = x, y = y, label = cluster), colour = "black", size = label_size) +
+      scale_colour_brewer(palette = "Paired") +
+      labs(x = NULL, y = NULL)
+
+    pl2 <- inner_join(sp, cl, by = "cell") |> 
+      ggplot(aes(x = y, y = -x, colour = cluster)) +
+      thm +
+      geom_point(size = spatial_point_size, shape = 15) +
+      scale_colour_brewer(palette = "Paired") +
+      labs(x = NULL, y = NULL)
+
+    plot_grid(pl1, pl2, nrow = 1, rel_widths = c(1, 1))
+  })
+
+  plot_grid(plotlist = pl, ncol = 1, labels = str_res)
+
+}
