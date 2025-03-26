@@ -110,7 +110,7 @@ This is analysis of 10X VisiumHD STseq experiment of the embryonic pancreas at 8
  
 ## Analysis methods to prepare/explore:
 
-1. Identifying marker genes from the established developmental pathway of progenitor to beta cell, and then uses these to highlight areas to analyse DE genes (as well as GO terms, processes, signalling pathways) associated with these stages of beta cell formation. Think also about pseudo time from progenitor to differentiated beta cells. Also consider if these are discrete stages of development (as per the dogma) or more of a continuum.
+1. Identifying marker genes from the established developmental pathway of progenitor to beta cell, and then using these to highlight areas to analyse DE genes (as well as GO terms, processes, signalling pathways) associated with these stages of beta cell formation. Think also about pseudo time from progenitor to differentiated beta cells. Also consider if these are discrete stages of development (as per the dogma) or more of a continuum.
 
 2. Application of FlowSig* to identify gene modules related to intracellular signalling for each stage of beta cell formation.
 
@@ -131,6 +131,36 @@ This is a really neat technique has just been published in nature methods, which
  - [Full article](https://www.readcube.com/nde/eyJhbGciOiJFUzI1NiJ9.eyJkb2kiOiIxMC4xMDM4L25kZS8xNTQ4NzA5MS8yMDI0LzIxLzEwIn0._SK1rKphi1zIQ2OrA88wPka_6jP12HCSge5G5z8-UK8R4_UR6j5yp3IQNcJn8P0pJdaSlOhfg6clGxqhJY4z8w#p=48)
 
 They even apply this to STseq from the mouse embryo to identify a gene module regulated by an activator-inhibitor system from two competing ligands. It seems this technique is particularly relevant for developmental studies where you have transcription factor gradients and changing signalling networks.
+
+
+# Data overview
+
+```{r}
+#| label: fig-counts
+#| fig-cap: Total numbers of cells (left) and reads (right) in each sample.
+#| fig-width: 5
+#| fig-height: 3
+tar_read(fig_counts)
+```
+
+
+```{r}
+#| label: fig-marginals
+#| fig-cap: "Distribution of: Left - total count (number of UMIs) per cell. Middle -  Number of genes detected per cell. Right -  Fraction of counts coming from mitochondrial genes. Labels 1-4 indicate sample numbers."
+#| fig-width: 8
+#| fig-height: 12
+tar_load(starts_with("fig_marginals"))
+plot_grid(fig_marginals_1, fig_marginals_2, fig_marginals_3, fig_marginals_4, ncol = 1, labels = 1:4) 
+```
+
+```{r}
+#| label: fig-detections
+#| fig-cap: "Number of genes detected per cell as a function of the total count in a cell. One point corresponds to one cell. Colour indicates mitochondrial contamination. Labels 1-4 indicate sample numbers."
+#| fig-width: 8
+#| fig-height: 6
+tar_load(starts_with("fig_count_det"))
+plot_grid(fig_count_det_1, fig_count_det_2, fig_count_det_3, fig_count_det_4, labels = 1:4)
+```
 
 
 

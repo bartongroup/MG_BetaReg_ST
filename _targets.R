@@ -34,7 +34,7 @@ sessinfo <- list(
 
 # Targets
 c(
-  sessinfo
-  #targets_main()
+  sessinfo,
+  targets_main()
 )
 

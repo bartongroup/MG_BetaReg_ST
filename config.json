@@ -1,0 +1,15 @@
+{
+  "top_data_path" : "data/spaceranger_output",
+  "species" : "human",
+  "ensembl" : {
+    "biomart" : "ENSEMBL_MART_ENSEMBL",
+    "dataset" : "hsapiens_gene_ensembl",
+    "version" : "113",
+    "hub_id" : "AH116860"
+  },
+  "designations" : {
+    "go" : "goa_human",
+    "re" : "Homo sapiens",
+    "kg" : "hsa"
+  }
+}

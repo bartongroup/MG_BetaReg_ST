@@ -14,3 +14,4 @@ doc/*
 !doc/report.qmd
 !doc/_targets.yaml
 !doc/report.scss
+info/Spartan_059 clustering report/

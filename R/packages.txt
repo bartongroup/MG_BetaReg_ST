@@ -3,6 +3,8 @@ Matrix
 data.table
 R.utils
 Seurat
+hdf5r
+arrow
 ape
 assertthat
 biomaRt
