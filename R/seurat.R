@@ -108,12 +108,24 @@ get_gene_detection <- function(seu, group_var = "cell_type", layer = "counts") {
     as_tibble(rownames = "gene_symbol")
 }
 
-
-
 get_resolution_columns <- function(v, suffix = "Spatial.008um") {
+  v <- as.character(v)
   str_glue("{suffix}_snn_res.{v}")
 }
 
+
+get_gene_expression <- function(seu, genes) {
+  GetAssayData(seu, slot = "data")[genes, , drop = FALSE] |> 
+    t() |> 
+    as_tibble(rownames = "cell") |> 
+    pivot_longer(-cell, names_to = "gene_symbol", values_to = "expression")
+}
+
+get_cluster_cells <- function(seu, res) {
+  seu@meta.data |> 
+    as_tibble(rownames = "cell") |> 
+    select(cell, cluster = res)
+}
 
 # Algorithm = 4 selects Leiden algorithm. Leiden improves on Louvain by providing a guarantee of connected
 # clusters and generally produces higher-quality clusters by resolving issues such as disconnected or
@@ -142,7 +154,23 @@ find_cluster_markers <- function(seu) {
   #DefaultAssay(seu) <- "Spatial.008um"
   seu |> 
     FindAllMarkers(test.use = "wilcox") |> 
-    as_tibble(rownames = "gene_id")
+    as_tibble() |> 
+    rename(gene_symbol = gene) |> 
+    relocate(gene_symbol, .before = 1)
+}
+
+get_top_cluster_markers <- function(clm, n_top = 12, fdr_limit = 0.01) {
+  clm |> 
+    filter(p_val_adj < fdr_limit) |> 
+    group_by(cluster) |> 
+    top_n(n_top, avg_log2FC) |> 
+    ungroup()
 }
 
 
+get_cluster_cell_count <- function(seu, resolution) {
+  res <- get_resolution_columns(resolution)
+  seu@meta.data |>
+    group_by(cluster = get(res)) |>
+    tally()
+}

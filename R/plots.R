@@ -5,9 +5,19 @@ th <- ggplot2::theme_bw() +
     panel.grid = ggplot2::element_blank()
   )
 
+thm <- th +
+  ggplot2::theme(
+    axis.text = ggplot2::element_blank(),
+    axis.ticks = ggplot2::element_blank()
+  )
 
-gs <- function(gg, name, sample, width, height) {
-  ggsave(filename = file.path("fig", paste0(name, "_", sample, ".png")), plot = gg, device = "png",
+gs <- function(gg, name, sample = NULL, width, height) {
+  if(is.null(sample)) {
+    fname <- file.path("fig", paste0(name, ".png"))
+  } else {
+    fname <- file.path("fig", paste0(name, "_", sample, ".png"))
+  }
+  ggsave(filename = fname, plot = gg, device = "png",
          width = width, height = height, dpi = 300)
 }
 
@@ -131,140 +141,223 @@ plot_all_counts <- function(cell_data_all, gene_detection_all) {
   plot_grid(pl1, pl2, pl3, nrow = 1)
 }
 
-plot_umap_clusters <- function(seu, resolutions = NULL, with_legend = FALSE, label = TRUE, ...) {
-  if(is.null(resolutions)) {
-    resols <- names(seu@meta.data) |> str_subset("snn_res")
+#'
+#' Generates a scatter plot using either UMAP or spatial coordinates from a Seurat object.
+#' Points can be colored by cluster identity or gene expression values.
+#'
+#' @param seu A Seurat object containing the data to plot.
+#' @param resolution Character or numeric value indicating the clustering resolution.
+#' @param point_size Numeric value specifying the size of points in the plot. Default is 0.2.
+#' @param what Character value specifying the type of coordinates to plot. Choices are "umap" or "spatial". Default is "umap".
+#' @param gene Optional character specifying the gene names whose expression will be used for coloring. Default is NULL.
+#' @param with_legend Logical indicating whether to include the legend in the plot. Default is FALSE.
+#'
+#' @return A ggplot2 object.
+plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap", "spatial"),
+                        genes = NULL, with_legend = FALSE, label_size = 6) {
+  what <- match.arg(what)
+
+  # Convert resolutions (e.g. "0.1") into metadata column name ("Spatial.008um_snn_res.0.1")
+  if(!is.null(resolution))
+    res <- get_resolution_columns(resolution)
+
+  # Create x-y coordinates for umap or spatial
+  if(what == "umap") {
+    xy <- FetchData(seu, vars = c("umap_1", "umap_2")) |> 
+      as_tibble(rownames = "cell") |> 
+      rename(x = umap_1, y = umap_2)
   } else {
-    resols <-  get_resolution_columns(resolutions)
+    xy <- GetTissueCoordinates(seu) |> 
+      as_tibble() |> 
+      # Rearrange cooridnates to look like Newcastle report
+      rename(
+        t = x,
+        x = y
+      ) |> 
+      rename(y = t) |> 
+      mutate(y = -y) |> 
+      relocate(cell, .before = 1) 
   }
-  
-  P <- map(resols, function(res) {
-    Idents(seu) <- res
-    r <- str_remove(res, "^.*res\\.")
-    dp <- DimPlot(seu, reduction = "umap", label = label, ...) +
-      labs(title = r)
-    if(!with_legend)
-      dp <- dp + theme(legend.position = "none")
-    dp
-  })
-  plot_grid(plotlist = P)
-}
 
-plot_spatial_clusters <- function(seu, resolutions = NULL, with_legend = FALSE, label = TRUE, ...) {
-  if(is.null(resolutions)) {
-    resols <- names(seu@meta.data) |> str_subset("snn_res")
-  } else {
-    resols <-  get_resolution_columns(resolutions)
-  }
-  
-  P <- map(resols, function(res) {
-    Idents(seu) <- res
-    r <- str_remove(res, "^.*res\\.")
-    dp <- SpatialDimPlot(seu, label = label, repel = TRUE, image.alpha = 0, ...) +
-      labs(title = r)
-    if(!with_legend)
-      dp <- dp + theme(legend.position = "none")
-    dp
-  })
-  plot_grid(plotlist = P)
-}
+  # if gene(s) provided, make an expression plot
+  if(!is.null(genes)) {
 
-
-plot_spatial <- function(seu, resolution, point_size = 0.5, gene = NULL) {
-  res <- get_resolution_columns(resolution)
-  thm <- th +
-    theme(
-      axis.text = element_blank(),
-      axis.ticks = element_blank()
-    )
-  
-  sp <- GetTissueCoordinates(seu) |> 
-    as_tibble()
-
-  if(!is.null(gene)) {
-    x <- GetAssayData(seu, slot = "data")[gene, ]
-    ex <- tibble(
-      cell = names(x),
-      expression = x
-    )
-    pl <- inner_join(sp, ex, by = "cell") |> 
-      ggplot(aes(x = y, y = -x, colour = expression)) +
+    ex <- get_gene_expression(seu, genes)
+    pl <- inner_join(xy, ex, by = "cell") |> 
+      ggplot(aes(x = x, y = y, colour = expression)) +
         thm +
-        geom_point(size = point_size) +
-        scale_colour_viridis_c(option = "cividis") +
+        geom_point(size = point_size, stroke = 0.1) +
+        scale_colour_distiller(palette = "Blues", direction = 1) +
         labs(x = NULL, y = NULL)
+   if(length(genes) > 1)
+      pl <- pl + facet_wrap(~ gene_symbol)
+    
+    
+  # Otherwise make clustering plot
   } else {
-    cl <- seu@meta.data |> 
-      as_tibble(rownames = "cell") |> 
-      select(cell, cluster = res)
 
-    pl <- inner_join(sp, cl, by = "cell") |> 
-      ggplot(aes(x = y, y = -x, colour = cluster)) +
+    cl <- get_cluster_cells(seu, res)
+    xy_cl <- inner_join(xy, cl, by = "cell")
+    pl <- xy_cl |>
+      ggplot(aes(x = x, y = y)) +
       thm +
-      geom_point(size = point_size) +
-      scale_fill_brewer() +
+      geom_point(aes(colour = cluster), size = point_size, stroke = 0.1) +
+      scale_colour_brewer(palette = "Paired") +
       labs(x = NULL, y = NULL)
+
+    if(what == "umap") {
+      xy_cl_mean <- xy_cl |>
+        group_by(cluster) |> 
+        summarise(mx = mean(x), my = mean(y))
+      pl <- pl +  
+        geom_text(data = xy_cl_mean, aes(label = cluster, x = mx, y = my), colour = "black", size = label_size)
+    }
+
   }
 
-  pl
+  if(!with_legend)
+      pl <- pl + theme(legend.position = "none")
+  
+  return(pl)
 }
 
 
-plot_umap_spatial <- function(seu, resolutions = NULL, umap_point_size = 0.1, spatial_point_size = 0.2, label_size = 5) {
-  thm <- th +
-    theme(
-      axis.text = element_blank(),
-      axis.ticks = element_blank(),
-      legend.position = "none"
-    )
-  
-  if(is.null(resolutions)) {
-    resols <- names(seu@meta.data) |> str_subset("snn_res")
-  } else {
-    resols <-  get_resolution_columns(resolutions)
-  }
+plot_resolutions <- function(seu, resolutions, umap_point_size = 0.2, spatial_point_size = 0.4, label_size = 5) {
 
-  str_res <- resols |> str_extract("\\d\\.\\d+$")
+  pl <- map(resolutions, function(res) {
 
-  sp <- GetTissueCoordinates(seu) |> 
-    as_tibble()
-  um <- FetchData(seu, vars = c("umap_1", "umap_2")) |> 
-    as_tibble(rownames = "cell")
-
-
-  pl <- map(resols, function(res) {
-
-    cl <- seu@meta.data |> 
-      as_tibble(rownames = "cell") |> 
-      select(cell, cluster = res)
-
-    umcl <- inner_join(um, cl, by = "cell") 
-
-    cl_med <- umcl |> 
-      group_by(cluster) |> 
-      summarise(
-        x = mean(umap_1),
-        y = mean(umap_2)
-      )
-
-    pl1 <- umcl |> 
-      ggplot(aes(x = umap_1, y = umap_2, colour = cluster)) +
-      thm +
-      geom_point(size = umap_point_size) +
-      geom_text(data = cl_med, aes(x = x, y = y, label = cluster), colour = "black", size = label_size) +
-      scale_colour_brewer(palette = "Paired") +
-      labs(x = NULL, y = NULL)
-
-    pl2 <- inner_join(sp, cl, by = "cell") |> 
-      ggplot(aes(x = y, y = -x, colour = cluster)) +
-      thm +
-      geom_point(size = spatial_point_size, shape = 15) +
-      scale_colour_brewer(palette = "Paired") +
-      labs(x = NULL, y = NULL)
-
+    pl1 <- plot_one_xy(seu, resolution = res, point_size = umap_point_size, what = "umap")
+    pl2 <- plot_one_xy(seu, resolution = res, point_size = spatial_point_size, what = "spatial")
     plot_grid(pl1, pl2, nrow = 1, rel_widths = c(1, 1))
   })
 
-  plot_grid(plotlist = pl, ncol = 1, labels = str_res)
+  plot_grid(plotlist = pl, ncol = 1, labels = resolutions)
 
+}
+
+
+plot_expression <- function(seu, genes, umap_point_size = 0.1, spatial_point_size = 0.2, label_size = 5) {
+
+  pl <- map(genes, function(gene) {
+
+    pl1 <- plot_one_xy(seu, genes = gene, point_size = umap_point_size, what = "umap")
+    pl2 <- plot_one_xy(seu, genes = gene, point_size = spatial_point_size, what = "spatial")
+    plot_grid(pl1, pl2, nrow = 1, rel_widths = c(1, 1))
+  })
+
+  plot_grid(plotlist = pl, ncol = 1, labels = genes)
+
+}
+
+
+plot_top_cluster_features <- function(seu, top_cluster_markers, what, n_top = 12, n_col = 4, point_size = 0.2,
+                                      x_size = 11, y_size = 10, file_prefix = "top_clust_gene") {
+  
+  clusters <- top_cluster_markers$cluster |> 
+    unique() |> 
+    sort()
+  
+  map(clusters, function(cl) {
+    gname <- str_glue("{file_prefix}_cl{cl}")
+    tg <- top_cluster_markers |> 
+      filter(cluster == cl)
+    gids <- tg$gene_symbol
+    plot_one_xy(seu, what = what, point_size = point_size, genes = gids) |> 
+      gs(gname, NULL, x_size, y_size)
+  })
+}
+
+
+plot_expression_clusters <- function(seu, genes, resolution, point_size = 0.5) {
+  res <- get_resolution_columns(resolution)
+  ex <- get_gene_expression(seu, genes) |> 
+    filter(expression > 0)
+  cl <- get_cluster_cells(seu, res)
+  
+
+  inner_join(ex, cl, by = "cell") |> 
+    ggplot(aes(x = cluster, y = expression)) + 
+    th +
+    geom_quasirandom(size = point_size) +
+    facet_wrap(~gene_symbol)
+}
+
+
+
+
+plot_top_cluster_markers <- function(seu, top_cluster_markers, resolution) {
+  env <- new.env(parent = globalenv())
+  
+  gns <- unique(top_cluster_markers$gene_symbol)
+
+  res <- get_resolution_columns(resolution)
+  Idents(seu) <- res
+  
+  d <- AverageExpression(seu, slot = "data", features = gns, group.by = "ident") |> 
+    pluck("Spatial.008um") |> 
+    as_tibble(rownames = "gene_symbol") |> 
+    pivot_longer(-gene_symbol, names_to = "cluster") |> 
+    group_by(gene_symbol) |> 
+    mutate(
+      z = value / mean(value)
+    ) |> 
+    ungroup()
+  
+  env$tab <- d |>
+    pivot_wider(id_cols = gene_symbol, names_from = cluster, values_from = z) |>
+    column_to_rownames("gene_symbol")
+
+  with(env, {
+    ggheatmap(tab, order.col = FALSE, with.y.text = TRUE, palette = "viridis",
+              legend.name = "rel expr")  
+  })
+}
+
+
+plot_dots <- function(seu, top_cluster_markers, resolution, extra_genes = NULL) {
+  env <- new.env(parent = globalenv())
+  
+  gns <- unique(top_cluster_markers$gene_symbol)
+  
+  if(!is.null(extra_genes))
+    gns <- c(gns, extra_genes)
+  
+  res <- get_resolution_columns(resolution)
+  Idents(seu) <- res
+  
+  
+  dp <- DotPlot(seu, features = gns)
+  env$d <- dp$data |> 
+    as_tibble(rownames = "gene_symbol")
+   
+  with(env, {
+    ggplot(d, aes(x = id, y = features.plot, colour = avg.exp.scaled, size = pct.exp)) +
+      th +
+      geom_point() +
+      scale_colour_gradient(low = "grey90", high = "blue") +
+      scale_radius(range = c(1, 6)) +
+      labs(x = "Cluster", y = "Gene", size = "Percent expressed", colour = "Average expresion")
+  })
+}
+
+
+plot_key_markers_umap_spatial <- function(seu, key_markers) {
+  all_feat <- Features(seu)
+
+  km <- key_markers |> 
+    filter(gene_symbol %in% all_feat)
+  nums <- key_markers |> 
+    count(cell_type)
+
+  pl <- map(nums$cell_type, function(ct) {
+    gns <- km |> 
+      filter(cell_type == ct) |> 
+      pull(gene_symbol)
+    plot_expression(seu, gns)
+  }) |> 
+    set_names(nums$cell_type)
+
+  #plot_grid(plotlist = pl, labels = nums$cell_type, ncol = 1, rel_heights = nums$n)
+  
+  return(pl)
 }
