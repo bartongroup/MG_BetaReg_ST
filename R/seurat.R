@@ -61,6 +61,21 @@ get_average_expression <- function(seu, assay = "Spatial.008um", layer = "count"
     as_tibble(rownames = "feature_id")
 }
 
+get_gene_expression <- function(seu, genes, norm_per_gene = FALSE) {
+  d <- GetAssayData(seu, layer = "data")[genes, , drop = FALSE] |> 
+    t() |> 
+    as_tibble(rownames = "cell") |> 
+    pivot_longer(-cell, names_to = "gene_symbol", values_to = "expression")
+  if(norm_per_gene) {
+    d <- d |> 
+      group_by(gene_symbol) |> 
+      mutate(expression = expression / max(expression)) |> 
+      ungroup()
+  }
+  return(d)
+}
+
+
 #' Load and preprocess Visium spatial transcriptomics data
 #'
 #' This function loads 10X Visium spatial transcriptomics data from a specified directory,
@@ -114,12 +129,6 @@ get_resolution_columns <- function(v, suffix = "Spatial.008um") {
 }
 
 
-get_gene_expression <- function(seu, genes) {
-  GetAssayData(seu, slot = "data")[genes, , drop = FALSE] |> 
-    t() |> 
-    as_tibble(rownames = "cell") |> 
-    pivot_longer(-cell, names_to = "gene_symbol", values_to = "expression")
-}
 
 get_cluster_cells <- function(seu, res) {
   seu@meta.data |> 
@@ -150,13 +159,19 @@ cluster_seurat <- function(seu, dims = 1:40, resolutions = c(0.1, 0.125, 0.15, 0
 }
 
 
-find_cluster_markers <- function(seu) {
+find_cluster_markers <- function(seu, genes = NULL) {
   #DefaultAssay(seu) <- "Spatial.008um"
-  seu |> 
-    FindAllMarkers(test.use = "wilcox") |> 
-    as_tibble() |> 
-    rename(gene_symbol = gene) |> 
-    relocate(gene_symbol, .before = 1)
+  df <- seu |> 
+    FindAllMarkers(test.use = "wilcox", features = genes) 
+  if(nrow(df) > 0) {
+    df |> 
+      as_tibble() |> 
+      rename(gene_symbol = gene) |> 
+      relocate(gene_symbol, .before = 1)
+  } else {
+    NULL
+  }
+    
 }
 
 get_top_cluster_markers <- function(clm, n_top = 12, fdr_limit = 0.01) {
@@ -173,4 +188,54 @@ get_cluster_cell_count <- function(seu, resolution) {
   seu@meta.data |>
     group_by(cluster = get(res)) |>
     tally()
+}
+
+
+find_gene_correlation <- function(seu, gene, min_cor = 0.3) {
+  expr_data <- GetAssayData(seu, layer = "data")
+
+  ex_gene <- expr_data[gene, , drop = FALSE] |> 
+    t() |> 
+    as.matrix()
+  #ex_gene[ex_gene == 0] <- NA
+
+  ex_all <- expr_data |> 
+    t() |> 
+    as.matrix()
+  #ex_all[ex_all == 0] <- NA
+
+  cr <- cor(ex_gene, ex_all, use = "pairwise.complete.obs")
+  tibble(
+    gene_symbol = colnames(cr),
+    correlation = as.vector(cr)
+  ) |> 
+    arrange(desc(correlation)) |> 
+    filter(correlation >= min_cor)
+}
+
+
+annotate_clusters <- function(seu, key_markers, resolution = NULL) {
+  if(!is.null(resolution)) {
+    res <- get_resolution_columns(resolution)
+    Idents(seu) <- res
+  }
+
+  all_genes <- Features(seu)
+  cell_types <- unique(key_markers$cell_type)
+  markers <- map(cell_types, function(ct) {
+    genes <- key_markers |> 
+      filter(cell_type == ct & gene_symbol %in% all_genes) |> 
+      pull(gene_symbol)
+    cm <- find_cluster_markers(seu, genes)
+    if(!is.null(cm)) {
+      cm <- cm |> add_column(cell_type = ct, .before = 1)
+    }
+    cm
+  }) |> 
+    list_rbind()
+
+  markers |> 
+    group_by(cell_type, cluster) |> 
+    summarise(log_fc = mean(avg_log2FC)) |> 
+    pivot_wider(id_cols = cluster, names_from = cell_type, values_from = log_fc)
 }

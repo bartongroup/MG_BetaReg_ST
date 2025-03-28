@@ -4,7 +4,7 @@ top_data_path <- "data/spaceranger_output"
 EXPERIMENTS <- tibble::tibble(
   SAMPLE = c("1_18191", "2_17961", "3_18171", "4_17966"),
   NAME = c("1", "2", "3", "4"),
-  RESOLUTION = c(0.2, 0.175, 0.05,  0.05),
+  RESOLUTION = c(0.3, 0.3, 0.05,  0.05),
   N_VARIABLE_FEATURES = c(3000, 3000, 3000, 3000),
   MIN_DETECTED_GENES_PER_CELL = c(10, 10, 10, 10),
   MIN_COUNTS_PER_CELL = c(10, 10, 10, 10),

@@ -53,12 +53,11 @@ targets_main <- function() {
       fig_marginals = plot_cell_marginals(cell_data, params, with_vlines = FALSE),
       fig_count_det = plot_count_det(cell_data, params, with_lines = FALSE),
       png_resolutions = plot_resolutions(seu_clust, RESOLUTIONS) |> gs("resolutions", NAME, 8, 32),
-      png_top_cluster_umap = plot_top_cluster_features(seu_clust, top_cluster_markers, what = "umap", file_prefix = paste0("top_clust_umap_", NAME)),
-      png_top_cluster_spatial = plot_top_cluster_features(seu_clust, top_cluster_markers, what = "spatial", file_prefix = paste0("top_clust_spatial_", NAME)),
-      png_top_cluster_expr = plot_expression_clusters(seu_clust, top_cluster_markers$gene_symbol |> unique(), RESOLUTION) |> gs("top_genes", NAME, 8, 12),
-      #png_key_markers = plot_key_markers_umap_spatial(seu, key_markers) |> gs("key_markers", NAME, 8, 30),
+      png_top_cluster = plot_top_cluster_umap_spatial(seu_clust, top_cluster_markers, file_prefix = paste0("top_clust_", NAME)),
+      png_top_cluster_expr = plot_expression_vs_clusters(seu_clust, top_cluster_markers$gene_symbol |> unique(), RESOLUTION) |> gs("top_genes", NAME, 8, 12),
+      png_key_markers = plot_key_markers_umap_spatial(seu_clust, key_markers, file_prefix = paste0("key_markers_", NAME)),
 
-      fig_dots_cluster = plot_dots(seu_clust, top_cluster_markers, resolution = RESOLUTION)
+      fig_dots_cluster = plot_top_cluster_markers_dots(seu_clust, top_cluster_markers, resolution = RESOLUTION)
 
     )
   )

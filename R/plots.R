@@ -166,6 +166,7 @@ plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap
     xy <- FetchData(seu, vars = c("umap_1", "umap_2")) |> 
       as_tibble(rownames = "cell") |> 
       rename(x = umap_1, y = umap_2)
+    point_shape <- 16
   } else {
     xy <- GetTissueCoordinates(seu) |> 
       as_tibble() |> 
@@ -177,16 +178,23 @@ plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap
       rename(y = t) |> 
       mutate(y = -y) |> 
       relocate(cell, .before = 1) 
+    point_shape <- 15
   }
 
   # if gene(s) provided, make an expression plot
   if(!is.null(genes)) {
 
-    ex <- get_gene_expression(seu, genes)
-    pl <- inner_join(xy, ex, by = "cell") |> 
+    ex <- get_gene_expression(seu, genes, norm_per_gene = TRUE)
+    d <- inner_join(xy, ex, by = "cell") 
+    # Plot zeroes first, then expressed genes on top
+    d0 <- d |> filter(expression == 0)
+    d1 <- d |> filter(expression > 0)
+
+    pl <- d0 |> 
       ggplot(aes(x = x, y = y, colour = expression)) +
         thm +
-        geom_point(size = point_size, stroke = 0.1) +
+        geom_point(data = d0, size = point_size, shape = point_shape, stroke = 0.1) +
+        geom_point(data = d1, size = point_size, shape = point_shape, stroke = 0.1) +
         scale_colour_distiller(palette = "Blues", direction = 1) +
         labs(x = NULL, y = NULL)
    if(length(genes) > 1)
@@ -201,7 +209,7 @@ plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap
     pl <- xy_cl |>
       ggplot(aes(x = x, y = y)) +
       thm +
-      geom_point(aes(colour = cluster), size = point_size, stroke = 0.1) +
+      geom_point(aes(colour = cluster), size = point_size, shape = point_shape, stroke = 0.1) +
       scale_colour_brewer(palette = "Paired") +
       labs(x = NULL, y = NULL)
 
@@ -250,31 +258,12 @@ plot_expression <- function(seu, genes, umap_point_size = 0.1, spatial_point_siz
 }
 
 
-plot_top_cluster_features <- function(seu, top_cluster_markers, what, n_top = 12, n_col = 4, point_size = 0.2,
-                                      x_size = 11, y_size = 10, file_prefix = "top_clust_gene") {
-  
-  clusters <- top_cluster_markers$cluster |> 
-    unique() |> 
-    sort()
-  
-  map(clusters, function(cl) {
-    gname <- str_glue("{file_prefix}_cl{cl}")
-    tg <- top_cluster_markers |> 
-      filter(cluster == cl)
-    gids <- tg$gene_symbol
-    plot_one_xy(seu, what = what, point_size = point_size, genes = gids) |> 
-      gs(gname, NULL, x_size, y_size)
-  })
-}
-
-
-plot_expression_clusters <- function(seu, genes, resolution, point_size = 0.5) {
+plot_expression_vs_clusters <- function(seu, genes, resolution, point_size = 0.5) {
   res <- get_resolution_columns(resolution)
   ex <- get_gene_expression(seu, genes) |> 
     filter(expression > 0)
   cl <- get_cluster_cells(seu, res)
   
-
   inner_join(ex, cl, by = "cell") |> 
     ggplot(aes(x = cluster, y = expression)) + 
     th +
@@ -285,7 +274,7 @@ plot_expression_clusters <- function(seu, genes, resolution, point_size = 0.5) {
 
 
 
-plot_top_cluster_markers <- function(seu, top_cluster_markers, resolution) {
+plot_top_cluster_markers_heatmap <- function(seu, top_cluster_markers, resolution) {
   env <- new.env(parent = globalenv())
   
   gns <- unique(top_cluster_markers$gene_symbol)
@@ -293,7 +282,7 @@ plot_top_cluster_markers <- function(seu, top_cluster_markers, resolution) {
   res <- get_resolution_columns(resolution)
   Idents(seu) <- res
   
-  d <- AverageExpression(seu, slot = "data", features = gns, group.by = "ident") |> 
+  d <- AverageExpression(seu, layer = "data", features = gns, group.by = "ident") |> 
     pluck("Spatial.008um") |> 
     as_tibble(rownames = "gene_symbol") |> 
     pivot_longer(-gene_symbol, names_to = "cluster") |> 
@@ -314,7 +303,7 @@ plot_top_cluster_markers <- function(seu, top_cluster_markers, resolution) {
 }
 
 
-plot_dots <- function(seu, top_cluster_markers, resolution, extra_genes = NULL) {
+plot_top_cluster_markers_dots <- function(seu, top_cluster_markers, resolution, extra_genes = NULL) {
   env <- new.env(parent = globalenv())
   
   gns <- unique(top_cluster_markers$gene_symbol)
@@ -341,7 +330,13 @@ plot_dots <- function(seu, top_cluster_markers, resolution, extra_genes = NULL) 
 }
 
 
-plot_key_markers_umap_spatial <- function(seu, key_markers) {
+plot_png_expression_genes <- function(seu, genes, file_name) {
+  plot_expression(seu, genes, spatial_point_size = 0.5, umap_point_size = 0.5) |> 
+    gs(file_name, width = 8, height = 4 * length(genes))
+}
+
+
+plot_key_markers_umap_spatial <- function(seu, key_markers, file_prefix) {
   all_feat <- Features(seu)
 
   km <- key_markers |> 
@@ -349,15 +344,26 @@ plot_key_markers_umap_spatial <- function(seu, key_markers) {
   nums <- key_markers |> 
     count(cell_type)
 
-  pl <- map(nums$cell_type, function(ct) {
+  map(nums$cell_type, function(ct) {
+    gname <- str_glue("{file_prefix}_{ct}")
     gns <- km |> 
       filter(cell_type == ct) |> 
       pull(gene_symbol)
-    plot_expression(seu, gns)
-  }) |> 
-    set_names(nums$cell_type)
+    plot_png_expression_genes(seu, gns, gname)
+  }) 
+}
 
-  #plot_grid(plotlist = pl, labels = nums$cell_type, ncol = 1, rel_heights = nums$n)
+plot_top_cluster_umap_spatial <- function(seu, top_cluster_markers, file_prefix = "top_clust_gene") {
   
-  return(pl)
+  clusters <- top_cluster_markers$cluster |> 
+    unique() |> 
+    sort()
+  
+  map(clusters, function(cl) {
+    gname <- str_glue("{file_prefix}_cl{cl}")
+    gns <- top_cluster_markers |> 
+      filter(cluster == cl) |> 
+      pull(gene_symbol)
+    plot_png_expression_genes(seu, gns, gname)
+  })
 }
