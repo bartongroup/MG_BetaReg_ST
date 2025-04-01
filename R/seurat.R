@@ -1,3 +1,34 @@
+
+#' Load and preprocess Visium spatial transcriptomics data
+#'
+#' This function loads 10X Visium spatial transcriptomics data from a specified directory,
+#' calculates mitochondrial gene fractions, and prepares the metadata for downstream analyses.
+#'
+#' @param path Character string specifying the directory containing 10X Visium data.
+#' @param mito_genes Character vector of mitochondrial gene names used to compute mitochondrial fractions.
+#' @param bin_size Numeric value specifying the bin size (resolution) for spatial binning. Default is 8.
+#'
+#' @return A Seurat object with loaded data, mitochondrial fractions calculated, and standardized metadata.
+load_visium_data <- function(path, mito_genes, bin_size = 8) {
+  seu <- Load10X_Spatial(data.dir = path, bin.size = bin_size)
+
+  suffix <- sprintf("Spatial.%03dum", bin_size)
+  seu_genes <- Features(seu)
+  mito <- intersect(mito_genes, seu_genes)
+  seu$mito_fraction <- PercentageFeatureSet(object = seu, features = mito) / 100
+
+  seu@meta.data <- seu@meta.data |> 
+    as_tibble(rownames = "cell_id") |> 
+    rename(orig_ident = orig.ident, total_count = str_glue("nCount_{suffix}"), n_genes = str_glue("nFeature_{suffix}")) |> 
+    mutate(cell_type = "blank") |> 
+    column_to_rownames("cell_id")
+
+  return(seu)
+}
+
+
+
+
 #' Download cell cycle markers
 #'
 #' @param species A string with species name ("human")
@@ -64,8 +95,8 @@ get_average_expression <- function(seu, assay = "Spatial.008um", layer = "count"
 get_gene_expression <- function(seu, genes, norm_per_gene = FALSE) {
   d <- GetAssayData(seu, layer = "data")[genes, , drop = FALSE] |> 
     t() |> 
-    as_tibble(rownames = "cell") |> 
-    pivot_longer(-cell, names_to = "gene_symbol", values_to = "expression")
+    as_tibble(rownames = "cell_id") |> 
+    pivot_longer(-cell_id, names_to = "gene_symbol", values_to = "expression")
   if(norm_per_gene) {
     d <- d |> 
       group_by(gene_symbol) |> 
@@ -75,33 +106,6 @@ get_gene_expression <- function(seu, genes, norm_per_gene = FALSE) {
   return(d)
 }
 
-
-#' Load and preprocess Visium spatial transcriptomics data
-#'
-#' This function loads 10X Visium spatial transcriptomics data from a specified directory,
-#' calculates mitochondrial gene fractions, and prepares the metadata for downstream analyses.
-#'
-#' @param path Character string specifying the directory containing 10X Visium data.
-#' @param mito_genes Character vector of mitochondrial gene names used to compute mitochondrial fractions.
-#' @param bin_size Numeric value specifying the bin size (resolution) for spatial binning. Default is 8.
-#'
-#' @return A Seurat object with loaded data, mitochondrial fractions calculated, and standardized metadata.
-load_visium_data <- function(path, mito_genes, bin_size = 8) {
-  seu <- Load10X_Spatial(data.dir = path, bin.size = bin_size)
-
-  suffix <- sprintf("Spatial.%03dum", bin_size)
-  seu_genes <- Features(seu)
-  mito <- intersect(mito_genes, seu_genes)
-  seu$mito_fraction <- PercentageFeatureSet(object = seu, features = mito) / 100
-
-  seu@meta.data <- seu@meta.data |> 
-    as_tibble(rownames = "cell_id") |> 
-    rename(orig_ident = orig.ident, total_count = str_glue("nCount_{suffix}"), n_genes = str_glue("nFeature_{suffix}")) |> 
-    mutate(cell_type = "blank") |> 
-    column_to_rownames("cell_id")
-
-  return(seu)
-}
 
 
 #' Extract gene data from a seurat object 
@@ -130,10 +134,10 @@ get_resolution_columns <- function(v, suffix = "Spatial.008um") {
 
 
 
-get_cluster_cells <- function(seu, res) {
+get_meta_column <- function(seu, col) {
   seu@meta.data |> 
-    as_tibble(rownames = "cell") |> 
-    select(cell, cluster = res)
+    as_tibble(rownames = "cell_id") |> 
+    select(cell_id, value = all_of(col))
 }
 
 # Algorithm = 4 selects Leiden algorithm. Leiden improves on Louvain by providing a guarantee of connected
@@ -191,26 +195,32 @@ get_cluster_cell_count <- function(seu, resolution) {
 }
 
 
-find_gene_correlation <- function(seu, gene, min_cor = 0.3) {
+find_gene_correlation <- function(seu, genes, min_cor = -1) {
   expr_data <- GetAssayData(seu, layer = "data")
-
-  ex_gene <- expr_data[gene, , drop = FALSE] |> 
-    t() |> 
-    as.matrix()
-  #ex_gene[ex_gene == 0] <- NA
 
   ex_all <- expr_data |> 
     t() |> 
     as.matrix()
   #ex_all[ex_all == 0] <- NA
 
-  cr <- cor(ex_gene, ex_all, use = "pairwise.complete.obs")
-  tibble(
-    gene_symbol = colnames(cr),
-    correlation = as.vector(cr)
-  ) |> 
-    arrange(desc(correlation)) |> 
-    filter(correlation >= min_cor)
+  map(genes, function(gene) {
+    ex_gene <- expr_data[gene, , drop = FALSE] |> 
+      t() |> 
+      as.matrix()
+    #ex_gene[ex_gene == 0] <- NA
+  
+  
+    cr <- cor(ex_gene, ex_all, use = "pairwise.complete.obs")
+    tibble(
+      gene_symbol = colnames(cr),
+      correlation = as.vector(cr)
+    ) |> 
+      arrange(desc(correlation)) |> 
+      filter(correlation >= min_cor) |> 
+      add_column(sel_gene = gene, .before = 1) |> 
+      filter(sel_gene != gene_symbol)
+  }) |> 
+    list_rbind()
 }
 
 

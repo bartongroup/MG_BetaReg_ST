@@ -17,10 +17,19 @@ targets_main <- function() {
     chromosomes = biomart_fetch_chromosomes(mart),
     gns =  biomart_fetch_genes(mart) |> filter(chr %in% chromosomes),
 
+    terms = get_functional_terms_sym(config_annot$designations),
+    fterms = prepare_terms_fenr(terms, SeuratObject::Features(seu_1), feature_name = "gene_symbol"),
+
     cell_cycle_markers = get_cell_cycle_markers(config$species, gns),
     mito_genes =  gns |> filter(chr == "MT") |> pull(gene_symbol),
 
-    key_markers = read_markers("info/Key markers of pancreatic development stages.xlsx")
+    key_markers = read_markers("info/Key markers of pancreatic development stages.xlsx"),
+
+    mpc_markers = c("PTF1A", "SOX9", "NKX6-1", "PDX1"),
+    ep_markers = c("NEUROD1", "NEUROG3", "NKX2-2", "PAX4", "PAX6"),
+    beta_markers = "INS",
+
+    select_markers = get_unique_markers(mpc_markers, ep_markers, beta_markers)
   )
 
   map_experiments <- tar_map(
@@ -39,26 +48,42 @@ targets_main <- function() {
       ),
       
       # Create Seurat object
-      seu = load_visium_data(DATA_PATH, mito_genes) |> NormalizeData(),
+      seu = load_visium_data(DATA_PATH, mito_genes) |> NormalizeData() |> mark_cell_types(select_markers),
       seu_clust = cluster_seurat(seu, ident_res = RESOLUTION, resolutions = RESOLUTIONS),
       cluster_markers = find_cluster_markers(seu_clust),
       top_cluster_markers = get_top_cluster_markers(cluster_markers, n_top = 12),
+      key_marker_genes = key_markers$gene_symbol |> unique() |> intersect(SeuratObject::Features(seu)),
+      top_cluster_genes = top_cluster_markers$gene_symbol |> unique(),
 
       # Gene detection
       gene_detection = get_gene_detection(seu) |> tibble::add_column(sample = NAME),
       cell_data = get_cell_data(seu)|> tibble::add_column(sample = NAME),
       tbl_cuts = make_table_cuts(params),
 
+      # Genes
+      tbl_key_corr = find_gene_correlation(seu_clust, key_marker_genes),
+      tbl_cluster_enrichment = cluster_enrichment(top_cluster_markers, fterms),
+
       # Figures
       fig_marginals = plot_cell_marginals(cell_data, params, with_vlines = FALSE),
       fig_count_det = plot_count_det(cell_data, params, with_lines = FALSE),
+
+      # Fig clustering
       png_resolutions = plot_resolutions(seu_clust, RESOLUTIONS) |> gs("resolutions", NAME, 8, 32),
       png_top_cluster = plot_top_cluster_umap_spatial(seu_clust, top_cluster_markers, file_prefix = paste0("top_clust_", NAME)),
-      png_top_cluster_expr = plot_expression_vs_clusters(seu_clust, top_cluster_markers$gene_symbol |> unique(), RESOLUTION) |> gs("top_genes", NAME, 8, 12),
+      png_top_cluster_expr = plot_gene_expression(seu_clust, top_cluster_genes) |> gs("top_genes", NAME, 8, 12),
+      fig_dots_top_cluster = plot_gene_dots(seu_clust_1, top_cluster_genes),
+
+      # Fig key markers
       png_key_markers = plot_key_markers_umap_spatial(seu_clust, key_markers, file_prefix = paste0("key_markers_", NAME)),
+      png_key_markers_expr = plot_gene_expression(seu_clust, key_marker_genes) |> gs("key_marker_expr", NAME, 8, 12),
+      fig_dots_key_markers = plot_gene_dots(seu_clust, key_marker_genes),
+      fig_cor_heat_key_markers = plot_gene_cor(tbl_key_corr, min_cor = 0.3),
+      fig_xy_marker_mpc_ep = plot_gene_vs_gene_cluster(seu_clust, mpc_markers, ep_markers, clust_sel = c(1, 2, 6)),
+      fig_xy_marker_mpc_beta = plot_gene_vs_gene_cluster(seu_clust, mpc_markers, beta_markers, clust_sel = c(1, 2, 6)),
 
-      fig_dots_cluster = plot_top_cluster_markers_dots(seu_clust, top_cluster_markers, resolution = RESOLUTION)
-
+      # Cell types
+      fig_cell_type = plot_cell_type(seu_clust) |> gs("cell_type", NAME, 8, 4)
     )
   )
 

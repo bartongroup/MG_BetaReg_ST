@@ -130,7 +130,9 @@ plot_all_counts <- function(cell_data_all, gene_detection_all) {
     pl_("Cell count")
 
   pl3 <- gene_detection_all |> 
-    summarise(n = median(blank), .by = "sample") |> 
+    pivot_longer(-c(gene_symbol, sample)) |> 
+    summarise(tot = sum(value), .by = c("gene_symbol", "sample")) |> 
+    summarise(n = median(tot), .by = "sample") |> 
     pl_("Median gene count per cell")
 
   pl2 <- cell_data_all |> 
@@ -151,10 +153,11 @@ plot_all_counts <- function(cell_data_all, gene_detection_all) {
 #' @param what Character value specifying the type of coordinates to plot. Choices are "umap" or "spatial". Default is "umap".
 #' @param gene Optional character specifying the gene names whose expression will be used for coloring. Default is NULL.
 #' @param with_legend Logical indicating whether to include the legend in the plot. Default is FALSE.
+#' @param combine_genes If true, combine normalised-to-max epxression across genes
 #'
 #' @return A ggplot2 object.
-plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap", "spatial"),
-                        genes = NULL, with_legend = FALSE, label_size = 6) {
+plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap", "spatial"), meta_column = "cluster",
+                        genes = NULL, with_legend = FALSE, label_size = 6, combine_genes = FALSE, discrete_palette = NULL) {
   what <- match.arg(what)
 
   # Convert resolutions (e.g. "0.1") into metadata column name ("Spatial.008um_snn_res.0.1")
@@ -164,12 +167,13 @@ plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap
   # Create x-y coordinates for umap or spatial
   if(what == "umap") {
     xy <- FetchData(seu, vars = c("umap_1", "umap_2")) |> 
-      as_tibble(rownames = "cell") |> 
+      as_tibble(rownames = "cell_id") |> 
       rename(x = umap_1, y = umap_2)
     point_shape <- 16
   } else {
     xy <- GetTissueCoordinates(seu) |> 
-      as_tibble() |> 
+      as_tibble(rownames = "cell_id") |>
+      select(-cell) |> 
       # Rearrange cooridnates to look like Newcastle report
       rename(
         t = x,
@@ -177,7 +181,7 @@ plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap
       ) |> 
       rename(y = t) |> 
       mutate(y = -y) |> 
-      relocate(cell, .before = 1) 
+      relocate(cell_id, .before = 1) 
     point_shape <- 15
   }
 
@@ -185,7 +189,13 @@ plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap
   if(!is.null(genes)) {
 
     ex <- get_gene_expression(seu, genes, norm_per_gene = TRUE)
-    d <- inner_join(xy, ex, by = "cell") 
+    if(combine_genes) {
+      ex <- ex |> 
+        group_by(cell_id) |> 
+        summarise(expression = mean(expression)) |> 
+        add_column(gene_symbol = "Combined")
+    }
+    d <- inner_join(xy, ex, by = "cell_id") 
     # Plot zeroes first, then expressed genes on top
     d0 <- d |> filter(expression == 0)
     d1 <- d |> filter(expression > 0)
@@ -197,28 +207,38 @@ plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap
         geom_point(data = d1, size = point_size, shape = point_shape, stroke = 0.1) +
         scale_colour_distiller(palette = "Blues", direction = 1) +
         labs(x = NULL, y = NULL)
-   if(length(genes) > 1)
+   if(length(genes) > 1 & !combine_genes)
       pl <- pl + facet_wrap(~ gene_symbol)
     
     
-  # Otherwise make clustering plot
+  # Otherwise make clustering or cell type plot
   } else {
 
-    cl <- get_cluster_cells(seu, res)
-    xy_cl <- inner_join(xy, cl, by = "cell")
+    if(meta_column == "cluster") {
+      col <- res
+    } else {
+      col <- meta_column
+    }
+
+    cl <- get_meta_column(seu, col)
+    xy_cl <- inner_join(xy, cl, by = "cell_id")
     pl <- xy_cl |>
       ggplot(aes(x = x, y = y)) +
       thm +
-      geom_point(aes(colour = cluster), size = point_size, shape = point_shape, stroke = 0.1) +
-      scale_colour_brewer(palette = "Paired") +
+      geom_point(aes(colour = value), size = point_size, shape = point_shape, stroke = 0.1) +
       labs(x = NULL, y = NULL)
+    if(is.null(discrete_palette)) {
+      pl <- pl + scale_colour_brewer(palette = "Paired")
+    } else {
+      pl <- pl + scale_colour_manual(values = discrete_palette)
+    }
 
     if(what == "umap") {
       xy_cl_mean <- xy_cl |>
-        group_by(cluster) |> 
+        group_by(value) |> 
         summarise(mx = mean(x), my = mean(y))
       pl <- pl +  
-        geom_text(data = xy_cl_mean, aes(label = cluster, x = mx, y = my), colour = "black", size = label_size)
+        geom_text(data = xy_cl_mean, aes(label = value, x = mx, y = my), colour = "black", size = label_size)
     }
 
   }
@@ -244,40 +264,104 @@ plot_resolutions <- function(seu, resolutions, umap_point_size = 0.2, spatial_po
 }
 
 
-plot_expression <- function(seu, genes, umap_point_size = 0.1, spatial_point_size = 0.2, label_size = 5) {
+plot_cell_type <- function(seu, umap_point_size = 0.2, spatial_point_size = 0.4, label_size = 5) {
 
-  pl <- map(genes, function(gene) {
+  pal <- c(okabe_ito_palette[c(3, 6, 4)], "grey90")
+  pl1 <- plot_one_xy(seu, point_size = umap_point_size, what = "umap", meta_column = "cell_type", discrete_palette = pal)
+  pl2 <- plot_one_xy(seu, point_size = spatial_point_size, what = "spatial", meta_column = "cell_type", discrete_palette = pal)
+  plot_grid(pl1, pl2, nrow = 1, rel_widths = c(1, 1))
 
-    pl1 <- plot_one_xy(seu, genes = gene, point_size = umap_point_size, what = "umap")
-    pl2 <- plot_one_xy(seu, genes = gene, point_size = spatial_point_size, what = "spatial")
+}
+
+
+plot_expression <- function(seu, genes, umap_point_size = 0.1, spatial_point_size = 0.2, label_size = 5, combine_genes = FALSE) {
+
+  plot_side_by_side <- function(gn) {
+    pl1 <- plot_one_xy(seu, genes = gn, point_size = umap_point_size, what = "umap", combine_genes = combine_genes)
+    pl2 <- plot_one_xy(seu, genes = gn, point_size = spatial_point_size, what = "spatial", combine_genes = combine_genes)
     plot_grid(pl1, pl2, nrow = 1, rel_widths = c(1, 1))
-  })
+  }
 
-  plot_grid(plotlist = pl, ncol = 1, labels = genes)
+  if(combine_genes) {
+    plot_side_by_side(genes)
+  } else {
+    pl <- map(genes, function(gene) {
+      plot_side_by_side(gene)
+    })
+    plot_grid(plotlist = pl, ncol = 1, labels = genes)
+  }
 
 }
 
 
-plot_expression_vs_clusters <- function(seu, genes, resolution, point_size = 0.5) {
-  res <- get_resolution_columns(resolution)
-  ex <- get_gene_expression(seu, genes) |> 
-    filter(expression > 0)
-  cl <- get_cluster_cells(seu, res)
+plot_gene_expression <- function(seu, gids, layer = "data", width = 0.3, ncol = NULL) {
   
-  inner_join(ex, cl, by = "cell") |> 
-    ggplot(aes(x = cluster, y = expression)) + 
-    th +
-    geom_quasirandom(size = point_size) +
-    facet_wrap(~gene_symbol)
+  # Necessary to avoid keeping large (~1 GB) environment within ggplot object
+  env <- new.env(parent = globalenv())
+  env$width <- width
+  env$ncol <- ncol
+  
+  mt <- seu@meta.data |> 
+    as_tibble(rownames = "cell_id")
+  
+  env$d <- GetAssayData(seu, layer = layer)[gids, , drop = FALSE] |> 
+    t() |> 
+    as.data.frame() |> 
+    rownames_to_column("cell_id") |> 
+    as_tibble() |> 
+    pivot_longer(-cell_id, names_to = "gene_symbol") |>
+    left_join(mt, by = "cell_id") |> 
+    mutate(
+      grp = cluster,
+      igrp = as.integer(grp)
+    )
+  env$groups <- levels(env$d$grp)
+  env$m <- env$d |> 
+    group_by(gene_symbol, igrp) |> 
+    summarise(
+      mn = mean(value[value > 0], na.rm = TRUE),
+      md = median(value[value > 0], na.rm = TRUE),
+      p = length(which(value > 0)) / n()
+    )
+  
+  mrg <- 0.2
+  env$max_y <- max(env$d$value)
+  env$min_y <- -mrg * env$max_y
+
+  env$m <- env$m |>
+    mutate(y = (1 - p) * env$min_y)
+  
+  env$d <- env$d |> 
+    filter(value > 0)
+  
+  
+  
+  env$wid <- 0.3
+  with(env, {
+    ggplot(d, aes(x = igrp, y = value)) +
+      theme_bw() +
+      theme(panel.grid = element_blank()) +
+      geom_quasirandom(size = 0.5, colour = "grey60", width = width) +
+      geom_segment(data = m, aes(x = igrp - wid, xend = igrp + wid, y = md, yend = md), linewidth = 1) +
+      geom_col(data = m, aes(y = min_y), fill = "brown", width = wid) +
+      geom_col(data = m, aes(y = y), fill = "grey80", width = wid) +
+      facet_wrap( ~ gene_symbol, ncol = ncol) +
+      geom_hline(yintercept = 0, colour = "grey70") +
+      scale_x_continuous(breaks = seq_along(groups), labels = groups) +
+      scale_y_continuous(limits = c(min_y, max_y), expand = expansion(mult = c(0, 0.03))) +
+      labs(x = NULL, y = "Value")
+  })
 }
 
 
 
-
-plot_top_cluster_markers_heatmap <- function(seu, top_cluster_markers, resolution) {
+plot_gene_heatmap <- function(seu, gns) {
   env <- new.env(parent = globalenv())
   
-  gns <- unique(top_cluster_markers$gene_symbol)
+  if(!is.null(resolution)) {
+    res <- get_resolution_columns(resolution)
+    Idents(seu) <- res  
+  }
 
   res <- get_resolution_columns(resolution)
   Idents(seu) <- res
@@ -303,17 +387,13 @@ plot_top_cluster_markers_heatmap <- function(seu, top_cluster_markers, resolutio
 }
 
 
-plot_top_cluster_markers_dots <- function(seu, top_cluster_markers, resolution, extra_genes = NULL) {
+plot_gene_dots <- function(seu, gns, resolution = NULL) {
   env <- new.env(parent = globalenv())
-  
-  gns <- unique(top_cluster_markers$gene_symbol)
-  
-  if(!is.null(extra_genes))
-    gns <- c(gns, extra_genes)
-  
-  res <- get_resolution_columns(resolution)
-  Idents(seu) <- res
-  
+
+  if(!is.null(resolution)) {
+    res <- get_resolution_columns(resolution)
+    Idents(seu) <- res  
+  }
   
   dp <- DotPlot(seu, features = gns)
   env$d <- dp$data |> 
@@ -366,4 +446,48 @@ plot_top_cluster_umap_spatial <- function(seu, top_cluster_markers, file_prefix 
       pull(gene_symbol)
     plot_png_expression_genes(seu, gns, gname)
   })
+}
+
+
+plot_gene_cor <- function(tbl_cor, min_cor = 0.3) {
+  good_genes <- tbl_cor |> 
+    filter(correlation >= min_cor) |> 
+    pull(gene_symbol) |> 
+    unique()
+  if(length(good_genes) == 0)
+    return(NULL)
+  tab <- tbl_cor |> 
+    filter(gene_symbol %in% good_genes)  |> 
+    pivot_wider(id_cols = gene_symbol, names_from = sel_gene, values_from = correlation) |> 
+    column_to_rownames("gene_symbol")
+  ggheatmap(tab, palette = "viridis", with.y.text = TRUE, legend.name = "Correlation")
+}
+
+plot_gene_vs_gene_cluster <- function(seu, genes1, genes2, clust_sel = NULL, point_size = 0.5) {
+
+  mt <- get_cell_data(seu) |> 
+    select(cell_id, cluster)
+
+  palette <- okabe_ito_palette
+  if(!is.null(clust_sel)) {
+    mt <- mt |> 
+      mutate(
+        cluster = as.character(cluster),
+        cluster = if_else(cluster %in% clust_sel, cluster, "0")
+      ) 
+    palette <- c("grey90", okabe_ito_palette)
+  }
+
+  d1 <- get_gene_expression(seu, genes1, norm_per_gene = TRUE) |> 
+    summarise(gr1 = mean(expression), .by = cell_id)
+  d2 <- get_gene_expression(seu, genes2, norm_per_gene = TRUE) |> 
+    summarise(gr2 = mean(expression), .by = cell_id)
+
+  inner_join(d1, d2, by = "cell_id") |> 
+    left_join(mt, by = "cell_id") |> 
+  ggplot(aes(x = gr1, y = gr2, colour = cluster)) +
+    th +
+    geom_point(size = point_size) +
+    scale_colour_manual(values = palette) +
+    labs(x = str_c(genes1, collapse = ","), y = str_c(genes2, collapse = ","))
 }

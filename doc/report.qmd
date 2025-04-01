@@ -169,7 +169,187 @@ plot_grid(fig_count_det_1, fig_count_det_2, fig_count_det_3, fig_count_det_4, la
 ```{r}
 #| label: fig-umap-clusters
 #| fig-cap: UMAP reduction at different clustering levels. 
-knitr::include_graphics("../fig/umap_spatial_1.png") 
+knitr::include_graphics("../fig/resolutions_1.png") 
+```
+
+
+::: {.panel-tabset}
+
+### Cluster 1
+
+![Cl 1](../fig/top_clust_1_cl1.png)
+
+### Cl 2
+
+![Cl 2](../fig/top_clust_1_cl2.png)
+
+### Cl 3
+
+![Cl 3](../fig/top_clust_1_cl3.png)
+
+### Cl 4
+
+![Cl 4](../fig/top_clust_1_cl4.png)
+
+### Cl 5
+
+![Cl 5](../fig/top_clust_1_cl5.png)
+
+### Cl 6
+
+![Cl 6](../fig/top_clust_1_cl6.png)
+
+### Cl 7
+
+![Cl 7](../fig/top_clust_1_cl7.png)
+
+:::
+
+### Cluster enrichment
+
+```{r}
+#| label: tbl-cluster-enrichment
+#| tbl-cap: Functional enrichment from top cluster genes. The table is divided per cluster.
+tar_read(tbl_cluster_enrichment_1) |> 
+  dplyr::arrange(cluster) |> 
+  dplyr::group_by(cluster) |> 
+  dplyr::select(term_id, term_name, n_with_sel, odds_ratio, ids, cluster) |> 
+  gt()
+```
+
+### Dot plot
+
+```{r}
+#| label: fig-cluster-dot-plot
+#| fig-cap: Dot plot for top genes in each cluster.
+#| fig-width: 8
+#| fig-height: 15
+tar_read(fig_dots_top_cluster_1)
+```
+
+## Key markers
+
+```{r}
+#| label: key-markers
+#| tbl-cap: Key marker genes.
+tar_read(key_markers) |> 
+  mutate(value = "x") |> 
+  arrange(cell_type) |> 
+  pivot_wider(id_cols = gene_symbol, names_from = cell_type, values_fill = "") |> 
+  gt() |> 
+   tab_style(
+    style = list(
+      cell_borders(
+        sides = c("left", "right"),
+        color = "grey80",
+        weight = px(2)
+      )
+    ),
+    locations = list(
+      cells_body(
+        columns = everything()
+      )
+    )
+  )
+```
+
+::: {.panel-tabset}
+
+### MPC
+
+![MPC](../fig/key_markers_1_MPC.png)
+
+### EP
+
+![EP](../fig/key_markers_1_EP.png)
+
+### Beta
+
+![Beta](../fig/key_markers_1_Beta.png)
+
+### Alpha
+
+![Alpha](../fig/key_markers_1_Alpha.png)
+
+### Delta
+
+![Delta](../fig/key_markers_1_Delta.png)
+
+### PP
+
+![PP](../fig/key_markers_1_PP.png)
+
+### Epsilon
+
+![Epsilon](../fig/key_markers_1_Epsilon.png)
+
+
+:::
+
+
+
+```{r}
+#| label: fig-key-markers-expr
+#| fig-cap: Expression (top) and percentage of expresses cells (bottom) for each of the key markers across clusters. 
+knitr::include_graphics("../fig/key_marker_expr_1.png") 
+```
+
+
+
+```{r}
+#| label: fig-markers-dot-plot
+#| fig-cap: Dot plot for key markers.
+#| fig-width: 8
+#| fig-height: 5
+tar_read(fig_dots_key_markers_1)
+```
+
+
+```{r}
+#| label: fig-markers-cor
+#| fig-cap: Correlation of key markers with other genes. Only genes with Pearson's correlation coefficient greater than 0.3 with at least one key marker gene are shown.
+#| fig-width: 8
+#| fig-height: 15
+tar_read(fig_cor_heat_key_markers_1)
+```
+
+
+```{r}
+#| label: fig-xy-markers-mpc-ep
+#| fig-cap: EP vs MPC selected markers. Each axis shows the mean expression across genes. Each gene is first normalised to its maximum intensity, so the mean is not dominated by the most expressed gene.
+#| fig-width: 6
+#| fig-height: 5
+tar_read(fig_xy_marker_mpc_ep_1)
+```
+
+```{r}
+#| label: fig-xy-markers-mpc-beta
+#| fig-cap: Beta vs MPC selected markers. Each axis shows the mean expression across genes. Each gene is first normalised to its maximum intensity, so the mean is not dominated by the most expressed gene.
+#| fig-width: 6
+#| fig-height: 5
+tar_read(fig_xy_marker_mpc_beta_1)
+```
+
+## Cell type marking
+
+```{r}
+#| label: tbl-cell-type-rules
+#| tbl-cap: Rules to mark cell types. MPC, EP and Beta are as shown in @fig-xy-markers-mpc-ep and @fig-xy-markers-mpc-beta.
+tibble::tribble(
+  ~Rule, ~`Cell type`,
+  "Beta > 0", "Beta",
+  "EP > 0.15", "EP",
+  "EP <= 0.15 & MPC > 0",  "MPC"
+) |> 
+  gt()
+```
+
+
+
+```{r}
+#| label: fig-cell_types
+#| fig-cap: Cell types marked using rules outlined in @tbl-cell-type-rules.
+knitr::include_graphics("../fig/cell_type_1.png")  
 ```
 
 
