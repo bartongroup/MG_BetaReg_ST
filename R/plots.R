@@ -45,7 +45,7 @@ make_table_cuts <- function(params) {
 
 
 
-plot_cell_marginals <- function(cell_data, params, with_vlines = TRUE) {
+plot_cell_marginals <- function(cell_data, params = NULL, with_vlines = TRUE) {
   pl_ <- function(what, xlab, log_scale = TRUE) {
     pl <- cell_data |> 
       mutate(val = get(what)) |> 
@@ -98,7 +98,7 @@ plot_gene_detections <- function(gene_detection, max_det = 8) {
   
 }
 
-plot_count_det <- function(cell_data, params, with_lines = TRUE) {
+plot_count_det <- function(cell_data, params = NULL, with_lines = TRUE) {
   pl <- cell_data |> 
     ggplot(aes(x = total_count, y = n_genes, colour = mito_fraction)) +
     th +
@@ -117,30 +117,32 @@ plot_count_det <- function(cell_data, params, with_lines = TRUE) {
 }
 
 plot_all_counts <- function(cell_data_all, gene_detection_all) {
-  pl_ <- function(d, ylab) {
-    ggplot(d, aes(x = sample, y = n)) +
-    th +
-    geom_col() +
-    scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
-    labs(x = "Sample", y = ylab)
-  }
+  env <- new.env(parent = globalenv())
 
-  pl1 <- cell_data_all |> 
-    count(sample) |> 
-    pl_("Cell count")
-
-  pl3 <- gene_detection_all |> 
+  env$d1 <- cell_data_all |> 
+    count(sample)
+  env$d3 <- gene_detection_all |> 
     pivot_longer(-c(gene_symbol, sample)) |> 
     summarise(tot = sum(value), .by = c("gene_symbol", "sample")) |> 
-    summarise(n = median(tot), .by = "sample") |> 
-    pl_("Median gene count per cell")
+    summarise(n = median(tot), .by = "sample")
+  env$d2 <- cell_data_all |> 
+    summarise(n = sum(total_count) / 1e6, .by = "sample")
 
-  pl2 <- cell_data_all |> 
-    summarise(n = sum(total_count) / 1e6, .by = "sample") |> 
-    pl_("Total read count (millions)")
+  with(env, {
+    pl_ <- function(d, ylab) {
+      ggplot(d, aes(x = sample, y = n)) +
+      th +
+      geom_col() +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+      labs(x = "Sample", y = ylab)
+    }
 
-
-  plot_grid(pl1, pl2, pl3, nrow = 1)
+    pl1 <- pl_(d1, "Cell count")
+    pl3 <- pl_(d3, "Median gene count per cell")
+    pl2 <- pl_(d2, "Total read count (millions)")
+  
+    plot_grid(pl1, pl2, pl3, nrow = 1)
+  })
 }
 
 #'
@@ -264,21 +266,21 @@ plot_resolutions <- function(seu, resolutions, umap_point_size = 0.2, spatial_po
 }
 
 
-plot_cell_type <- function(seu, umap_point_size = 0.2, spatial_point_size = 0.4, label_size = 5) {
+plot_cell_type <- function(seu, umap_point_size = 0.3, spatial_point_size = 0.6, label_size = 3) {
 
-  pal <- c(okabe_ito_palette[c(3, 6, 4)], "grey90")
-  pl1 <- plot_one_xy(seu, point_size = umap_point_size, what = "umap", meta_column = "cell_type", discrete_palette = pal)
-  pl2 <- plot_one_xy(seu, point_size = spatial_point_size, what = "spatial", meta_column = "cell_type", discrete_palette = pal)
-  plot_grid(pl1, pl2, nrow = 1, rel_widths = c(1, 1))
+  pal <- c(okabe_ito_palette[c(3, 6, 4, 1, 2, 5)], "grey90")
+  pl1 <- plot_one_xy(seu, point_size = umap_point_size, label_size = label_size, what = "umap", meta_column = "cell_type", discrete_palette = pal, with_legend = FALSE)
+  pl2 <- plot_one_xy(seu, point_size = spatial_point_size, label_size = label_size, what = "spatial", meta_column = "cell_type", discrete_palette = pal, with_legend = TRUE) + guides(colour = guide_legend(override.aes = list(size = 3)))
+  plot_grid(pl1, pl2, nrow = 1, rel_widths = c(1, 1.2))
 
 }
 
 
-plot_expression <- function(seu, genes, umap_point_size = 0.1, spatial_point_size = 0.2, label_size = 5, combine_genes = FALSE) {
+plot_expression <- function(seu, genes, umap_point_size = 0.1, spatial_point_size = 0.2, label_size = 5, grid_label_size = 10, combine_genes = FALSE) {
 
   plot_side_by_side <- function(gn) {
-    pl1 <- plot_one_xy(seu, genes = gn, point_size = umap_point_size, what = "umap", combine_genes = combine_genes)
-    pl2 <- plot_one_xy(seu, genes = gn, point_size = spatial_point_size, what = "spatial", combine_genes = combine_genes)
+    pl1 <- plot_one_xy(seu, genes = gn, point_size = umap_point_size, what = "umap", combine_genes = combine_genes, label_size = label_size)
+    pl2 <- plot_one_xy(seu, genes = gn, point_size = spatial_point_size, what = "spatial", combine_genes = combine_genes, label_size = label_size)
     plot_grid(pl1, pl2, nrow = 1, rel_widths = c(1, 1))
   }
 
@@ -288,7 +290,7 @@ plot_expression <- function(seu, genes, umap_point_size = 0.1, spatial_point_siz
     pl <- map(genes, function(gene) {
       plot_side_by_side(gene)
     })
-    plot_grid(plotlist = pl, ncol = 1, labels = genes)
+    plot_grid(plotlist = pl, ncol = 1, labels = genes, label_size = grid_label_size, label_y = 0.95)
   }
 
 }
@@ -411,8 +413,8 @@ plot_gene_dots <- function(seu, gns, resolution = NULL) {
 
 
 plot_png_expression_genes <- function(seu, genes, file_name) {
-  plot_expression(seu, genes, spatial_point_size = 0.5, umap_point_size = 0.5) |> 
-    gs(file_name, width = 8, height = 4 * length(genes))
+  plot_expression(seu, genes, spatial_point_size = 0.25, umap_point_size = 0.25, grid_label_size = 10) |> 
+    gs(file_name, width = 4, height = 2 * length(genes))
 }
 
 
@@ -490,4 +492,57 @@ plot_gene_vs_gene_cluster <- function(seu, genes1, genes2, clust_sel = NULL, poi
     geom_point(size = point_size) +
     scale_colour_manual(values = palette) +
     labs(x = str_c(genes1, collapse = ","), y = str_c(genes2, collapse = ","))
+}
+
+
+plot_cell_marker_pca <- function(seu, select_markers) {
+
+  env <- new.env(parent = globalenv())
+
+  tab <- get_group_gene_expression(seu, select_markers, group_var = "cell_type") |> 
+    select(-cell_id) |> 
+    as.matrix() |> 
+    t()
+
+  tab <- tab[apply(tab, 1, function(v) sum(v) > 0), ]
+  tab <- tab[apply(tab, 1, sd) > 0, ]
+
+  pca <- prcomp(t(tab), scale. = TRUE, center = TRUE)
+  var.perc <- 100 * (pca$sdev)^2 / sum((pca$sdev)^2)
+  
+  env$pca1 <- sprintf("PCA1 (%5.1f%%)", var.perc[1])
+  env$pca2 <- sprintf("PCA2 (%5.1f%%)", var.perc[2])
+
+  env$xy <- pca$x |>
+    as_tibble(rownames = "id") |>
+    select(x = PC1, y = PC2, id)
+
+  with(env, {
+    xy |> 
+      ggplot(aes(x = x, y = y)) +
+      th +
+      geom_point() +
+      labs(x = pca1, y = pca2)
+  })
+}
+
+
+make_list_for_upset <- function(mex) {
+  d <- mex |> 
+    pivot_longer(-cell_id) |> 
+    filter(value > 0.5)
+  groups <- unique(d$name)
+
+  map(groups, function(gr) {
+    d |> 
+      filter(name == gr) |> 
+      pull(cell_id)
+  }) |> 
+    set_names(groups)
+}
+
+make_combmat_for_upset <- function(mex, ...) {
+  mex |> 
+    make_list_for_upset() |> 
+    ComplexHeatmap::make_comb_mat(...)
 }

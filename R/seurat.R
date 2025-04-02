@@ -107,6 +107,27 @@ get_gene_expression <- function(seu, genes, norm_per_gene = FALSE) {
 }
 
 
+get_group_gene_expression <- function(seu, df, group_var = "cell_type") {
+  d <- df |> 
+    mutate(group = get(group_var))
+
+  groups <- d$group |> unique()
+  cell_order <- seu@meta.data |> 
+    rownames()
+
+  map(groups, function(gr) {
+    gns <- d |> 
+      filter(group == gr) |> 
+      pull(gene_symbol)
+    get_gene_expression(seu, gns, norm_per_gene = TRUE) |> 
+      summarise(expression = mean(expression), .by = cell_id) |> 
+      add_column(group = gr)
+  }) |> 
+    list_rbind() |> 
+    pivot_wider(id_cols = cell_id, names_from = group, values_from = expression) 
+}
+
+
 
 #' Extract gene data from a seurat object 
 #'

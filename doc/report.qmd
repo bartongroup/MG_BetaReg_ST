@@ -32,11 +32,13 @@ editor:
 #| label: libraries
 #| cache: false
 suppressPackageStartupMessages({
+  library(knitr)
   library(ggplot2)
   library(dplyr)
   library(tidyr)
   library(purrr)
   library(forcats)
+  library(stringr)
   library(targets)
   library(gt)
   library(cowplot)
@@ -82,7 +84,7 @@ MPCs (Multipotent Progenitor Cells), endocrine progenitors, and beta cells are a
 
  - Role: During pancreatic development, MPCs are crucial for forming the different cell types that make up the pancreas. They are multipotent, meaning they are not yet fully specialized and can still choose between different developmental paths.
 
-## Endocrine Progenitors
+## EPs (Endocrine Progenitors)
 
  - Definition: Endocrine progenitors are a more specialized type of progenitor cell that is committed to becoming part of the endocrine pancreas. The endocrine pancreas is responsible for producing hormones like insulin, glucagon, and somatostatin, which regulate blood sugar levels.
 
@@ -147,19 +149,13 @@ tar_read(fig_counts)
 ```{r}
 #| label: fig-marginals
 #| fig-cap: "Distribution of: Left - total count (number of UMIs) per cell. Middle -  Number of genes detected per cell. Right -  Fraction of counts coming from mitochondrial genes. Labels 1-4 indicate sample numbers."
-#| fig-width: 8
-#| fig-height: 12
-tar_load(starts_with("fig_marginals"))
-plot_grid(fig_marginals_1, fig_marginals_2, fig_marginals_3, fig_marginals_4, ncol = 1, labels = 1:4) 
+knitr::include_graphics("../fig/marginals_all.png") 
 ```
 
 ```{r}
 #| label: fig-detections
 #| fig-cap: "Number of genes detected per cell as a function of the total count in a cell. One point corresponds to one cell. Colour indicates mitochondrial contamination. Labels 1-4 indicate sample numbers."
-#| fig-width: 8
-#| fig-height: 6
-tar_load(starts_with("fig_count_det"))
-plot_grid(fig_count_det_1, fig_count_det_2, fig_count_det_3, fig_count_det_4, labels = 1:4)
+knitr::include_graphics("../fig/detections_all.png") 
 ```
 
 # Sample 1
@@ -172,38 +168,43 @@ plot_grid(fig_count_det_1, fig_count_det_2, fig_count_det_3, fig_count_det_4, la
 knitr::include_graphics("../fig/resolutions_1.png") 
 ```
 
+## Cluster images
+
+```{r}
+#| label: dynamic-png-panels-function
+
+# This function should be placed in an R chunk with results: asis, inside ::: {.panel-tabset}
+dynamic_png_panels <- function(file_pattern, name_pattern) {
+
+image_files <- list.files("../fig", pattern = file_pattern, full.names = TRUE) |> 
+  sort()
+names <- str_extract(image_files, name_pattern)
+
+# Generate dynamic tabs
+tabs <- map(seq_along(image_files), function(i) {
+  knit_child(text = knit_expand(text = "
+### {{sec_name}}
+
+![]({{image_path}})
+", sec_name = names[i], image_path = image_files[i]), quiet = TRUE)
+})
+
+# Render tabs
+cat(unlist(tabs), sep = "\n")
+}
+```
 
 ::: {.panel-tabset}
 
-### Cluster 1
+```{r}
+#| label: cluster-panels
+#| results: asis
 
-![Cl 1](../fig/top_clust_1_cl1.png)
-
-### Cl 2
-
-![Cl 2](../fig/top_clust_1_cl2.png)
-
-### Cl 3
-
-![Cl 3](../fig/top_clust_1_cl3.png)
-
-### Cl 4
-
-![Cl 4](../fig/top_clust_1_cl4.png)
-
-### Cl 5
-
-![Cl 5](../fig/top_clust_1_cl5.png)
-
-### Cl 6
-
-![Cl 6](../fig/top_clust_1_cl6.png)
-
-### Cl 7
-
-![Cl 7](../fig/top_clust_1_cl7.png)
+dynamic_png_panels("^top_clust_1_cl\\d+\\.png$", "(?<=1_)cl\\d+(?=\\.)")
+```
 
 :::
+
 
 ### Cluster enrichment
 
@@ -211,9 +212,9 @@ knitr::include_graphics("../fig/resolutions_1.png")
 #| label: tbl-cluster-enrichment
 #| tbl-cap: Functional enrichment from top cluster genes. The table is divided per cluster.
 tar_read(tbl_cluster_enrichment_1) |> 
-  dplyr::arrange(cluster) |> 
-  dplyr::group_by(cluster) |> 
-  dplyr::select(term_id, term_name, n_with_sel, odds_ratio, ids, cluster) |> 
+  dplyr::arrange(group) |> 
+  dplyr::group_by(group) |> 
+  dplyr::select(term_id, term_name, n_with_sel, odds_ratio, ids, group) |> 
   gt()
 ```
 
@@ -253,38 +254,18 @@ tar_read(key_markers) |>
   )
 ```
 
+
 ::: {.panel-tabset}
 
-### MPC
+```{r}
+#| label: celltype-panels
+#| results: asis
 
-![MPC](../fig/key_markers_1_MPC.png)
-
-### EP
-
-![EP](../fig/key_markers_1_EP.png)
-
-### Beta
-
-![Beta](../fig/key_markers_1_Beta.png)
-
-### Alpha
-
-![Alpha](../fig/key_markers_1_Alpha.png)
-
-### Delta
-
-![Delta](../fig/key_markers_1_Delta.png)
-
-### PP
-
-![PP](../fig/key_markers_1_PP.png)
-
-### Epsilon
-
-![Epsilon](../fig/key_markers_1_Epsilon.png)
-
+dynamic_png_panels("^key_markers_1_\\w+\\.png$", "(?<=1_)\\w+(?=\\.)")
+```
 
 :::
+
 
 
 
@@ -304,40 +285,57 @@ knitr::include_graphics("../fig/key_marker_expr_1.png")
 tar_read(fig_dots_key_markers_1)
 ```
 
+### Correlation
 
 ```{r}
 #| label: fig-markers-cor
 #| fig-cap: Correlation of key markers with other genes. Only genes with Pearson's correlation coefficient greater than 0.3 with at least one key marker gene are shown.
 #| fig-width: 8
-#| fig-height: 15
+#| fig-height: 25
 tar_read(fig_cor_heat_key_markers_1)
 ```
 
+### Key marker enrichment
+
+
+::: {style="height: 600px; width: fit-content; overflow-y: scroll; margin-left: auto; margin-right: auto; font-size: 10pt"}
+
+```{r}
+#| label: tbl-keycorr-enrichment
+#| tbl-cap: Functional enrichment from top key marker co-expressed genes.
+tar_read(tbl_keycorr_enrichment_1) |> 
+  dplyr::arrange(group) |> 
+  dplyr::group_by(group) |> 
+  dplyr::select(term_id, term_name, n_with_sel, odds_ratio, ids, group) |> 
+  gt()
+```
+
+:::
+
+## Cell types
+
+### Identifying cell types
 
 ```{r}
 #| label: fig-xy-markers-mpc-ep
 #| fig-cap: EP vs MPC selected markers. Each axis shows the mean expression across genes. Each gene is first normalised to its maximum intensity, so the mean is not dominated by the most expressed gene.
-#| fig-width: 6
-#| fig-height: 5
-tar_read(fig_xy_marker_mpc_ep_1)
+knitr::include_graphics("../fig/xy_marker_mpc_ep_1.png") 
 ```
 
 ```{r}
 #| label: fig-xy-markers-mpc-beta
 #| fig-cap: Beta vs MPC selected markers. Each axis shows the mean expression across genes. Each gene is first normalised to its maximum intensity, so the mean is not dominated by the most expressed gene.
-#| fig-width: 6
-#| fig-height: 5
-tar_read(fig_xy_marker_mpc_beta_1)
+knitr::include_graphics("../fig/xy_marker_mpc_beta_1.png") 
 ```
 
-## Cell type marking
+### Cell type marking
 
 ```{r}
 #| label: tbl-cell-type-rules
 #| tbl-cap: Rules to mark cell types. MPC, EP and Beta are as shown in @fig-xy-markers-mpc-ep and @fig-xy-markers-mpc-beta.
 tibble::tribble(
   ~Rule, ~`Cell type`,
-  "Beta > 0", "Beta",
+  "INS > 0.5", "Beta",
   "EP > 0.15", "EP",
   "EP <= 0.15 & MPC > 0",  "MPC"
 ) |> 
