@@ -29,14 +29,19 @@ read_markers <- function(fname) {
     pivot_longer(-gene_symbol, names_to = "cell_type", values_to = "is") |> 
     mutate(cell_type = as_factor(cell_type)) |> 
     drop_na() |> 
-    select(-is)
+    select(-is) |> 
+    arrange(cell_type) |> 
+    mutate(gene_symbol = as_factor(gene_symbol))
 }
 
 
-group_enrichment <- function(df, fterms, group_var = "cluster", fdr_limit = 0.05) {
+group_enrichment <- function(df, fterms, group_var = "cluster", gene_var = "gene_symbol", fdr_limit = 0.05) {
   onts <- names(fterms)
   d <- df |> 
-    mutate(group = get(group_var))
+    mutate(
+      group = get(group_var),
+      gene_symbol = get(gene_var)
+    )
   groups <- d$group |> as.character() |> unique()
   res <- map(onts, function(ont) {
     trm <- fterms[[ont]]
@@ -92,8 +97,8 @@ mark_cell_types <- function(seu, select_markers) {
     mutate(
       cell_type = case_when(
         Beta > 0.4 ~ "Beta",
-        EP > 0.15 ~ "EP",
-        EP <= 0.15 & MPC > 0 ~ "MPC",
+        EP > 0.05 ~ "EP",
+        EP <= 0.05 & MPC > 0 ~ "MPC",
         Matrix > 0.2 ~ "Matrix",
         Immune > 0.2 ~ "Immune",
         Nervous > 0.2 ~ "Nervous",
@@ -105,4 +110,77 @@ mark_cell_types <- function(seu, select_markers) {
   seu@meta.data$cell_type <- d$cell_type
 
   return(seu)
+}
+
+
+find_top_cor_genes <- function(tbl_cor, fdr_limit = 0.01, min_cor = NULL, n_top = NULL) {
+  tb <- tbl_cor |> 
+    filter(p_adj < fdr_limit)
+
+  if(!is.null(min_cor)) {
+    good_genes <- tb |> 
+      filter(correlation >= min_cor) |> 
+      pull(gene_2) |> 
+      unique()      
+  } else if(!is.null(n_top)) {
+    good_genes <- tb |> 
+      group_by(gene_1) |> 
+      slice_max(order_by = correlation, n = n_top) |> 
+      pull(gene_2) |> 
+      unique()
+  } else {
+    good_genes <- unique(tb$gene_2)
+  }
+  good_genes
+}
+
+tabulate_correlated_genes <- function(tbl_cor, fdr_limit = 0.01, n_top = 16) {
+  tbl_cor |>
+    filter(p_adj < fdr_limit) |> 
+    group_by(gene_1) |> 
+    arrange(desc(correlation)) |> 
+    mutate(r = row_number()) |> 
+    filter(r <= n_top) |> 
+    summarise(genes = gene_2 |> str_c(collapse = ", ")) |> 
+    rename(key_gene = gene_1)
+}
+
+# CS-SCORE correlation does not fit in memory of my laptop. Hence,
+# I need to save the needed data and run a standalone script on the cluster.
+save_for_external_correlation <- function(seu, key_marker_genes_endoc, suffix) {
+  saveRDS(seu, file = file.path("tab", str_glue("seu_{suffix}.rds")))
+  saveRDS(key_marker_genes_endoc, file = file.path("tab", str_glue("key_marker_genes_endoc_{suffix}.rds")))
+}
+
+read_correlation_table <- function(fname, key_marker_genes_endoc) {
+  stopifnot(file.exists(fname))
+  tb <- qs_read(fname)
+
+  # 'tb' is a long pivot of a triangualar matrix. Here, we want to filter 
+  # 
+  # 
+  # We need all marker genes as gene_1,
+  # but they can be both gene_1 and gene_2. Hence, we split and join.
+
+  tb1 <- tb |> 
+    filter(gene_1 %in% key_marker_genes_endoc & !(gene_2 %in% key_marker_genes_endoc))
+  tb2 <- tb |> 
+    filter(gene_2 %in% key_marker_genes_endoc & !(gene_1 %in% key_marker_genes_endoc)) |> 
+    rename(g1 = gene_1, g2 = gene_2) |> 
+    rename(gene_1 = g2, gene_2 = g1) |> 
+    relocate(gene_1, .before = gene_2)
+  tb3 <- tb |> 
+    filter(gene_1 %in% key_marker_genes_endoc & gene_2 %in% key_marker_genes_endoc)
+  bind_rows(tb1, tb2, tb3) |> 
+    mutate(gene_1 = factor(gene_1, levels = key_marker_genes_endoc))
+}
+
+
+symmetrise_table <- function(cors) {
+  cors |> 
+    filter(gene_1 != gene_2) |> 
+    mutate(g1 = gene_2, g2 = gene_1) |> 
+    select(-c(gene_1, gene_2)) |> 
+    rename(gene_1 = g1, gene_2 = g2) |> 
+    bind_rows(cors)
 }

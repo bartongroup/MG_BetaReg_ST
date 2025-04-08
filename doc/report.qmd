@@ -162,13 +162,28 @@ knitr::include_graphics("../fig/detections_all.png")
 
 ## Clustering
 
+Clustering in *Seurat* is done using the following approach:
+
+1. Constructing the Shared Nearest Neighbor (SNN) graph:
+  - Seurat constructs a graph based on PCA-reduced dimensions by identifying the nearest neighbors for each cell.
+  - Cells are linked based on their number of shared nearest neighbors (SNN), creating a weighted graph that captures cell-cell similarity.
+2. Clustering with the Leiden algorithm:
+  - The Leiden algorithm identifies communities (clusters) by optimizing the modularity or a similar objective function on the SNN graph.
+  - It iteratively refines clusters to ensure connectivity and consistency, often leading to more biologically interpretable clusters than the default Louvain algorithm.
+
+The resolution parameter in the Leiden algorithm controls the granularity of identified clusters: Higher resolution creates more numerous, smaller clusters (more granular). Lower resolution results in fewer, larger clusters (less granular).
+
+@fig-umap-clusters compares several resolution levels, showing both UMAP and spatial distributions of cells. For this data set, resolution of 0.4 was selected as optimal.
+
 ```{r}
 #| label: fig-umap-clusters
 #| fig-cap: UMAP reduction at different clustering levels. 
 knitr::include_graphics("../fig/resolutions_1.png") 
 ```
 
-## Cluster images
+## Cluster markers
+
+The figures below show the top 12 marker genes in each cluster, with the highest fold change with respect to other clusters.
 
 ```{r}
 #| label: dynamic-png-panels-function
@@ -208,9 +223,11 @@ dynamic_png_panels("^top_clust_1_cl\\d+\\.png$", "(?<=1_)cl\\d+(?=\\.)")
 
 ### Cluster enrichment
 
+Functional enrichment was found for each set of top cluster markers and the results are shown in @tbl-cluster-enrichment.
+
 ```{r}
 #| label: tbl-cluster-enrichment
-#| tbl-cap: Functional enrichment from top cluster genes. The table is divided per cluster.
+#| tbl-cap: Functional enrichment from top cluster genes. The table is grouped per cluster. `n_with_sel` is the number of genes with the given term in the selection (correlated subset).
 tar_read(tbl_cluster_enrichment_1) |> 
   dplyr::arrange(group) |> 
   dplyr::group_by(group) |> 
@@ -219,6 +236,8 @@ tar_read(tbl_cluster_enrichment_1) |>
 ```
 
 ### Dot plot
+
+The dot plot in @fig-cluster-dot-plot shows the expression and expressed cell percentage of the top cluster markers, for each cluster.
 
 ```{r}
 #| label: fig-cluster-dot-plot
@@ -230,13 +249,16 @@ tar_read(fig_dots_top_cluster_1)
 
 ## Key markers
 
+Key cell type markers used in the analysis are shown in @tbl-markers. Apart from the endocrine cells, a few other identifiable cell types are included.
+
 ```{r}
-#| label: key-markers
-#| tbl-cap: Key marker genes.
+#| label: tbl-markers
+#| tbl-cap: Key marker genes. MPC stands for Multipotent Progenitor Cells, EP - Endocrine Progenitors, PP - Pancreatic Polypeptide, VSM - Vascular Smooth Muscle, Matrix - Extracellular Matrix.
 tar_read(key_markers) |> 
   mutate(value = "x") |> 
   arrange(cell_type) |> 
   pivot_wider(id_cols = gene_symbol, names_from = cell_type, values_fill = "") |> 
+  rename(Gene = gene_symbol) |> 
   gt() |> 
    tab_style(
     style = list(
@@ -254,6 +276,7 @@ tar_read(key_markers) |>
   )
 ```
 
+Figures below show the expression of the key markers on the UMAP and spatial plots, for each tissue type.
 
 ::: {.panel-tabset}
 
@@ -261,12 +284,12 @@ tar_read(key_markers) |>
 #| label: celltype-panels
 #| results: asis
 
-dynamic_png_panels("^key_markers_1_\\w+\\.png$", "(?<=1_)\\w+(?=\\.)")
+dynamic_png_panels("^key_markers_1_\\w+\\.png$", "(?<=1_)\\w+(?=\\.)") 
 ```
 
 :::
 
-
+@fig-key-markers-expr shows expression of the key markers across clusters and @fig-markers-dot-plot shows the dot-plot of the key markers across clusters.
 
 
 ```{r}
@@ -287,27 +310,56 @@ tar_read(fig_dots_key_markers_1)
 
 ### Correlation
 
+Finding correlation between genes in a scRNA-seq experiment is tricky. A simple Pearson or Spearman correlation is not adequate due to large number of zeroes in data, which can lead to many false negatives. I have found a tool called [CS-SCORE](https://www.nature.com/articles/s41467-023-40503-7), which models the unobserved true gene expression levels as latent variables, linked to the observed UMI counts through a measurement model that accounts for both sequencing depth variations and measurement errors. The authors show improvement over alternative methods.
+
+This method requires a lot of memory, beyond the 36 GB of my laptop. Therefore, the correlation calculation was performed on a cluster node with larger memory and imported into my pipeline. The slight reduction in the number of genes for the correlation was achieved by selecting only genes which were co-expressed in at least 10 cells together with at least one key marker gene. Thus, we avoid genes that are expressed entirely elsewhere.
+
+@fig-only-markers-heat shows the correlation between the key markers (only endocrine genes). It is interesting to see that MAFB, which is expressed only in a handful of cells, correlates with MAFA and other EP/Beta cells. Using just a Pearson's correlation coefficient does not bring any reasonable results for MAFB and other lowly-expressed genes.
+
 ```{r}
-#| label: fig-markers-cor
-#| fig-cap: Correlation of key markers with other genes. Only genes with Pearson's correlation coefficient greater than 0.3 with at least one key marker gene are shown.
-#| fig-width: 8
-#| fig-height: 25
-tar_read(fig_cor_heat_key_markers_1)
+#| label: fig-only-markers-heat
+#| fig-cap: Correlation of key markers with themselves, calculated with SC-CORE algorithm. Grey squares indicate no significant correlation (FDR > 0.05).
+#| fig-width: 7
+#| fig-height: 6
+tar_read(fig_cor_heat_only_markers_1) 
+```
+
+
+
+```{r}
+#| label: fig-markers-heat
+#| fig-cap: Correlation of key markers with other genes, calculated with SC-CORE algorithm. Top 10 genes with the highest correlation to each of the marker genes are included. Marker genes are excluded from the vertical axis. Grey squares indicate no significant correlation (FDR > 0.05).
+#| fig-width: 7
+#| fig-height: 20
+tar_read(fig_cor_heat_key_markers_1)  
+```
+
+```{r}
+#| label: tbl-top-cor
+#| tbl-cap: Top 30 highest correlated genes for each marker gene. Marker genes are excluded from correlated lists. Each list is ordered from the highest to the lowest correlation.
+tar_read(tbl_top_cor_1) |> 
+  rename(`Key marker` = key_gene, `Top correlated genes` = genes) |> 
+  gt() 
 ```
 
 ### Key marker enrichment
 
+For each marker gene a set of correlated (co-expressed) genes was created with correlation coefficient greater than 0.6 and FDR < 0.01. For each set functional enrichment was carried out using terms from GO, Reactome and KEGG. Results are shown in @tbl-keycorr-enrichment.
 
 ::: {style="height: 600px; width: fit-content; overflow-y: scroll; margin-left: auto; margin-right: auto; font-size: 10pt"}
 
 ```{r}
 #| label: tbl-keycorr-enrichment
-#| tbl-cap: Functional enrichment from top key marker co-expressed genes.
+#| tbl-cap: Functional enrichment from top key marker co-expressed genes. `n_with_sel` is the number of genes with the given term in the selection (correlated subset).
 tar_read(tbl_keycorr_enrichment_1) |> 
   dplyr::arrange(group) |> 
   dplyr::group_by(group) |> 
   dplyr::select(term_id, term_name, n_with_sel, odds_ratio, ids, group) |> 
-  gt()
+  gt() |> 
+  gt::fmt_number(
+    columns = odds_ratio,
+    n_sigfig = 2
+  )
 ```
 
 :::
@@ -335,9 +387,12 @@ knitr::include_graphics("../fig/xy_marker_mpc_beta_1.png")
 #| tbl-cap: Rules to mark cell types. MPC, EP and Beta are as shown in @fig-xy-markers-mpc-ep and @fig-xy-markers-mpc-beta.
 tibble::tribble(
   ~Rule, ~`Cell type`,
-  "INS > 0.5", "Beta",
-  "EP > 0.15", "EP",
-  "EP <= 0.15 & MPC > 0",  "MPC"
+  "INS > 0.4", "Beta",
+  "EP > 0.05", "EP",
+  "EP <= 0.05 & MPC > 0",  "MPC",
+  "Matrix > 0.2", "Matrix",
+  "Immune > 0.2", "Immune",
+  "Nervous > 0.2", "Nervous"
 ) |> 
   gt()
 ```
@@ -347,7 +402,7 @@ tibble::tribble(
 ```{r}
 #| label: fig-cell_types
 #| fig-cap: Cell types marked using rules outlined in @tbl-cell-type-rules.
-knitr::include_graphics("../fig/cell_type_1.png")  
+knitr::include_graphics("../fig/cell_type_1.png") 
 ```
 
 

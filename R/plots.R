@@ -357,7 +357,7 @@ plot_gene_expression <- function(seu, gids, layer = "data", width = 0.3, ncol = 
 
 
 
-plot_gene_heatmap <- function(seu, gns) {
+plot_gene_heatmap <- function(seu, gns, resolution = NULL) {
   env <- new.env(parent = globalenv())
   
   if(!is.null(resolution)) {
@@ -365,9 +365,6 @@ plot_gene_heatmap <- function(seu, gns) {
     Idents(seu) <- res  
   }
 
-  res <- get_resolution_columns(resolution)
-  Idents(seu) <- res
-  
   d <- AverageExpression(seu, layer = "data", features = gns, group.by = "ident") |> 
     pluck("Spatial.008um") |> 
     as_tibble(rownames = "gene_symbol") |> 
@@ -430,7 +427,8 @@ plot_key_markers_umap_spatial <- function(seu, key_markers, file_prefix) {
     gname <- str_glue("{file_prefix}_{ct}")
     gns <- km |> 
       filter(cell_type == ct) |> 
-      pull(gene_symbol)
+      pull(gene_symbol) |> 
+      as.character()
     plot_png_expression_genes(seu, gns, gname)
   }) 
 }
@@ -451,18 +449,25 @@ plot_top_cluster_umap_spatial <- function(seu, top_cluster_markers, file_prefix 
 }
 
 
-plot_gene_cor <- function(tbl_cor, min_cor = 0.3) {
-  good_genes <- tbl_cor |> 
-    filter(correlation >= min_cor) |> 
-    pull(gene_symbol) |> 
-    unique()
-  if(length(good_genes) == 0)
+plot_cor_heat <- function(tbl_cor, fdr_limit = 0.01, min_cor = NULL, n_top = NULL, cluster_rows = TRUE, cluster_columns = TRUE) {
+
+  top_genes <- find_top_cor_genes(tbl_cor, fdr_limit, min_cor, n_top)
+
+  # Make matrix symmetric for the heatmap plot
+  tb <- symmetrise_table(tbl_cor)
+
+  if(length(top_genes) == 0)
     return(NULL)
-  tab <- tbl_cor |> 
-    filter(gene_symbol %in% good_genes)  |> 
-    pivot_wider(id_cols = gene_symbol, names_from = sel_gene, values_from = correlation) |> 
-    column_to_rownames("gene_symbol")
-  ggheatmap(tab, palette = "viridis", with.y.text = TRUE, legend.name = "Correlation")
+  tab <- tb |> 
+    filter(gene_2 %in% top_genes & p_adj < fdr_limit) |> 
+    pivot_wider(id_cols = gene_2, names_from = gene_1, values_from = correlation, values_fill = NA) |> 
+    column_to_rownames("gene_2") |> 
+    as.matrix()
+  tab <- tab[, levels(tbl_cor$gene_1)]
+  
+  palet <- circlize::colorRamp2(c(-1, 0, 1), c("#2166AC", "#FFFFFF", "#B2182B"), space = "LAB")
+  ComplexHeatmap::Heatmap(tab, col = palet, name = "Correlation", cluster_columns = cluster_columns, cluster_rows = cluster_rows)
+  #ggheatmap(tab, palette = "distiller", with.y.text = TRUE, legend.name = "Correlation")
 }
 
 plot_gene_vs_gene_cluster <- function(seu, genes1, genes2, clust_sel = NULL, point_size = 0.5) {

@@ -127,6 +127,24 @@ get_group_gene_expression <- function(seu, df, group_var = "cell_type") {
     pivot_wider(id_cols = cell_id, names_from = group, values_from = expression) 
 }
 
+get_overlapping_genes <- function(seu, genes, min_overlap) {
+  x <- GetAssayData(seu, layer = "counts")
+  x[x > 0] <- 1   # binary matrix, expression = 1, no expression = 0
+  is_sel <- x[genes, ] |> colSums()
+  is_sel[is_sel > 0] <- 1  # cells where of any sel_genes is expressed
+  overlap <- x %*% is_sel  # matrix multiplication, returns overlap count between all genes and sel_genes
+
+  # Only use genes with minimum overlap (number of cells)
+  names(overlap[overlap[, 1] > min_overlap, ])
+}
+
+get_top_genes <- function(seu, assay, n_top) {
+  AverageExpression(seu, layer = "data", group.by = "orig_ident") |>
+    pluck(assay) |> 
+    as_tibble(rownames = "gene_symbol") |> 
+    slice_max(order_by = V1, n = n_top) |> 
+    pull(gene_symbol)
+}
 
 
 #' Extract gene data from a seurat object 
@@ -216,32 +234,48 @@ get_cluster_cell_count <- function(seu, resolution) {
 }
 
 
-find_gene_correlation <- function(seu, genes, min_cor = -1) {
-  expr_data <- GetAssayData(seu, layer = "data")
+find_gene_correlation_cor <- function(seu, sel_genes, assay = "Spatial.008um", method = "spearman", min_overlap = 100, n_top = 3000) {
+
+  over_genes <- get_overlapping_genes(seu, sel_genes, min_overlap)
+  top_genes <- get_top_genes(seu, assay, n_top)
+  good_genes <- intersect(over_genes, top_genes) |> union(sel_genes)
+
+  expr_data <- GetAssayData(seu, layer = "data")[good_genes, ]
 
   ex_all <- expr_data |> 
     t() |> 
     as.matrix()
-  #ex_all[ex_all == 0] <- NA
+  ex_sel <- ex_all[, sel_genes]
 
-  map(genes, function(gene) {
-    ex_gene <- expr_data[gene, , drop = FALSE] |> 
-      t() |> 
-      as.matrix()
-    #ex_gene[ex_gene == 0] <- NA
-  
-  
-    cr <- cor(ex_gene, ex_all, use = "pairwise.complete.obs")
-    tibble(
-      gene_symbol = colnames(cr),
-      correlation = as.vector(cr)
-    ) |> 
-      arrange(desc(correlation)) |> 
-      filter(correlation >= min_cor) |> 
-      add_column(sel_gene = gene, .before = 1) |> 
-      filter(sel_gene != gene_symbol)
-  }) |> 
-    list_rbind()
+  cor(ex_sel, ex_all, method = method) |> 
+    as_tibble(rownames = "gene_1") |> 
+    pivot_longer(-gene_1, names_to = "gene_symbol", values_to = "correlation") |> 
+    filter(gene_1 != gene_symbol)
+}
+
+
+find_gene_correlation_cscore <- function(seu, sel_genes, assay = "Spatial.008um", min_overlap = 100, n_top = 3000) {
+  # Find overlap between sel_genes and all other genes
+  over_genes <- get_overlapping_genes(seu, sel_genes, min_overlap)
+  top_genes <- get_top_genes(seu, assay, n_top)
+  good_genes <- intersect(over_genes, top_genes) |> union(sel_genes)
+
+  # CSCORE searches for assay "RNA", so we need to rename
+  seur <- seu |> 
+    RenameAssays(assay, "RNA")
+  cs <- CSCORE::CSCORE(seur, good_genes)
+
+  cr <- cs$est |> 
+    as_tibble(rownames = "gene_1") |> 
+    pivot_longer(-gene_1, names_to = "gene_symbol", values_to = "correlation") |> 
+    filter(gene_1 %in% sel_genes)
+  pv <- cs$p_value |> 
+    as_tibble(rownames = "gene_1") |> 
+    pivot_longer(-gene_1, names_to = "gene_symbol", values_to = "p_value") |> 
+    filter(gene_1 %in% sel_genes)
+  full_join(cr, pv, by = c("gene_1", "gene_symbol")) |> 
+    mutate(p_adj = p.adjust(p_value, method = "BH")) |>    # adjust on selection, other tests ignored
+    arrange(desc(correlation))
 }
 
 
@@ -269,4 +303,13 @@ annotate_clusters <- function(seu, key_markers, resolution = NULL) {
     group_by(cell_type, cluster) |> 
     summarise(log_fc = mean(avg_log2FC)) |> 
     pivot_wider(id_cols = cluster, names_from = cell_type, values_from = log_fc)
+}
+
+
+save_for_loupe <- function(seu, fname) {
+  seu@meta.data |>
+    as_tibble(rownames = "barcode") |> 
+    select(barcode, cell_type, starts_with("Spatial.008um_snn_res")) |> 
+    rename_with(~str_replace(., "^Spatial.008um_snn_res.", "resolution_"), starts_with("Spatial.008um_snn_res")) |> 
+    write_csv(fname)
 }
