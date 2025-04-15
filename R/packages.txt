@@ -8,7 +8,6 @@ arrow
 ape
 assertthat
 biomaRt
-DelayedArray
 cowplot
 ggridges
 ggbeeswarm

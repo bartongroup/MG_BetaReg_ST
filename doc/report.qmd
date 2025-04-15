@@ -371,7 +371,7 @@ tar_read(tbl_keycorr_enrichment_1) |>
 ```{r}
 #| label: fig-xy-markers-mpc-ep
 #| fig-cap: EP vs MPC selected markers. Each axis shows the mean expression across genes. Each gene is first normalised to its maximum intensity, so the mean is not dominated by the most expressed gene.
-knitr::include_graphics("../fig/xy_marker_mpc_ep_1.png") 
+knitr::include_graphics("../fig/xy_marker_mpc_ep_1.png")
 ```
 
 ```{r}
@@ -392,17 +392,72 @@ tibble::tribble(
   "EP <= 0.05 & MPC > 0",  "MPC",
   "Matrix > 0.2", "Matrix",
   "Immune > 0.2", "Immune",
-  "Nervous > 0.2", "Nervous"
+  "Nervous > 0.2", "Nervous",
+  "VSM > 0.2", "VSM"
 ) |> 
   gt()
 ```
 
 
+```{r}
+#| label: fig-cell-types
+#| fig-cap: Cell types marked using rules outlined in @tbl-cell-type-rules.
+knitr::include_graphics("../fig/cell_type_1.png")
+```
+
+
+## Spatial WGCNA
+
+Here we use *hdWGCNA* R package to perform co-expression network analysis on Visium HD data. Specifically, the package uses the variable genes identified by *Seurat* routine analysis (2000 top variable genes) and merges spatially proximal spots to create *metacells*. @fig-metacells shows the how the metacells are created.
+
 
 ```{r}
-#| label: fig-cell_types
-#| fig-cap: Cell types marked using rules outlined in @tbl-cell-type-rules.
-knitr::include_graphics("../fig/cell_type_1.png") 
+#| label: fig-metacells
+#| fig-cap: Metacells created by *hdWGCNA* with number of nearest neighbours to aggregate set to 25.
+#| fig-width: 7
+#| fig-height: 5
+tar_read(fig_metacells_spatial_1)  
+```
+
+Co-expression analysis is done similarly to widely-used *WGCNA* package. The pipeline selects 2000 most variable genes, aggregates cells into metacells (for each cluster sparately) to reduce noise, and normalizes the data. It then constructs a weighted gene co-expression network (WGCNA), testing different soft-thresholding powers to identify scale-free topology. A final network is built using the optimal power, and modules of co-expressed genes are identified. The pipeline calculates module eigengenes (summary profiles for each module) and evaluates intramodular connectivity (hub genes) to prioritize biologically relevant networks. This approach helps uncover coordinated gene programs across cell states or spatial domains.
+
+Traditionally, modules are identified by colours, hence the names. @fig-modules-dendrogram shows the dendrogram used to created modules.
+
+```{r}
+#| label: fig-modules-dendrogram
+#| fig-cap: Dendrogram and division of variable genes into modules.
+knitr::include_graphics("../fig/module_dendro_1.png") 
+```
+
+ @fig-modules-expr-score shows the expression score of each module.
+
+```{r}
+#| label: fig-modules-expr-score
+#| fig-cap: Expression scores for each of the WGCNA modules calculated using a [UCell](https://www.sciencedirect.com/science/article/pii/S2001037021002816?via%3Dihub) method.
+knitr::include_graphics("../fig/modules_score_1.png")
+```
+
+
+@tbl-hub-genes lists the hub genes exhibiting the highest connectivity within the co-expression network. The complete module dataset, available for download in @sec-downloads, includes columns labelled `kME_{module}`, which represent module eigengene (ME) correlations. For each module, the first principal component (PC1) of its expression matrix is computed and stored in the kME column. To identify the most influential genes within a module, sort its kME values in descending order—the top entries correspond to genes with the strongest association to the module’s expression pattern.
+
+```{r}
+#| label: tbl-hub-genes
+#| tbl-cap: Hub genes for each module, the genes with most connectivity with other genes.
+tar_read(tbl_hub_genes_1) |> 
+  group_by(module) |> 
+  summarise(genes = str_c(gene_name, collapse = ", ")) |> 
+  gt()
+```
+
+
+```{r}
+#| label: fig-hub-gene-network
+#| fig-cap: Hub gene network, with 12 top genes in each module.
+#| fig-width: 7
+#| fig-height: 7
+set.seed(632)
+tar_read(igr_hub_gene_network_1) |> 
+  plot(vertex.label.cex = 0.6, margin = c(-0.1, -0.1, -0.1, -0.1))
 ```
 
 
@@ -411,7 +466,23 @@ knitr::include_graphics("../fig/cell_type_1.png")
 ## Interactive data explorer {#sec-shiny-app}
 
 
-## Downloads
+## Downloads {#sec-downloads}
+
+### Sample 1
+
+ - [Clustering and cell types for Loupe Browser](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/clusters_1.csv)
+ - [Correlation with key markers](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/correlation_1.csv)
+ - [Enrichment for key marker co-correlated sets ](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/keycorr_enrichment_1.csv)
+ - [Modules](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/spatial_modules_1.csv)
+
+
+### Sample 2
+
+ - [Clustering and cell types for Loupe Browser](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/clusters_2.csv)
+ - [Correlation with key markers](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/correlation_2.csv)
+ - [Enrichment for key marker co-correlated sets ](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/keycorr_enrichment_2.csv)
+ - [Modules](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/spatial_modules_2.csv)
+
 
 
 ## Code

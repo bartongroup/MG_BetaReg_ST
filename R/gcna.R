@@ -115,7 +115,6 @@ wgcna_analysis <- function(cors_file,
     me_diss_cut = me_diss_cut,
     deep_split = deep_split,
     genes = genes,
-    tom = tom,
     tree = tree,
     me_tree = me_tree,
     mods = tb_mods

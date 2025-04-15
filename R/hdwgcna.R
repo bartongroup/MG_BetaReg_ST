@@ -1,23 +1,114 @@
-hd_wgcna_analysis <- function(seu, sample, wgcna_name = "wgcna", group_var = "cell_type",
-                              group_name = c("MPC", "EP", "Beta"), assay = "Spatial.008um", layer = "data") {
+hd_wgcna_analysis <- function(seu, sample, wgcna_name = "wgcna", group_var = "cluster", network_type = "signed hybrid",
+                              assay = "Spatial.008um", layer = "data", soft_power = NULL, k = 25, max_shared = 15,
+                              deep_split = 4, detect_cut_height = 0.995, min_module_size = 25, merge_cut_height = 0.2,
+                              seed = 42) {
   
   sname <- sample |> as.character()
 
-  coords <- as.matrix(GetTissueCoordinates(seu)[,c('x', 'y')])
-  colnames(coords) <- c('spatial_1', 'spatial_2')
-  seu@reductions$spatial <- CreateDimReducObject(
+  # Need spatial coordinates in metadata, for MetacellsByGroups() to merge
+  # spatially proximal groups
+  coords <- SeuratObject::GetTissueCoordinates(seu) |> 
+    select(spatial_1 = x, spatial_2 = y) |> 
+    as.matrix()
+  seu@reductions$spatial <- SeuratObject::CreateDimReducObject(
     embeddings = coords,
     assay = assay,
     key = 'spatial_'
   )
 
   seu |>
-    SetupForWGCNA(wgcna_name = wgcna_name, gene_select = "variable") |> 
-    MetacellsByGroups(group.by = group_var, ident.group = group_var, reduction = "spatial", k = 50, max_shared = 15)  |> 
-    NormalizeMetacells() |> 
-    SetDatExpr(assay = assay, layer = layer) |> 
-    TestSoftPowers(networkType = "signed") |> 
-    ConstructNetwork(tom_name = sname, overwrite_tom = TRUE) |> 
-    ModuleEigengenes() |> 
-    ModuleConnectivity()
+    hdWGCNA::SetupForWGCNA(wgcna_name = wgcna_name, gene_select = "variable") |> 
+    hdWGCNA::MetacellsByGroups(group.by = c(group_var), ident.group = group_var, reduction = "spatial", k = k, max_shared = max_shared)  |> 
+    hdWGCNA::NormalizeMetacells() |> 
+    hdWGCNA::SetDatExpr(assay = assay, layer = layer) |> 
+    hdWGCNA::TestSoftPowers(networkType = network_type) |> 
+    hdWGCNA::ConstructNetwork(
+      tom_name = sname,
+      overwrite_tom = TRUE,
+      soft_power = soft_power,
+      networkType = network_type,
+      deepSplit = deep_split,
+      detectCutHeight = detect_cut_height,
+      minModuleSize = min_module_size,
+      mergeCutHeight = merge_cut_height,
+      randomSeed = seed
+    ) |> 
+    hdWGCNA::ModuleEigengenes() |> 
+    hdWGCNA::ModuleConnectivity()
+}
+
+
+plot_modules_expr_score <- function(seu, n_genes = "all", point_size = 0.4, ncol = 2) {
+  library(UCell)
+  # Spatial coordinates of individual cells
+  spat <- seu@reductions$spatial@cell.embeddings |> 
+    as_tibble(rownames = "cell_id")
+  seu |> 
+    hdWGCNA::ModuleExprScore(n_genes = n_genes, method = "UCell", ncores = 8) |>    # this is a bit slow
+    hdWGCNA::GetModuleScores() |>
+    as_tibble(rownames = "cell_id") |> 
+    inner_join(spat, by = "cell_id") |> 
+    pivot_longer(-c(cell_id, spatial_1, spatial_2), names_to = "module") |> 
+    ggplot(aes(x = spatial_2, y = -spatial_1, colour = value)) +
+    thm +
+    geom_point(size = point_size, stroke = 0.1, shape = 15) +
+    scale_colour_distiller(palette = "Blues", direction = 1) +
+    facet_wrap(~ module, ncol = ncol) +
+    labs(x = NULL, y = NULL, colour = "Expr score")
+}
+
+plot_modules_spatial <- function(seu, features = "hMEs", point_size = 0.4, ncol = 2) {
+  pls <- hdWGCNA::ModuleFeaturePlot(seu, reduction = "spatial", features = features)
+  map(pls, function(pl) {
+    pl$data |> 
+      as_tibble() |> 
+      mutate(z = (val - min(val)) / (max(val) - min(val)))
+  }) |> 
+    list_rbind(names_to = "module") |> 
+    ggplot(aes(x = spatial_2, y = -spatial_1, colour = z)) +
+    thm +
+    geom_point(size = point_size, stroke = 0.1, shape = 15) +
+    scale_colour_distiller(palette = "Blues", direction = 1) +
+    facet_wrap(~ module, ncol = ncol) +
+    labs(x = NULL, y = NULL, colour = "Rel expr")
+}
+
+
+plot_metacells_spatial <- function(seu, group_var = "cluster", point_size = 0.6) {
+  # Spatial coordinates of individual cells
+  spat <- seu@reductions$spatial@cell.embeddings |> 
+    as_tibble(rownames = "cell_id")
+  # Get metacells
+  mc <- hdWGCNA::GetMetacellObject(seu)
+  mc@meta.data |>
+    as_tibble(rownames = "metacell_id") |> 
+    mutate(group = get(group_var)) |> 
+    separate_longer_delim(cells_merged, delim = ",") |> 
+    left_join(spat, by = c("cells_merged" = "cell_id")) |> 
+    group_by(metacell_id, group) |> 
+    summarise(x = mean(spatial_2), y = -mean(spatial_1)) |> 
+    ungroup() |> 
+    ggplot(aes(x = x, y = y, colour = group)) +
+    thm +
+    geom_point() +
+    scale_colour_brewer(palette = "Paired") +
+    labs(x = NULL, y = NULL, colour = group_var)
+}
+
+get_modules <- function(seu) {
+  seu |> 
+    hdWGCNA::GetModules() |> 
+    as_tibble()
+}
+
+get_hub_genes <- function(seu, n_hubs = 30) {
+  seu |> 
+    hdWGCNA::GetHubGenes(n_hubs = n_hubs) |> 
+    as_tibble()
+}
+
+plot_hub_gene_network <- function(seu, n_hubs = 12, future_globals_max_size = 10000) {
+  options(future.globals.maxSize = future_globals_max_size * 1024^2)
+  seu |>
+    hdWGCNA::HubGeneNetworkPlot(n_hubs = n_hubs, return_graph = TRUE)
 }

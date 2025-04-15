@@ -1,0 +1,4 @@
+{
+  "Endocrine key markers" : ["NKX6-1", "PDX1", "PTF1A", "SOX9", "NEUROD1", "NEUROG3", "NKX2-2", "PAX4", "PAX6", "INS", "MAFA", "RFX6", "ARX", "GCG", "MAFB", "SST", "GHRL"],
+  "Insulin signalling pathway" : ["INSR", "IGF1R", "IRS1", "IRS2", "KIAA1324", "PIK3CA", "AKT1", "AKT2", "AKT3", "MTOR", "FOXO1", "MAP2K1", "MAP2K2", "MAPK1"]
+}

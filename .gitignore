@@ -5,6 +5,7 @@
 .DS_Store
 _targets/
 raw/
+ext/
 data/
 fig/
 tab/
@@ -15,3 +16,5 @@ doc/*
 !doc/_targets.yaml
 !doc/report.scss
 info/Spartan_059 clustering report/
+ModuleNetworks/
+TOM/

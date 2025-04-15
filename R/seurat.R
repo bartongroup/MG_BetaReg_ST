@@ -183,10 +183,10 @@ get_meta_column <- function(seu, col) {
 # clusters and generally produces higher-quality clusters by resolving issues such as disconnected or
 # fragmented clusters that Louvain can sometimes create.
 cluster_seurat <- function(seu, dims = 1:40, resolutions = c(0.1, 0.125, 0.15, 0.175, 0.2, 0.25, 0.3, 0.4),
-                           ident_res = 0.2, seed = 42, res_suffix = "Spatial.008um", min_group_count = 3,
-                           algorithm = 4) {
+                           ident_res = 0.2, seed = 42, res_suffix = "Spatial.008um", nfeatures = 3000,
+                           min_group_count = 3, algorithm = 4) {
   seu <- seu |> 
-    FindVariableFeatures() |> 
+    FindVariableFeatures(nfeatures = nfeatures) |> 
     ScaleData() |> 
     RunPCA() |> 
     FindNeighbors(dims = dims) |> 

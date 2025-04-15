@@ -72,17 +72,10 @@ group_enrichment <- function(df, fterms, group_var = "cluster", gene_var = "gene
 }
 
 
-get_unique_markers <- function(mpc_markers, ep_markers, beta_markers, nervous_markers,
-                               vsm_markers, immune_markers, matrix_markers) {
-  bind_rows(
-    tibble(cell_type = "MPC", gene_symbol = mpc_markers),
-    tibble(cell_type = "EP", gene_symbol = ep_markers),
-    tibble(cell_type = "Beta", gene_symbol = beta_markers),
-    tibble(cell_type = "Nervous", gene_symbol = nervous_markers),
-    tibble(cell_type = "VSM", gene_symbol = vsm_markers),
-    tibble(cell_type = "Immune", gene_symbol = immune_markers),
-    tibble(cell_type = "Matrix", gene_symbol = matrix_markers)
-  )
+get_unique_markers <- function(tissue_markers) {
+  tissue_markers |> 
+    enframe(name = "cell_type", value = "gene_symbol") |> 
+    unnest(gene_symbol)
 }
 
 
@@ -102,6 +95,7 @@ mark_cell_types <- function(seu, select_markers) {
         Matrix > 0.2 ~ "Matrix",
         Immune > 0.2 ~ "Immune",
         Nervous > 0.2 ~ "Nervous",
+        VSM > 0.2 ~ "VSM",
         .default = "Other"
       )
     ) |> 
@@ -148,8 +142,8 @@ tabulate_correlated_genes <- function(tbl_cor, fdr_limit = 0.01, n_top = 16) {
 # CS-SCORE correlation does not fit in memory of my laptop. Hence,
 # I need to save the needed data and run a standalone script on the cluster.
 save_for_external_correlation <- function(seu, key_marker_genes_endoc, suffix) {
-  saveRDS(seu, file = file.path("tab", str_glue("seu_{suffix}.rds")))
-  saveRDS(key_marker_genes_endoc, file = file.path("tab", str_glue("key_marker_genes_endoc_{suffix}.rds")))
+  saveRDS(seu, file = file.path("ext", str_glue("seu_{suffix}.rds")))
+  saveRDS(key_marker_genes_endoc, file = file.path("ext", str_glue("key_marker_genes_endoc_{suffix}.rds")))
 }
 
 read_correlation_table <- function(fname, key_marker_genes_endoc) {
@@ -183,4 +177,25 @@ symmetrise_table <- function(cors) {
     select(-c(gene_1, gene_2)) |> 
     rename(gene_1 = g1, gene_2 = g2) |> 
     bind_rows(cors)
+}
+
+save_correlation <- function(cors, fname, fdr_limit = 0.05) {
+  cors |> 
+    filter(p_adj < fdr_limit) |> 
+    mutate(across(where(is.numeric), ~signif(.x, 4))) |> 
+    write_csv(fname)
+}
+
+save_group_enrichment <- function(enr, fname, fdr_limit = 0.05) {
+  enr |> 
+    select(group, ontology, term_id, term_name, N_with, n_with_sel, odds_ratio, p_value, p_adjust, genes = ids) |> 
+      mutate(across(where(is.numeric), ~signif(.x, 4))) |> 
+      write_csv(fname)
+}
+
+save_spatial_modules <- function(mods, fname, fdr_limit = 0.05) {
+  mods |> 
+    select(gene_symbol = gene_name, module, starts_with("kME")) |> 
+    mutate(across(where(is.numeric), ~signif(.x, 4))) |> 
+    write_csv(fname)
 }

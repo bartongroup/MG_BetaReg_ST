@@ -207,7 +207,7 @@ plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap
         thm +
         geom_point(data = d0, size = point_size, shape = point_shape, stroke = 0.1) +
         geom_point(data = d1, size = point_size, shape = point_shape, stroke = 0.1) +
-        scale_colour_distiller(palette = "Blues", direction = 1) +
+        scale_colour_distiller(palette = "Purples", direction = 1) +
         labs(x = NULL, y = NULL)
    if(length(genes) > 1 & !combine_genes)
       pl <- pl + facet_wrap(~ gene_symbol)
@@ -268,7 +268,8 @@ plot_resolutions <- function(seu, resolutions, umap_point_size = 0.2, spatial_po
 
 plot_cell_type <- function(seu, umap_point_size = 0.3, spatial_point_size = 0.6, label_size = 3) {
 
-  pal <- c(okabe_ito_palette[c(3, 6, 4, 1, 2, 5)], "grey90")
+  pal <- okabe_ito_palette[c(3, 6, 4, 1, 2, 5, 7, 7)]
+  pal[7] <- "grey90"
   pl1 <- plot_one_xy(seu, point_size = umap_point_size, label_size = label_size, what = "umap", meta_column = "cell_type", discrete_palette = pal, with_legend = FALSE)
   pl2 <- plot_one_xy(seu, point_size = spatial_point_size, label_size = label_size, what = "spatial", meta_column = "cell_type", discrete_palette = pal, with_legend = TRUE) + guides(colour = guide_legend(override.aes = list(size = 3)))
   plot_grid(pl1, pl2, nrow = 1, rel_widths = c(1, 1.2))
@@ -386,13 +387,10 @@ plot_gene_heatmap <- function(seu, gns, resolution = NULL) {
 }
 
 
-plot_gene_dots <- function(seu, gns, resolution = NULL) {
+plot_gene_dots <- function(seu, gns, meta_column = "cluster") {
   env <- new.env(parent = globalenv())
 
-  if(!is.null(resolution)) {
-    res <- get_resolution_columns(resolution)
-    Idents(seu) <- res  
-  }
+  Idents(seu) <- meta_column
   
   dp <- DotPlot(seu, features = gns)
   env$d <- dp$data |> 
@@ -401,10 +399,13 @@ plot_gene_dots <- function(seu, gns, resolution = NULL) {
   with(env, {
     ggplot(d, aes(x = id, y = features.plot, colour = avg.exp.scaled, size = pct.exp)) +
       th +
+      theme(
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)
+      ) +
       geom_point() +
       scale_colour_gradient(low = "grey90", high = "blue") +
       scale_radius(range = c(1, 6)) +
-      labs(x = "Cluster", y = "Gene", size = "Percent expressed", colour = "Average expresion")
+      labs(x = meta_column, y = "Gene", size = "Percent expressed", colour = "Average expresion")
   })
 }
 
@@ -463,7 +464,7 @@ plot_cor_heat <- function(tbl_cor, fdr_limit = 0.01, min_cor = NULL, n_top = NUL
     pivot_wider(id_cols = gene_2, names_from = gene_1, values_from = correlation, values_fill = NA) |> 
     column_to_rownames("gene_2") |> 
     as.matrix()
-  tab <- tab[, levels(tbl_cor$gene_1)]
+  tab <- tab[, intersect(levels(tbl_cor$gene_1), colnames(tab))]
   
   palet <- circlize::colorRamp2(c(-1, 0, 1), c("#2166AC", "#FFFFFF", "#B2182B"), space = "LAB")
   ComplexHeatmap::Heatmap(tab, col = palet, name = "Correlation", cluster_columns = cluster_columns, cluster_rows = cluster_rows)
