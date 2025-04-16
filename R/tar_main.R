@@ -41,7 +41,10 @@ targets_main <- function() {
       seu = load_visium_data(DATA_PATH, mito_genes) |>
         NormalizeData() |>
         cluster_seurat(ident_res = RESOLUTION, resolutions = RESOLUTIONS, nfeatures = 2000),
-      seu_mark = seu |> mark_cell_types(tissue_markers),
+      seu_mark = seu |> mark_cell_types_by_max(tissue_markers),
+
+      # Save seurat for shiny
+      sav_seu = save_for_shiny(seu_mark, NAME),
 
       # General figures
       fig_marginals = plot_cell_marginals(cell_data, params, with_vlines = FALSE),
@@ -68,6 +71,9 @@ targets_main <- function() {
       fig_dots_key_markers = plot_gene_dots(seu, key_marker_genes),
       png_xy_marker_mpc_ep = plot_gene_vs_gene_cluster(seu, goi$tissue_markers$MPC, goi$tissue_markers$EP, clust_sel = c(2, 6)) |> gs("xy_marker_mpc_ep", NAME, 6, 5),
       png_xy_marker_mpc_beta = plot_gene_vs_gene_cluster(seu, goi$tissue_markers$MPC, goi$tissue_markers$Beta, clust_sel = c(2, 6)) |> gs("xy_marker_mpc_beta", NAME, 6, 5),
+
+      # Clustering vs cell types
+      fig_cluster_cell_type = plot_cluster_cell_type_jaccard(seu_mark),
 
       # Insulin pathway
       png_ins_path = plot_expression(seu, goi$insulin_signalling_pathway, umap_point_size = 0.5, spatial_point_size = 0.5) |> gs("insulin_path", NAME, 7, 48),
@@ -133,12 +139,17 @@ targets_main <- function() {
     png_detections = plot_grid(fig_count_det_1, fig_count_det_2, labels = 1:2) |> gs("detections", "all", 8, 3)
   )
 
+  for_shiny <- tar_plan(
+    sav_genes = gns |> dplyr::select(gene_symbol, description) |> dplyr::distinct() |> qs2::qs_save("shiny/data/gene_info.qs")
+  )
+
   c(
     setup_experiment,
     get_annotations,
     map_experiments,
     combine_samples,
-    for_report
+    for_report,
+    for_shiny
   )
 
 }

@@ -268,8 +268,7 @@ plot_resolutions <- function(seu, resolutions, umap_point_size = 0.2, spatial_po
 
 plot_cell_type <- function(seu, umap_point_size = 0.3, spatial_point_size = 0.6, label_size = 3) {
 
-  pal <- okabe_ito_palette[c(3, 6, 4, 1, 2, 5, 7, 7)]
-  pal[7] <- "grey90"
+  pal <- c(okabe_ito_palette[c(4, 1, 8, 5, 2, 3, 6, 7, 9)], "lightgreen", "grey90")
   pl1 <- plot_one_xy(seu, point_size = umap_point_size, label_size = label_size, what = "umap", meta_column = "cell_type", discrete_palette = pal, with_legend = FALSE)
   pl2 <- plot_one_xy(seu, point_size = spatial_point_size, label_size = label_size, what = "spatial", meta_column = "cell_type", discrete_palette = pal, with_legend = TRUE) + guides(colour = guide_legend(override.aes = list(size = 3)))
   plot_grid(pl1, pl2, nrow = 1, rel_widths = c(1, 1.2))
@@ -389,6 +388,7 @@ plot_gene_heatmap <- function(seu, gns, resolution = NULL) {
 
 plot_gene_dots <- function(seu, gns, meta_column = "cluster") {
   env <- new.env(parent = globalenv())
+  env$meta_column <- meta_column
 
   Idents(seu) <- meta_column
   
@@ -551,4 +551,15 @@ make_combmat_for_upset <- function(mex, ...) {
   mex |> 
     make_list_for_upset() |> 
     ComplexHeatmap::make_comb_mat(...)
+}
+
+
+plot_cluster_cell_type_jaccard <- function(seu) {
+  seu |>
+    jaccard_clusters_cell_types() |> 
+    ggplot(aes(x = cluster, y = cell_type, fill = j)) +
+    th +
+    geom_tile() +
+    scale_fill_viridis_c(option = "cividis") +
+    labs(fill = "Jaccard")
 }

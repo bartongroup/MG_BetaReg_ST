@@ -3,11 +3,20 @@
 # Facilitates communication between modules.
 
 
-mod_communication_server <- function(id, data_set, state) {
+mod_communication_server <- function(id, state) {
   
   server <- function(input, output, session) {
     
-  
-    moduleServer(id, server)
+    shiny::observe({
+      gid <- NULL
+      if(!is.null(state$gene_input))
+        gid <- state$gene_input
+      if(!is.null(state$gene_cor))
+        gid <- state$gene_cor
+      state$gene_plot <- gid
+    })
+
   }
+  
+  moduleServer(id, server)
 }

@@ -25,8 +25,18 @@ sr_ <- sapply(files_R, source)
 
 GENES <- jsonlite::read_json("ge_genes.json", simplifyVector = TRUE)
 
-# Read all data, make it available to all modules
+# Read Seurat data
 
 DATA <- list()
 DATA$`1` <- qs2::qs_read("../data/seu_1.qs")
 DATA$`2` <- qs2::qs_read("../data/seu_2.qs")
+
+# Open correlation files
+
+COR <- list()
+COR$`1` <- arrow::open_dataset("../data/cor_1.parquet")
+COR$`2` <- arrow::open_dataset("../data/cor_2.parquet")
+
+# Read gene descriptions
+
+GENE_INFO <- qs2::qs_read("../data/gene_info.qs")

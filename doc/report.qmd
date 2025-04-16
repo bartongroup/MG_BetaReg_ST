@@ -366,45 +366,37 @@ tar_read(tbl_keycorr_enrichment_1) |>
 
 ## Cell types
 
-### Identifying cell types
+The following procedure was applied to identify cell types. Marker genes identifying mostly one cell type were selected, as show in @tbl-cell-markers. For each marker gene, its expression across cells has been normalised between zero and one, with one corresponding to the highest expression observed. Then, the mean of normalised expression was calculated for each cell type (as indicated in @tbl-cell-markers). Finally, each cell was annotated with the type with the highest mean normalised expression.
 
 ```{r}
-#| label: fig-xy-markers-mpc-ep
-#| fig-cap: EP vs MPC selected markers. Each axis shows the mean expression across genes. Each gene is first normalised to its maximum intensity, so the mean is not dominated by the most expressed gene.
-knitr::include_graphics("../fig/xy_marker_mpc_ep_1.png")
-```
-
-```{r}
-#| label: fig-xy-markers-mpc-beta
-#| fig-cap: Beta vs MPC selected markers. Each axis shows the mean expression across genes. Each gene is first normalised to its maximum intensity, so the mean is not dominated by the most expressed gene.
-knitr::include_graphics("../fig/xy_marker_mpc_beta_1.png") 
-```
-
-### Cell type marking
-
-```{r}
-#| label: tbl-cell-type-rules
-#| tbl-cap: Rules to mark cell types. MPC, EP and Beta are as shown in @fig-xy-markers-mpc-ep and @fig-xy-markers-mpc-beta.
-tibble::tribble(
-  ~Rule, ~`Cell type`,
-  "INS > 0.4", "Beta",
-  "EP > 0.05", "EP",
-  "EP <= 0.05 & MPC > 0",  "MPC",
-  "Matrix > 0.2", "Matrix",
-  "Immune > 0.2", "Immune",
-  "Nervous > 0.2", "Nervous",
-  "VSM > 0.2", "VSM"
-) |> 
+#| label: tbl-cell-markers
+#| tbl-cap: Marker genes used to identify cell types.
+tar_read(tissue_markers) |> 
+  group_by(cell_type) |> 
+  summarise(genes = str_c(gene_symbol, collapse = ", ")) |> 
+  rename(`Cell type` = cell_type, Genes = genes) |> 
   gt()
 ```
 
+The results of this procedure are shown in @fig-cell-types.
 
 ```{r}
 #| label: fig-cell-types
-#| fig-cap: Cell types marked using rules outlined in @tbl-cell-type-rules.
+#| fig-cap: Cell types detected.
 knitr::include_graphics("../fig/cell_type_1.png")
 ```
 
+### Comparison with clustering
+
+@fig-clust-cell-type shows the comparison between clustering and cell type detection. For each pair cluster-cell type a Jaccard index has been calculated to show the level of agreement between the two partition methods. Jaccard index is the size of the intersection divided by the size of the union of the cells belonging to the cluster and the cell type.
+
+```{r}
+#| label: fig-clust-cell-type
+#| fig-cap: Comparison between clustering and cell type detection. The intensity scale shows the Jaccard index between given cluster and cell type.
+#| fig-width: 5
+#| fig-height: 4
+tar_read(fig_cluster_cell_type_1)
+```
 
 ## Spatial WGCNA
 

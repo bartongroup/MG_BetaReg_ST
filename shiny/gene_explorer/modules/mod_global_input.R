@@ -1,5 +1,7 @@
 # Module for global input for all other modules
 
+require(shiny)
+
 # ----- UI definitions -----
 
 mod_global_input_ui <- function(id) {
@@ -24,13 +26,18 @@ mod_global_input_ui <- function(id) {
       inputId = ns("gene"),
       label = shiny::span("Gene", gene_info),
       choices = NULL
+    ),
+    shiny::selectInput(
+      inputId = ns("x_var"),
+      label = "X-axis variable",
+      choices = c("Cluster" = "cluster", "Cell type" = "cell_type")
     )
   )
 }
 
 # ----- Server logic -----
 
-mod_global_input_server <- function(id, data_set, state) {
+mod_global_input_server <- function(id, state) {
   contrast <- NULL
 
   get_samples <- function() {
@@ -95,7 +102,10 @@ mod_global_input_server <- function(id, data_set, state) {
     })
 
     # Observe gene, selection, copy to state
-    shiny::observeEvent(input$gene, state$gene <- input$gene)
+    shiny::observeEvent(input$gene, state$gene_input <- input$gene)
+
+    # Observe x-variable, copy to state
+    shiny::observeEvent(input$x_var, state$x_var <- input$x_var)
   }
 
   shiny::moduleServer(id, server)

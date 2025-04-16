@@ -7,7 +7,7 @@
 #    state$gene_set
 #
 # Uses:
-#    data_set - user data
+#    DATA - user data
 #
 
 require(shiny)
@@ -27,24 +27,16 @@ require(forcats)
 mod_dot_plot_ui <- function(id) {
   ns <- shiny::NS(id)
 
-  x_variable <- shiny::selectInput(
-    inputId = ns("x_var"),
-    label = "X-axis variable",
-    choices = c("cluster", "cell_type")
-  )
+
 
   info <- info_icon("dot_plot")
 
   download <- shiny::uiOutput(ns("download_plot"))
 
-  gear <- gear_icon(
-    x_variable
-  )
-
   bslib::card(
     bslib::card_header(
       "Dot plot",
-      shiny::span(info, download, gear),
+      shiny::span(info, download),
       class = "d-flex justify-content-between"
     ),
     bslib::card_body(
@@ -61,7 +53,7 @@ mod_dot_plot_ui <- function(id) {
 
 # ----- Server logic -----
 
-mod_dot_plot_server <- function(id, data_set, state) {
+mod_dot_plot_server <- function(id, state) {
 
   server <- function(input, output, session) {
 
@@ -69,7 +61,7 @@ mod_dot_plot_server <- function(id, data_set, state) {
     make_plot <- shiny::reactive({
       gene_set <- state$gene_set
       sample <- state$sample
-      meta_col <- input$x_var
+      meta_col <- state$x_var
       shiny::req(gene_set, sample, meta_col)
       genes <- GENES[[gene_set]]
       DATA[[sample]] |> 
@@ -128,8 +120,9 @@ sh_plot_gene_dots <- function(seu, gns, meta_column = "cluster", label_size = 10
       axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)
     ) +
     geom_point() +
-    scale_colour_gradient(low = "grey90", high = "blue") +
-    scale_radius(range = c(1, 6)) +
+    #scale_colour_gradient(low = "grey90", high = "blue") +
+    scale_colour_distiller(palette = "Purples", direction = 1) +
+    scale_radius(range = c(1, 8)) +
     labs(x = meta_column, y = "Gene", size = "Percent expressed", colour = "Average expresion")
 }
 

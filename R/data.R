@@ -79,19 +79,22 @@ get_unique_markers <- function(tissue_markers) {
 }
 
 
-mark_cell_types <- function(seu, select_markers) {
-  cell_types <- select_markers$cell_type |> unique()
+mark_cell_types <- function(seu, tissue_markers, beta_limit = 0.5) {
+  cell_types <- tissue_markers$cell_type |> unique()
   cell_order <- seu@meta.data |> 
     rownames()
 
-  mex <- get_group_gene_expression(seu, select_markers, group_var = "cell_type")
+  mex <- get_group_gene_expression(seu, tissue_markers, group_var = "cell_type")
 
   d <- mex |> 
     mutate(
       cell_type = case_when(
-        Beta > 0.4 ~ "Beta",
-        EP > 0.05 ~ "EP",
-        EP <= 0.05 & MPC > 0 ~ "MPC",
+        EP <= 0.05 & MPC > 0 & Beta < beta_limit ~ "MPC",
+        EP > 0.05 & Beta < beta_limit ~ "EP",
+        Alpha > 0.05 & Beta < beta_limit ~ "Alpha",
+        Delta > 0.2 & Beta < beta_limit ~ "Delta",
+        Epsilon > 0.2 & Beta < beta_limit ~ "Epsilon",
+        Beta >= beta_limit ~ "Beta",
         Matrix > 0.2 ~ "Matrix",
         Immune > 0.2 ~ "Immune",
         Nervous > 0.2 ~ "Nervous",
@@ -101,7 +104,28 @@ mark_cell_types <- function(seu, select_markers) {
     ) |> 
     arrange(factor(cell_id, levels = cell_order))
 
-  seu@meta.data$cell_type <- d$cell_type
+  seu@meta.data$cell_type <- d$cell_type |> 
+    factor(levels = c(cell_types, "Other"))
+
+  return(seu)
+}
+
+
+mark_cell_types_by_max <- function(seu, tissue_markers) {
+  cell_types <- tissue_markers$cell_type |> unique()
+  cell_order <- seu@meta.data |> 
+    rownames()
+
+  mex <- get_group_gene_expression(seu, tissue_markers, group_var = "cell_type")
+
+  d <- mex |> 
+    pivot_longer(-cell_id) |> 
+    group_by(cell_id) |> 
+    summarise(cell_type = if_else(sum(value) == 0, "Other", name[which.max(value)])) |> 
+    arrange(factor(cell_id, levels = cell_order))
+
+  seu@meta.data$cell_type <- d$cell_type |> 
+    factor(levels = c(cell_types, "Other"))
 
   return(seu)
 }
@@ -198,4 +222,33 @@ save_spatial_modules <- function(mods, fname, fdr_limit = 0.05) {
     select(gene_symbol = gene_name, module, starts_with("kME")) |> 
     mutate(across(where(is.numeric), ~signif(.x, 4))) |> 
     write_csv(fname)
+}
+
+
+save_for_shiny <- function(seu, suffix) {
+  fname <- file.path("shiny", "data", str_glue("seu_{suffix}.qs"))
+  qs2::qs_save(seu, fname)
+}
+
+
+jaccard_clusters_cell_types <- function(seu) {
+  meta <- seu@meta.data |>
+    as_tibble(rownames = "cell_id") |> 
+    select(cell_id, cluster, cell_type)
+  m_cl <- meta |>
+    group_by(cluster) |> 
+    summarize(ids = list(cell_id), .groups = "drop") |> 
+    deframe()    
+  m_ct <- meta |>
+    group_by(cell_type) |> 
+    summarize(ids = list(cell_id), .groups = "drop") |> 
+    deframe()    
+
+  expand_grid(cluster = levels(meta$cluster), cell_type = levels(meta$cell_type)) |> 
+    rowwise() |> 
+    mutate(
+      n_un = union(m_cl[[cluster]], m_ct[[cell_type]]) |> length(),
+      n_int = intersect(m_cl[[cluster]], m_ct[[cell_type]]) |> length(),
+      j = n_int / n_un
+    )
 }

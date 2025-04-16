@@ -2,7 +2,10 @@
   "tissue_markers" : {
     "MPC" : ["PTF1A", "SOX9", "NKX6-1", "PDX1"],
     "EP" : ["NEUROD1", "NEUROG3", "NKX2-2", "PAX4", "PAX6"],
+    "Alpha" : ["ARX", "GCG", "RFX6"],
     "Beta" : ["INS"],
+    "Delta" : ["SST"],
+    "Epsilon" : ["GHRL"],
     "Nervous" : ["DBH", "PRPH", "GAL", "GAP43"],
     "VSM" : ["MYH11", "TAGLN", "ADIRF"],
     "Immune" : ["LYZ", "S100A9"],

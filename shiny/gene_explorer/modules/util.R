@@ -87,3 +87,14 @@ new_app_state <- function() {
 }
 
 
+percentage_expressed <- function(seu) {
+  ex <- SeuratObject::GetAssayData(seu, layer = "count")
+  
+  nonzero_cell_counts <- rowSums(ex != 0)
+  total_cells <- ncol(ex)
+
+  tibble(
+    gene_symbol = names(nonzero_cell_counts),
+    perc = (nonzero_cell_counts / total_cells) * 100
+  )
+}
