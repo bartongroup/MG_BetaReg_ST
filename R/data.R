@@ -245,6 +245,7 @@ jaccard_clusters_cell_types <- function(seu) {
     deframe()    
 
   expand_grid(cluster = levels(meta$cluster), cell_type = levels(meta$cell_type)) |> 
+    mutate(cluster = factor(cluster, levels = levels(meta$cluster))) |> 
     rowwise() |> 
     mutate(
       n_un = union(m_cl[[cluster]], m_ct[[cell_type]]) |> length(),

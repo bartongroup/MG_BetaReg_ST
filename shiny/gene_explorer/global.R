@@ -21,10 +21,6 @@ rename <- dplyr::rename
 files_R <- list.files(c("../R", "modules"), pattern = "*.R$", full.names = TRUE)
 sr_ <- sapply(files_R, source)
 
-# Read config json file
-
-GENES <- jsonlite::read_json("ge_genes.json", simplifyVector = TRUE)
-
 # Read Seurat data
 
 DATA <- list()
@@ -36,6 +32,11 @@ DATA$`2` <- qs2::qs_read("../data/seu_2.qs")
 COR <- list()
 COR$`1` <- arrow::open_dataset("../data/cor_1.parquet")
 COR$`2` <- arrow::open_dataset("../data/cor_2.parquet")
+
+# Read config json file
+
+all_genes <- SeuratObject::Features(DATA$`1`)
+GENES <- read_genes_for_pathways("genes_of_interest.xlsx", all_genes)
 
 # Read gene descriptions
 

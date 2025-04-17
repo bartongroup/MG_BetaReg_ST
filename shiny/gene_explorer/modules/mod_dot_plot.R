@@ -27,7 +27,17 @@ require(forcats)
 mod_dot_plot_ui <- function(id) {
   ns <- shiny::NS(id)
 
+  percentage_limit <- shiny::numericInput(
+    inputId = ns("percentage_limit"),
+    label = "Percentage expressed limit",
+    value = 0,
+    min = 0,
+    max = 100
+  )
 
+  gear <- gear_icon(
+    percentage_limit
+  )
 
   info <- info_icon("dot_plot")
 
@@ -36,7 +46,7 @@ mod_dot_plot_ui <- function(id) {
   bslib::card(
     bslib::card_header(
       "Dot plot",
-      shiny::span(info, download),
+      shiny::span(info, download, gear),
       class = "d-flex justify-content-between"
     ),
     bslib::card_body(
@@ -62,8 +72,15 @@ mod_dot_plot_server <- function(id, state) {
       gene_set <- state$gene_set
       sample <- state$sample
       meta_col <- state$x_var
-      shiny::req(gene_set, sample, meta_col)
+      perc_lim <- input$percentage_limit
+      shiny::req(gene_set, sample, meta_col, perc_lim)
       genes <- GENES[[gene_set]]
+      if(perc_lim > 0) {
+        good_genes <- percentage_expressed(DATA[[sample]]) |> 
+          dplyr::filter(perc >= perc_lim) |> 
+          dplyr::pull(gene_symbol)
+        genes <- intersect(genes, good_genes)
+      }
       DATA[[sample]] |> 
         sh_plot_gene_dots(genes, meta_column = meta_col)
     })
@@ -103,7 +120,8 @@ sh_plot_gene_dots <- function(seu, gns, meta_column = "cluster", label_size = 10
   
   dp <- Seurat::DotPlot(seu, features = gns)
   d <- dp$data |> 
-    tibble::as_tibble(rownames = "gene_symbol")
+    tibble::as_tibble(rownames = "gene_symbol") |> 
+    dplyr::mutate(features.plot = forcats::fct_rev(features.plot))
 
   if(meta_column == "cluster") {
     d <- d |> 

@@ -9,7 +9,8 @@
     "Nervous" : ["DBH", "PRPH", "GAL", "GAP43"],
     "VSM" : ["MYH11", "TAGLN", "ADIRF"],
     "Immune" : ["LYZ", "S100A9"],
-    "Matrix" : ["COL16A1", "LUM", "POSTN"]  
+    "Matrix" : ["COL16A1", "LUM", "POSTN"],
+    "Blood" : ["HBA2", "HBB", "HBM", "SLC4A1"]
   },
   "insulin_signalling_pathway" : ["INSR", "IGF1R", "IRS1", "IRS2", "KIAA1324", "PIK3CA", "AKT1", "AKT2", "AKT3", "MTOR", "FOXO1", "MAP2K1", "MAP2K2", "MAPK1"]
 }

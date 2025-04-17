@@ -191,12 +191,12 @@ The figures below show the top 12 marker genes in each cluster, with the highest
 # This function should be placed in an R chunk with results: asis, inside ::: {.panel-tabset}
 dynamic_png_panels <- function(file_pattern, name_pattern) {
 
-image_files <- list.files("../fig", pattern = file_pattern, full.names = TRUE) |> 
-  sort()
-names <- str_extract(image_files, name_pattern)
+  image_files <- list.files("../fig", pattern = file_pattern, full.names = TRUE) |> 
+    sort()
+  names <- str_extract(image_files, name_pattern)
 
-# Generate dynamic tabs
-tabs <- map(seq_along(image_files), function(i) {
+  # Generate dynamic tabs
+  tabs <- map(seq_along(image_files), function(i) {
   knit_child(text = knit_expand(text = "
 ### {{sec_name}}
 
@@ -204,8 +204,8 @@ tabs <- map(seq_along(image_files), function(i) {
 ", sec_name = names[i], image_path = image_files[i]), quiet = TRUE)
 })
 
-# Render tabs
-cat(unlist(tabs), sep = "\n")
+  # Render tabs
+  cat(unlist(tabs), sep = "\n")
 }
 ```
 
@@ -225,15 +225,20 @@ dynamic_png_panels("^top_clust_1_cl\\d+\\.png$", "(?<=1_)cl\\d+(?=\\.)")
 
 Functional enrichment was found for each set of top cluster markers and the results are shown in @tbl-cluster-enrichment.
 
+::: {style="height: 600px; width: fit-content; overflow-y: scroll; margin-left: auto; margin-right: auto; font-size: 10pt"}
+
 ```{r}
 #| label: tbl-cluster-enrichment
 #| tbl-cap: Functional enrichment from top cluster genes. The table is grouped per cluster. `n_with_sel` is the number of genes with the given term in the selection (correlated subset).
 tar_read(tbl_cluster_enrichment_1) |> 
+  dplyr::mutate(group = group |> as.numeric()) |> 
   dplyr::arrange(group) |> 
   dplyr::group_by(group) |> 
   dplyr::select(term_id, term_name, n_with_sel, odds_ratio, ids, group) |> 
   gt()
 ```
+
+:::
 
 ### Dot plot
 
@@ -273,7 +278,7 @@ tar_read(key_markers) |>
         columns = everything()
       )
     )
-  )
+  ) 
 ```
 
 Figures below show the expression of the key markers on the UMAP and spatial plots, for each tissue type.
@@ -284,7 +289,7 @@ Figures below show the expression of the key markers on the UMAP and spatial plo
 #| label: celltype-panels
 #| results: asis
 
-dynamic_png_panels("^key_markers_1_\\w+\\.png$", "(?<=1_)\\w+(?=\\.)") 
+dynamic_png_panels("^key_markers_1_\\w+\\.png$", "(?<=1_)\\w+(?=\\.)")
 ```
 
 :::
@@ -295,7 +300,7 @@ dynamic_png_panels("^key_markers_1_\\w+\\.png$", "(?<=1_)\\w+(?=\\.)")
 ```{r}
 #| label: fig-key-markers-expr
 #| fig-cap: Expression (top) and percentage of expresses cells (bottom) for each of the key markers across clusters. 
-knitr::include_graphics("../fig/key_marker_expr_1.png") 
+knitr::include_graphics("../fig/key_marker_expr_1.png")
 ```
 
 
@@ -305,7 +310,7 @@ knitr::include_graphics("../fig/key_marker_expr_1.png")
 #| fig-cap: Dot plot for key markers.
 #| fig-width: 8
 #| fig-height: 5
-tar_read(fig_dots_key_markers_1)
+tar_read(fig_dots_key_markers_1) 
 ```
 
 ### Correlation
@@ -384,6 +389,18 @@ The results of this procedure are shown in @fig-cell-types.
 #| label: fig-cell-types
 #| fig-cap: Cell types detected.
 knitr::include_graphics("../fig/cell_type_1.png")
+```
+
+### Retrospective validation
+
+Here we check how our derived cell types correlated with the cell type markers used.
+
+```{r}
+#| label: fig-dots-cell-type
+#| fig-cap: Dot plot for derived cell types against marker genes cell types were derived from (sanity check).
+#| fig-width: 6
+#| fig-height: 6
+tar_read(fig_dots_cell_type_1)
 ```
 
 ### Comparison with clustering

@@ -188,14 +188,14 @@ cluster_seurat <- function(seu, dims = 1:40, resolutions = c(0.1, 0.125, 0.15, 0
   seu <- seu |> 
     FindVariableFeatures(nfeatures = nfeatures) |> 
     ScaleData() |> 
-    RunPCA() |> 
+    RunPCA(approx = FALSE) |> 
     FindNeighbors(dims = dims) |> 
     FindClusters(resolution = resolutions, random.seed = seed, algorithm = algorithm)
     
   # Set selected resolution as Ident (will be used by default)
   res <- get_resolution_columns(ident_res, suffix = res_suffix)
   Idents(seu) <- res
-  seu@meta.data$cluster <- seu[[res]][[1]]
+  seu@meta.data$cluster <- seu[[res]][[1]] |> as.character() |> as.numeric() |> factor()
   seu |> 
     BuildClusterTree() |> 
     RunUMAP(dims = dims, seed.use = seed)

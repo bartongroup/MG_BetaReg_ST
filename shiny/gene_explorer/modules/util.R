@@ -93,8 +93,31 @@ percentage_expressed <- function(seu) {
   nonzero_cell_counts <- rowSums(ex != 0)
   total_cells <- ncol(ex)
 
-  tibble(
+  tibble::tibble(
     gene_symbol = names(nonzero_cell_counts),
     perc = (nonzero_cell_counts / total_cells) * 100
   )
+}
+
+read_genes_for_pathways <- function(excel_file, all_genes) {
+  groups <- readxl::excel_sheets(excel_file)
+  purrr::map(groups, function(group) {
+    tb <- readxl::read_excel(excel_file, sheet = group, na = "#N/A", range = cell_cols("A")) |> 
+      dplyr::rename(gene_symbol = 1) |> 
+      tidyr::drop_na() |> 
+      tidyr::separate_longer_delim(gene_symbol, delim = ",") |> 
+      dplyr::mutate(gene_symbol = str_trim(gene_symbol)) |> 
+      dplyr::distinct() |> 
+      dplyr::mutate(found = gene_symbol %in% all_genes)
+    missing_genes <- tb |> 
+      dplyr::filter(!found) |> 
+      dplyr::pull(gene_symbol)
+    if(length(missing_genes) > 0) {
+      print(paste(group, ": ", stringr::str_c(missing_genes, collapse = ", ")))
+    }
+    tb |> 
+      dplyr::filter(found) |> 
+      dplyr::pull(gene_symbol)
+  }) |> 
+    rlang::set_names(groups)
 }
