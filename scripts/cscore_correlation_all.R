@@ -20,26 +20,8 @@ if (!file.exists(seurat_file)) {
 
 ####
 
-get_overlapping_genes <- function(seu, genes, min_overlap) {
-  x <- GetAssayData(seu, layer = "counts")
-  x[x > 0] <- 1   # binary matrix, expression = 1, no expression = 0
-  is_sel <- x[genes, ] |> colSums()
-  is_sel[is_sel > 0] <- 1  # cells where of any sel_genes is expressed
-  overlap <- x %*% is_sel  # matrix multiplication, returns overlap count between all genes and sel_genes
 
-  # Only use genes with minimum overlap (number of cells)
-  names(overlap[overlap[, 1] > min_overlap, ])
-}
-
-get_top_genes <- function(seu, assay, n_top) {
-  AverageExpression(seu, layer = "data", group.by = "orig_ident") |>
-    pluck(assay) |> 
-    as_tibble(rownames = "gene_symbol") |> 
-    slice_max(order_by = V1, n = n_top) |> 
-    pull(gene_symbol)
-}
-
-find_gene_correlation_cscore <- function(seu, assay = "Spatial.008um", min_overlap = 100, n_top = 3000) {
+find_gene_correlation_cscore <- function(seu, assay = "Spatial.008um") {
   
   all_genes <- Features(seu)
 
@@ -75,7 +57,7 @@ library(arrow)
 
 seu <- readRDS(seurat_file)
 
-cr <- find_gene_correlation_cscore(seu, min_overlap = 10, n_top = Inf)
+cr <- find_gene_correlation_cscore(seu)
 
 print(paste("Writing to", out_file))
 arrow::write_parquet(cr, out_file)

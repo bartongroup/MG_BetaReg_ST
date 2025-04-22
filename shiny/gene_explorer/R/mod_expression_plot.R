@@ -4,10 +4,10 @@
 #
 # Input:
 #    state$sample
-#    state$gene
+#    state$gene_plot
 #
 # Uses:
-#    DATA - user data
+#    data$seu - user data
 #
 
 require(shiny)
@@ -32,21 +32,57 @@ mod_expression_plot_ui <- function(id) {
 
   info <- info_icon("expression_plot")
 
+  layer <- shiny::radioButtons(
+    inputId = ns("layer"),
+    label = "Data layer",
+    choices = c("Normalised" = "data", "Counts" = "counts"),
+    selected = "data"
+  )
+  
+  spatial_point_size <- shiny::sliderInput(
+    inputId = ns("spatial_point_size"),
+    label = "Point size",
+    min = 0.1,
+    max = 3,
+    value = 0.7,
+    step = 0.02
+  )
+
+  palette <- shiny::selectInput(
+    inputId = ns("palette"),
+    label = "Colour palette",
+    choices = c(
+      "Blues", "BuGn", "BuPu", "GnBu", "Greens", "Greys", "Oranges", 
+      "OrRd", "PuBu", "PuBuGn", "PuRd", "Purples", "RdPu", "Reds", 
+      "YlGn", "YlGnBu", "YlOrBr", "YlOrRd"
+    ),
+    selected = "Purples"
+  )
+
+  gear <- gear_icon(
+    layer,
+    spatial_point_size,
+    palette
+  )
+
   download <- shiny::uiOutput(ns("download_plot"))
 
   bslib::card(
     bslib::card_header(
       "Expression plots",
-      shiny::span(info, download),
+      shiny::span(info, download, gear),
       class = "d-flex justify-content-between"
     ),
     bslib::card_body(
       min_height = 600,
-      max_height = 800,
+      max_height = 1000,
+      shiny::textOutput(
+        outputId = ns("gene_info")
+      ),
       shiny::plotOutput(
         outputId = ns("expression_plot"),
         width = "100%",
-        height = "700px"
+        height = "800px"
       )
     )
   )
@@ -55,9 +91,23 @@ mod_expression_plot_ui <- function(id) {
 
 # ----- Server logic -----
 
-mod_expression_plot_server <- function(id, state) {
+mod_expression_plot_server <- function(id, state, data) {
 
   server <- function(input, output, session) {
+
+    # Gene information
+    output$gene_info <- shiny::renderText({
+      gene <- state$gene_plot
+      shiny::req(gene)
+      tb <- data$gene_info |>
+        dplyr::filter(gene_symbol == gene)
+      if(nrow(tb) == 1) {
+        txt <- paste(tb$gene_symbol, tb$description)
+      } else {
+        txt <- gene
+      }
+      txt
+    })
 
     # Function to make plot
     make_plot <- shiny::reactive({
@@ -65,10 +115,10 @@ mod_expression_plot_server <- function(id, state) {
       sample <- state$sample
       group_var <- state$x_var
       shiny::req(gene, sample, group_var)
-      pl1 <- DATA[[sample]] |> 
-        sh_plot_spatial(gene)
-      pl2 <- DATA[[sample]] |> 
-        sh_plot_expression(gene, group_var)
+      pl1 <- data$seu[[sample]] |> 
+        sh_plot_spatial(gene, point_size = input$spatial_point_size, dist_palette = input$palette)
+      pl2 <- data$seu[[sample]] |> 
+        sh_plot_expression(gene, group_var, layer = input$layer)
       cowplot::plot_grid(pl1, pl2, ncol = 1, rel_heights = c(1, 0.65))
     })
 
@@ -107,15 +157,15 @@ thm <- th +
     axis.ticks = ggplot2::element_blank()
   )
 
-get_expression <- function(seu, gene) {
-  SeuratObject::GetAssayData(seu, layer = "data")[gene, , drop = FALSE] |> 
+get_expression <- function(seu, gene, layer = "data") {
+  SeuratObject::GetAssayData(seu, layer = layer)[gene, , drop = FALSE] |> 
     t() |> 
     tibble::as_tibble(rownames = "cell_id") |> 
     tidyr::pivot_longer(-cell_id, names_to = "gene_symbol", values_to = "expression")
 }
 
 
-sh_plot_spatial <- function(seu, gene, point_size = 0.7) {
+sh_plot_spatial <- function(seu, gene, point_size = 0.7, dist_palette = "Purples") {
 
   # Create x-y coordinates for spatial
   xy <- SeuratObject::GetTissueCoordinates(seu) |> 
@@ -132,43 +182,43 @@ sh_plot_spatial <- function(seu, gene, point_size = 0.7) {
   # Get gene expression per cell
   ex <-  get_expression(seu, gene)
   
-  d <- inner_join(xy, ex, by = "cell_id") 
+  d <- dplyr::inner_join(xy, ex, by = "cell_id") 
 
   pl <- d |> 
     ggplot(aes(x = x, y = y, colour = expression)) +
     thm +
     theme(legend.position = "bottom") +
     geom_point(size = point_size, shape = 15, stroke = 0.1) +
-    scale_colour_distiller(palette = "Purples", direction = 1) +
-    labs(x = NULL, y = NULL, title = gene)
+    scale_colour_distiller(palette = dist_palette, direction = 1) +
+    labs(x = NULL, y = NULL, title = NULL)
     
   return(pl)
 }
 
 
 
-sh_plot_expression <- function(seu, gene, group_var) {
+sh_plot_expression <- function(seu, gene, group_var, layer) {
   
   mt <- seu@meta.data |> 
     tibble::as_tibble(rownames = "cell_id") |> 
     dplyr::mutate(grp = get(group_var)) |> 
-    select(cell_id, grp)
+    dplyr::select(cell_id, grp)
 
   if(group_var == "cluster") {
     mt <- mt |> 
-      mutate(
+      dplyr::mutate(
         i = grp |> as.character() |> as.numeric(),
         grp = forcats::fct_reorder(grp, i)
       )
   } else {
     mt <- mt |> 
-      mutate(
+      dplyr::mutate(
         grp = grp |> forcats::as_factor() |> forcats::fct_relevel(c("MPC", "EP", "Beta")) |> forcats::fct_relevel("Other", after = Inf),
         i = grp |> as.integer()
       )
   }
   
-  ex <- get_expression(seu, gene) |> 
+  ex <- get_expression(seu, gene, layer) |> 
     dplyr::left_join(mt, by = "cell_id")
 
   groups <- levels(ex$grp)
@@ -185,10 +235,13 @@ sh_plot_expression <- function(seu, gene, group_var) {
   min_y <- -mrg * max_y
 
   m <- m |>
-    dplyr::mutate(y = (1 - p) * min_y)
+    dplyr::mutate(y = (1 - p) * min_y) |> 
+    tidyr::drop_na()
   
   ex <- ex |> 
     dplyr::filter(expression > 0)
+
+  ylab <- ifelse(layer == "data", "Normalised data", "Counts")
   
   q_wid <- 0.3
   m_wid <- 0.3
@@ -205,5 +258,5 @@ sh_plot_expression <- function(seu, gene, group_var) {
     geom_hline(yintercept = 0, colour = "grey70") +
     scale_x_continuous(breaks = seq_along(groups), labels = groups) +
     scale_y_continuous(limits = c(min_y, max_y), expand = expansion(mult = c(0, 0.03))) +
-    labs(x = group_var, y = "Expression")
+    labs(x = group_var, y = ylab)
 }

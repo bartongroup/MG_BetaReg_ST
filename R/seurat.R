@@ -68,6 +68,20 @@ get_gene_cells <- function(seu, ids) {
     filter(count > 0)
 }
 
+get_spatial_coordinates <- function(seu) {
+  GetTissueCoordinates(seu) |> 
+    as_tibble(rownames = "cell_id") |>
+    select(-cell) |> 
+    # Rearrange cooridnates to look like Newcastle report
+    rename(
+      t = x,
+      x = y
+    ) |> 
+    rename(y = t) |> 
+    mutate(y = -y) |> 
+    relocate(cell_id, .before = 1) 
+}
+
 
 #' Average expression per group.
 #'
@@ -86,10 +100,11 @@ get_gene_cells <- function(seu, ids) {
 #' @export
 #'
 #' @examples
-get_average_expression <- function(seu, assay = "Spatial.008um", layer = "count", group_var = "ident") {
-  AverageExpression(seu, assays = assay, layer = layer, group.by = group_var) |>
-    pluck(assay) |> 
-    as_tibble(rownames = "feature_id")
+get_average_expression <- function(seu, assay = "Spatial.008um", layer = "data", group_var = "ident") {
+  AggregateExpression(seu, assays = assay, group.by = group_var, return.seurat = TRUE) |> 
+    GetAssayData(layer = layer) |> 
+    as_tibble(rownames = "gene_symbol") |> 
+    pivot_longer(-gene_symbol, names_to = group_var, values_to = layer)
 }
 
 get_gene_expression <- function(seu, genes, norm_per_gene = FALSE) {
@@ -312,4 +327,13 @@ save_for_loupe <- function(seu, fname) {
     select(barcode, cell_type, starts_with("Spatial.008um_snn_res")) |> 
     rename_with(~str_replace(., "^Spatial.008um_snn_res.", "resolution_"), starts_with("Spatial.008um_snn_res")) |> 
     write_csv(fname)
+}
+
+
+seurat_de <- function(seu, group_1 = "Beta", group_2 = "MPC", meta_col = "cell_type", method = "wilcox") {
+  Idents(seu) <- meta_col
+
+  FindMarkers(seu, ident.1 = group_1, ident.2 = group_2, test.use = method) |> 
+    as_tibble(rownames = "gene_symbol") |> 
+    add_column(contrast = str_glue("{group_1}-{group_2}"))
 }

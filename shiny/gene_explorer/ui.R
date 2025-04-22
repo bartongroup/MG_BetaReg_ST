@@ -3,6 +3,9 @@
 # Main UI
 #
 
+require(bslib)
+require(shiny)
+
 version <- "1.0"
 
 bslib::page_sidebar(
@@ -12,15 +15,19 @@ bslib::page_sidebar(
 
   sidebar = bslib::sidebar(
     title = "Gene explorer",
-    mod_global_input_ui("global_input"),
-    shiny::tags$hr(),
-    shiny::tags$span(style = "font-size: 0.7em; color: #191970", version)
+    mod_global_input_ui("global_input")
+    #shiny::tags$hr(),
+    #shiny::tags$span(style = "font-size: 0.7em; color: #191970", version)
   ),
 
-  bslib::layout_column_wrap(
-    width = 1/3,
+  bslib::layout_columns(
+    col_widths = c(3, 5, 4),
     mod_dot_plot_ui("dot_plot"),
     mod_expression_plot_ui("expression_plot"),
-    mod_correlation_table_ui("correlation_table")
+    bslib::layout_column_wrap(
+      width = 1,
+      mod_correlation_table_ui("correlation_table"),
+      mod_enrichment_ui("enrichment")
+    )
   )
 )

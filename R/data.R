@@ -170,25 +170,29 @@ save_for_external_correlation <- function(seu, key_marker_genes_endoc, suffix) {
   saveRDS(key_marker_genes_endoc, file = file.path("ext", str_glue("key_marker_genes_endoc_{suffix}.rds")))
 }
 
-read_correlation_table <- function(fname, key_marker_genes_endoc) {
-  stopifnot(file.exists(fname))
-  tb <- qs_read(fname)
 
-  # 'tb' is a long pivot of a triangualar matrix. Here, we want to filter 
-  # 
-  # 
+# Read correlation data from a parquet file (contains all correlations)
+# and select only marker genes in the first column
+read_correlation_markers <- function(fname, key_marker_genes_endoc) {
+  stopifnot(file.exists(fname))
+  tb <- arrow::read_parquet(fname)
+
+  # 'tb' is a long pivot of a triangualar matrix.
   # We need all marker genes as gene_1,
   # but they can be both gene_1 and gene_2. Hence, we split and join.
 
   tb1 <- tb |> 
-    filter(gene_1 %in% key_marker_genes_endoc & !(gene_2 %in% key_marker_genes_endoc))
+    filter(gene_1 %in% key_marker_genes_endoc & !(gene_2 %in% key_marker_genes_endoc)) |> 
+    collect()
   tb2 <- tb |> 
     filter(gene_2 %in% key_marker_genes_endoc & !(gene_1 %in% key_marker_genes_endoc)) |> 
     rename(g1 = gene_1, g2 = gene_2) |> 
     rename(gene_1 = g2, gene_2 = g1) |> 
-    relocate(gene_1, .before = gene_2)
+    relocate(gene_1, .before = gene_2) |> 
+    collect()
   tb3 <- tb |> 
-    filter(gene_1 %in% key_marker_genes_endoc & gene_2 %in% key_marker_genes_endoc)
+    filter(gene_1 %in% key_marker_genes_endoc & gene_2 %in% key_marker_genes_endoc) |> 
+    collect()
   bind_rows(tb1, tb2, tb3) |> 
     mutate(gene_1 = factor(gene_1, levels = key_marker_genes_endoc))
 }

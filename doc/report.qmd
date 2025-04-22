@@ -28,7 +28,7 @@ editor:
     wrap: 72
 ---
 
-```{r libraries}
+```{r}
 #| label: libraries
 #| cache: false
 suppressPackageStartupMessages({

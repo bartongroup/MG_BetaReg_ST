@@ -1,31 +1,16 @@
-#' Assert that a data frame contains specific columns
-#'
-#' This function checks whether a given data frame contains all of the required columns.
-#' It throws an error if any of the specified columns are missing. This is useful for
-#' ensuring that data frames meet expected specifications before performing operations
-#' that depend on those columns.
-#'
-#' @param df A data frame whose columns are to be checked.
-#' @param cols A character vector specifying the required column names.
-#' @param df_name A character string representing the name of the data frame variable
-#'   as it should appear in error messages. This improves the readability of error messages
-#'   by indicating which data frame has missing columns.
-#'
-#' @return Invisibly returns `TRUE` if all specified columns are present in the data frame.
-#'   If any columns are missing, an error is thrown with a message specifying which
-#'   columns are absent.
-#'
-#' @importFrom methods is
-#' @noRd
-assert_colnames <- function(df, cols, df_name) {
-  assertthat::assert_that(is(df, "data.frame"))
-  n_missing <- sum(!(cols %in% colnames(df)))
-  colstr <- stringr::str_c(cols, collapse = ", ")
-  assertthat::assert_that(
-    n_missing == 0,
-    msg = stringr::str_glue("Some columns in '{df_name}' are missing. Required columns are: {colstr}.")
-  )
-}
+require(shiny)
+require(bslib)
+require(bsicons)
+require(htmltools)
+require(SeuratObject)
+require(tibble)
+require(dplyr)
+require(tidyr)
+require(purrr)
+require(readxl)
+require(rlang)
+require(qs2)
+require(arrow)
 
 #' Create a Download Link
 #'
@@ -82,11 +67,26 @@ new_app_state <- function() {
   shiny::reactiveValues(
     sample = NULL,           # sample name, from the drop-down menu
     gene_set = NULL,         # gene set selection from the drop-down menu
-    gene = NULL,             # gene selection from the drop-down menu
+    gene_input = NULL,       # gene selection from the drop-down menu
+    gene_cor = NULL,         # gene selected manually from the correlation table
+    gene_plot = NULL,        # Gene to plot expression; calculated in communication mod
+    sel_enrichment = NULL,   # all genes from the correlation table
+    x_var = NULL,            # variable to put on x-axis of dot and expression plots
   )
 }
 
-
+#' Calculate percentage of cells expressing each gene
+#'
+#' This function calculates the percentage of cells in which each gene is expressed 
+#' (count > 0) in a Seurat object.
+#'
+#' @param seu A Seurat object containing gene expression data.
+#'
+#' @return A tibble with two columns:
+#' \itemize{
+#'   \item gene_symbol: Character vector of gene names
+#'   \item perc: Numeric vector of percentages (0-100) of cells expressing each gene
+#' }
 percentage_expressed <- function(seu) {
   ex <- SeuratObject::GetAssayData(seu, layer = "count")
   
@@ -99,6 +99,17 @@ percentage_expressed <- function(seu) {
   )
 }
 
+#' Read gene sets from Excel file and match with available genes
+#'
+#' This function reads gene sets organized in Excel sheets and matches them against
+#' a list of available genes. Each sheet in the Excel file represents a different
+#' gene set or pathway.
+#'
+#' @param excel_file Path to the Excel file containing gene sets (one per sheet)
+#' @param all_genes Character vector of all available genes to match against
+#'
+#' @return A named list where each element contains the genes found in both the 
+#' Excel sheet and the all_genes vector. Names correspond to Excel sheet names.
 read_genes_for_pathways <- function(excel_file, all_genes) {
   groups <- readxl::excel_sheets(excel_file)
   purrr::map(groups, function(group) {
@@ -113,11 +124,61 @@ read_genes_for_pathways <- function(excel_file, all_genes) {
       dplyr::filter(!found) |> 
       dplyr::pull(gene_symbol)
     if(length(missing_genes) > 0) {
-      print(paste(group, ": ", stringr::str_c(missing_genes, collapse = ", ")))
+    #  print(paste(group, ": ", stringr::str_c(missing_genes, collapse = ", ")))
     }
     tb |> 
       dplyr::filter(found) |> 
       dplyr::pull(gene_symbol)
   }) |> 
     rlang::set_names(groups)
+}
+
+
+
+#' Read all data files for analysis
+#'
+#' This function reads multiple data files required for analysis, including:
+#' - Seurat objects (gene expression data)
+#' - Correlation tables
+#' - Genes of interest from Excel file
+#' - Gene descriptions
+#' - Functional terms
+#'
+#' @return A list containing:
+#' \itemize{
+#'   \item seu: Named list of Seurat objects
+#'   \item cor: Named list of correlation tables
+#'   \item genes: Gene sets from Excel file
+#'   \item gene_info: Gene descriptions
+#'   \item fterms: Functional terms
+#' }
+read_all_data <- function() {
+  
+  sets <- c("1", "2")
+
+  # Read Seurat objects
+  seu <- purrr::map(sets, ~qs2::qs_read(stringr::str_glue("../data/seu_{.x}.qs"))) |> 
+    rlang::set_names(sets)
+
+  # Read correlation tables
+  cor <- purrr::map(sets, ~arrow::open_dataset(stringr::str_glue("../data/cor_{.x}.parquet"))) |> 
+    rlang::set_names(sets)
+    
+  # Read genes of interest
+  all_genes <- SeuratObject::Features(data$seu$`1`)
+  genes <- read_genes_for_pathways("genes_of_interest.xlsx", all_genes)
+
+  # Read gene descriptions
+  gene_info <- qs2::qs_read("../data/gene_info.qs")
+
+  # Read functional terms
+  fterms <- qs2::qs_read("../data/fterms.qs")
+
+  list(
+    seu = seu,
+    cor = cor,
+    genes = genes,
+    gene_info = gene_info,
+    fterms = fterms
+  )
 }

@@ -7,13 +7,11 @@
 #    state$gene_set
 #
 # Uses:
-#    DATA - user data
+#    data$seu - user data
 #
 
 require(shiny)
 require(bslib)
-require(bsicons)
-require(htmltools)
 
 require(Seurat)
 
@@ -63,7 +61,7 @@ mod_dot_plot_ui <- function(id) {
 
 # ----- Server logic -----
 
-mod_dot_plot_server <- function(id, state) {
+mod_dot_plot_server <- function(id, state, data) {
 
   server <- function(input, output, session) {
 
@@ -74,14 +72,14 @@ mod_dot_plot_server <- function(id, state) {
       meta_col <- state$x_var
       perc_lim <- input$percentage_limit
       shiny::req(gene_set, sample, meta_col, perc_lim)
-      genes <- GENES[[gene_set]]
+      genes <- data$genes[[gene_set]]
       if(perc_lim > 0) {
-        good_genes <- percentage_expressed(DATA[[sample]]) |> 
+        good_genes <- percentage_expressed(data$seu[[sample]]) |> 
           dplyr::filter(perc >= perc_lim) |> 
           dplyr::pull(gene_symbol)
         genes <- intersect(genes, good_genes)
       }
-      DATA[[sample]] |> 
+      data$seu[[sample]] |> 
         sh_plot_gene_dots(genes, meta_column = meta_col)
     })
 
@@ -125,7 +123,7 @@ sh_plot_gene_dots <- function(seu, gns, meta_column = "cluster", label_size = 10
 
   if(meta_column == "cluster") {
     d <- d |> 
-      mutate(
+      dplyr::mutate(
         i = id |> as.character() |> as.numeric(),
         id = forcats::fct_reorder(id, i)
       )
@@ -135,7 +133,8 @@ sh_plot_gene_dots <- function(seu, gns, meta_column = "cluster", label_size = 10
     th +
     theme(
       axis.text.y = element_text(size = label_size),
-      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+      legend.position = "nonw"
     ) +
     geom_point() +
     #scale_colour_gradient(low = "grey90", high = "blue") +

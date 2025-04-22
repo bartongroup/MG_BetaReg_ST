@@ -145,6 +145,30 @@ plot_all_counts <- function(cell_data_all, gene_detection_all) {
   })
 }
 
+plot_spatial_meta <- function(seu, meta_column = "pseudotime", point_size = 0.6) {
+  get_spatial_coordinates(seu) |> 
+    mutate(val = seu@meta.data[[meta_column]]) |> 
+  ggplot(aes(x = x, y = y, colour = val)) +
+    thm +
+    geom_point(size = point_size, shape = 15, stroke = 0.1) +
+    scale_colour_viridis_c(option = "cividis") +
+    labs(x = NULL, y = NULL, colour = meta_column)
+}
+
+plot_reduction_meta <- function(seu, reduction = "pca", meta_column = "pseudotime", point_size = 0.6) {
+  Embeddings(seu, reduction = reduction) |>
+    as_tibble(rownames = "cell_id") |>
+    select(1:3) |> 
+    set_names(c("cell_id", "x", "y")) |> 
+    mutate(val = seu@meta.data[[meta_column]]) |> 
+  ggplot(aes(x = x, y = y, colour = val)) +
+    thm +
+    geom_point(size = point_size, shape = 15, stroke = 0.1) +
+    scale_colour_viridis_c(option = "cividis") +
+    labs(x = NULL, y = NULL, colour = meta_column)
+}
+
+
 #'
 #' Generates a scatter plot using either UMAP or spatial coordinates from a Seurat object.
 #' Points can be colored by cluster identity or gene expression values.
@@ -173,17 +197,7 @@ plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap
       rename(x = umap_1, y = umap_2)
     point_shape <- 16
   } else {
-    xy <- GetTissueCoordinates(seu) |> 
-      as_tibble(rownames = "cell_id") |>
-      select(-cell) |> 
-      # Rearrange cooridnates to look like Newcastle report
-      rename(
-        t = x,
-        x = y
-      ) |> 
-      rename(y = t) |> 
-      mutate(y = -y) |> 
-      relocate(cell_id, .before = 1) 
+    xy <- get_spatial_coordinates(seu)
     point_shape <- 15
   }
 

@@ -2,8 +2,9 @@
 #
 # Facilitates communication between modules.
 
+require(shiny)
 
-mod_communication_server <- function(id, state) {
+mod_communication_server <- function(id, state, data) {
   
   server <- function(input, output, session) {
     
@@ -18,5 +19,5 @@ mod_communication_server <- function(id, state) {
 
   }
   
-  moduleServer(id, server)
+  shiny::moduleServer(id, server)
 }

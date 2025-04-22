@@ -30,26 +30,27 @@ mod_global_input_ui <- function(id) {
     shiny::selectInput(
       inputId = ns("x_var"),
       label = "X-axis variable",
-      choices = c("Cluster" = "cluster", "Cell type" = "cell_type")
+      choices = c("Cluster" = "cluster", "Cell type" = "cell_type"),
+      selected = "cell_type"
     )
   )
 }
 
 # ----- Server logic -----
 
-mod_global_input_server <- function(id, state) {
+mod_global_input_server <- function(id, state, data) {
   contrast <- NULL
 
   get_samples <- function() {
-    names(DATA)
+    names(data$seu)
   }
 
   get_gene_sets <- function() {
-    names(GENES)
+    names(data$genes)
   }
 
   get_genes <- function(gene_set) {
-    GENES[[gene_set]]
+    data$genes[[gene_set]]
   }
 
   server <- function(input, output, session) {
@@ -77,7 +78,7 @@ mod_global_input_server <- function(id, state) {
       shiny::updateSelectInput(
         session = session,
         inputId = "gene",
-        choices = get_genes(names(GENES)[1])
+        choices = get_genes(names(data$genes)[1])
       )
     })
 

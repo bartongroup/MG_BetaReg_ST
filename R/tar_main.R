@@ -93,8 +93,8 @@ targets_main <- function() {
       
       # Next two lines are for running correlation on a large-memory cluster node.
       sav_external_cor = save_for_external_correlation(seu, key_marker_genes_endoc, NAME),
-      cor_file = paste0("ext/cor_", NAME, ".qs"),
-      tbl_key_corr_cscore = read_correlation_table(cor_file, key_marker_genes_endoc),
+      cor_file = paste0("ext/cor_", NAME, ".parquet"), 
+      tbl_key_corr_cscore = read_correlation_markers(cor_file, key_marker_genes_endoc),
 
       tbl_key_corr_cscore_endoc = tbl_key_corr_cscore |> dplyr::filter(gene_2 %in% key_marker_genes_endoc),
       tbl_key_corr_cscore_others = tbl_key_corr_cscore |> dplyr::filter(!(gene_2 %in% key_marker_genes_endoc)),
@@ -121,8 +121,27 @@ targets_main <- function() {
       tbl_modules = get_modules(seu_hdwgcna),
       tbl_hub_genes = get_hub_genes(seu_hdwgcna),
 
+      # Pseudo time
+      pseudo_time_beta = run_slingshot(seu_mark, cell_types = c("MPC", "Beta")),
+      fig_lineage_beta = plot_slingshot_lineage(pseudo_time_beta),
+      pseudo_time_beta_umap = run_slingshot(seu_mark, cell_types = c("MPC", "Beta"), reduction = "UMAP"),
+      fig_lineage_beta_umap = plot_slingshot_lineage(pseudo_time_beta_umap),
+      pseudo_time_delta = run_slingshot(seu_mark, cell_types = c("MPC", "Delta")),
+      fig_lineage_delta = plot_slingshot_lineage(pseudo_time_delta),
+      seu_mark_pt = seu_mark |>
+        add_pseudotime(pseudo_time_beta, colname = "pseudotime_beta") |> 
+        add_pseudotime(pseudo_time_delta, colname = "pseudotime_delta"),
+      fig_spatial_pt_beta = plot_spatial_meta(seu_mark_pt, meta_column = "pseudotime_beta"),
+
+      # Differential expression late/MPC
+      de_beta_mpc = seurat_de(seu_mark, group_1 = "Beta"),
+      de_delta_mpc = seurat_de(seu_mark, group_1 = "Delta"),
+      gse_beta_mpc = fgsea_all_terms(de_beta_mpc, fterms, feature_var = "gene_symbol", rank_expr = "avg_log2FC"),
+      gse_delta_mpc = fgsea_all_terms(de_delta_mpc, fterms, feature_var = "gene_symbol", rank_expr = "avg_log2FC"),
+
+
       # Save data for external use
-      sav_loupe = save_for_loupe(seu_mark, paste0("tab/clusters_", NAME, ".csv")),
+      sav_loupe = save_for_loupe(seu_mark_pt, paste0("tab/clusters_", NAME, ".csv")),
       sav_cors = save_correlation(tbl_key_corr_cscore, paste0("tab/correlation_", NAME, ".csv")),
       sav_enr = save_group_enrichment(tbl_keycorr_enrichment, paste0("tab/keycorr_enrichment_", NAME, ".csv")),
       sav_mods = save_spatial_modules(tbl_modules, paste0("tab/spatial_modules_", NAME, ".csv"))
