@@ -29,3 +29,17 @@ It's best to use `qsub` to submit these commands to the cluster. Make sure you r
 ```
 targets::tar_make()
 ```
+
+Once this is done, you can render the Quarto report with
+
+```
+quarto::quarto_render("doc/report.qmd")
+```
+
+and run the Shiny apps
+
+```
+shiny::runApp("shiny/de")
+shiny::runApp("shiny/gsea")
+shiny::runApp("shiny/gene_explorer")
+```
