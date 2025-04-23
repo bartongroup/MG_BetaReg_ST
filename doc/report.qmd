@@ -391,6 +391,15 @@ The results of this procedure are shown in @fig-cell-types.
 knitr::include_graphics("../fig/cell_type_1.png")
 ```
 
+@tbl-cell-type-count shows the number of cells identified in each cell type.
+
+```{r}
+#| label: tbl-cell-type-count
+#| tbl-cap: Count of cells identified in each cell type.
+tar_read(tbl_cell_type_count_1) |> 
+  gt()
+```
+
 ### Retrospective validation
 
 Here we check how our derived cell types correlated with the cell type markers used.
@@ -470,10 +479,61 @@ tar_read(igr_hub_gene_network_1) |>
 ```
 
 
+## Pseudo-time
+
+In single-cell RNA sequencing, pseudo-time refers to a computational method used to reconstruct the temporal ordering of cells along a dynamic biological process (e.g., cell differentiation) when actual time information is not available.
+
+Here a *slingshot* R package is used to infer pseudo-time. Only cells annotated as MPC, EP or Beta/Delta were selected. @fig-slingshot-trajectory-pca shows the trajectories for MPC->Beta and MPC->Delta. EP cells were removed as they are few and scattered around. @fig-slingshot-spatial shows the distribution of the pseudo-time across the slide.
+
+I'm not sure if pseudo-time is telling us anything useful, or even correct. The way the trajectories meander through the PCA plots (I tried this with UMAP and it looked even more random) does not fill me with confidence. Textbook examples of pseudo-time typically have long narrow strips of cells in a PCA plot, which this is not the case here.
+
+```{r}
+#| label: fig-slingshot-trajectory-pca
+#| fig-cap: Pseudo-time trajectory between MPC and Beta/Delta cells in the PCA space. EP cells were removed because they are few and scattered around.
+#| fig-width: 8
+#| fig-height: 4
+pl1 <- tar_read(fig_lineage_beta_1)
+pl2 <- tar_read(fig_lineage_delta_1)
+plot_grid(pl1, pl2, nrow = 1, labels = c("Beta", "Delta"))
+```
+
+
+```{r}
+#| label: fig-slingshot-spatial
+#| fig-cap: Pseudo-time distribution across the slide.
+knitr::include_graphics("../fig/spatial_pt_1.png") 
+```
+
+
+```{r}
+#| label: fig-slingshot-expression-pseudotime
+#| fig-cap: Expression vs pseudo-time for top differentially expressed genes between Beta and MPC.
+knitr::include_graphics("../fig/expr_pt_beta_1.png") 
+```
+
+## Differential expression between cell types
+
+*Seurat* provides a function *FindMarkers()* for differential expression between groups of cells. It uses, by default, a fast implementation of the Wilcoxon Rank Sum test (also known as Mann-Whitney test). Other, more sophisticated statistical tests are available (e.g. a well-established DESeq2), but they are very slow for single-cell data. The Wilcoxon approach is used here to find differentially-expressed genes between MPC and Beta/Delta cells. Beta are the obvious choice, Delta are used as well, as there are a lot of delta cells in our annotations.
+
+Results are summarised in @fig-mpc-volcano. Full results are accessible via an online interactive explorer, see @sec-resources.
+
+```{r}
+#| label: fig-mpc-volcano
+#| fig-cap: Volcano plot for differential expression between MPC and beta cells (left) and delta cells (right). Black points indicate statistically significant genes (FDR < 0.01).
+#| fig-width: 8
+#| fig-height: 4
+tar_read(fig_volcano_mpc_1)
+```
+
+
+
 # Resources {#sec-resources}
 
 ## Interactive data explorer {#sec-shiny-app}
 
+ - [Differential expression between Beta/Delta and MPC](https://shiny.compbio.dundee.ac.uk/mgierlinski/private/betareg_st/de/)
+ - [Gene set enrichment based on differential expression between Beta/Delta and MPC](https://shiny.compbio.dundee.ac.uk/mgierlinski/private/betareg_st/gsea/)
+ - [Gene explorer for the genes of interest](https://shiny.compbio.dundee.ac.uk/mgierlinski/private/betareg_st/gene_explorer/)
 
 ## Downloads {#sec-downloads}
 

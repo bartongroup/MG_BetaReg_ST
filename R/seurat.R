@@ -60,6 +60,13 @@ get_cell_data <- function(seu) {
     as_tibble(rownames = "cell_id")
 }
 
+cell_type_count <- function(seu) {
+  seu@meta.data |> 
+    as_tibble() |> 
+    count(cell_type)
+}
+
+
 get_gene_cells <- function(seu, ids) {
   LayerData(seu, layer = "counts", features = ids) |> 
     as.matrix() |> 
@@ -85,11 +92,6 @@ get_spatial_coordinates <- function(seu) {
 
 #' Average expression per group.
 #'
-#' If layer is set to 'data', this function assumes that the data has been log
-#' normalized and therefore feature values are exponentiated prior to averaging
-#' so that averaging is done in non-log space. Otherwise, if layer is set to
-#' either 'counts' or 'scale.data', no exponentiation is performed prior to
-#' averaging
 #'
 #' @param seu Seurat object
 #' @param assay Assay

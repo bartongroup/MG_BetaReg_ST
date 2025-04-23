@@ -6,6 +6,7 @@
     "Beta" : ["INS"],
     "Delta" : ["SST"],
     "Epsilon" : ["GHRL"],
+    "PP" : ["PPY"],
     "Nervous" : ["DBH", "PRPH", "GAL", "GAP43"],
     "VSM" : ["MYH11", "TAGLN", "ADIRF"],
     "Immune" : ["LYZ", "S100A9"],

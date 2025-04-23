@@ -7,6 +7,7 @@ require(tibble)
 require(dplyr)
 require(tidyr)
 require(purrr)
+require(stringr)
 require(readxl)
 require(rlang)
 require(qs2)
@@ -117,7 +118,7 @@ read_genes_for_pathways <- function(excel_file, all_genes) {
       dplyr::rename(gene_symbol = 1) |> 
       tidyr::drop_na() |> 
       tidyr::separate_longer_delim(gene_symbol, delim = ",") |> 
-      dplyr::mutate(gene_symbol = str_trim(gene_symbol)) |> 
+      dplyr::mutate(gene_symbol = stringr::str_trim(gene_symbol)) |> 
       dplyr::distinct() |> 
       dplyr::mutate(found = gene_symbol %in% all_genes)
     missing_genes <- tb |> 
@@ -152,27 +153,28 @@ read_genes_for_pathways <- function(excel_file, all_genes) {
 #'   \item gene_info: Gene descriptions
 #'   \item fterms: Functional terms
 #' }
-read_all_data <- function() {
+read_all_data <- function(data_path) {
   
   sets <- c("1", "2")
 
   # Read Seurat objects
-  seu <- purrr::map(sets, ~qs2::qs_read(stringr::str_glue("../data/seu_{.x}.qs"))) |> 
+  seu <- purrr::map(sets, ~qs2::qs_read(file.path(data_path, stringr::str_glue("seu_{.x}.qs")))) |> 
     rlang::set_names(sets)
 
   # Read correlation tables
-  cor <- purrr::map(sets, ~arrow::open_dataset(stringr::str_glue("../data/cor_{.x}.parquet"))) |> 
+  cor <- purrr::map(sets, ~arrow::open_dataset(file.path(data_path, stringr::str_glue("cor_{.x}.parquet")))) |> 
     rlang::set_names(sets)
     
   # Read genes of interest
-  all_genes <- SeuratObject::Features(data$seu$`1`)
+  all_genes <- SeuratObject::Features(seu$`1`)
   genes <- read_genes_for_pathways("genes_of_interest.xlsx", all_genes)
 
   # Read gene descriptions
-  gene_info <- qs2::qs_read("../data/gene_info.qs")
+  gene_info <- qs2::qs_read(file.path(data_path, "features.qs")) |> 
+    dplyr::rename(gene_symbol = name)
 
   # Read functional terms
-  fterms <- qs2::qs_read("../data/fterms.qs")
+  fterms <- qs2::qs_read(file.path(data_path, "fterms.qs"))
 
   list(
     seu = seu,

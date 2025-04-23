@@ -29,10 +29,6 @@ scientific_10 <- function(x) {
   )
 }
 
-
-
-
-
 make_table_cuts <- function(params) {
   tribble(
     ~Group, ~Quantity, ~Limit,
@@ -42,8 +38,6 @@ make_table_cuts <- function(params) {
     "Per gene", "Number of cells a gene is detected in", str_c(">", params$min_detections_per_gene)
   )
 }
-
-
 
 plot_cell_marginals <- function(cell_data, params = NULL, with_vlines = TRUE) {
   pl_ <- function(what, xlab, log_scale = TRUE) {
@@ -282,7 +276,7 @@ plot_resolutions <- function(seu, resolutions, umap_point_size = 0.2, spatial_po
 
 plot_cell_type <- function(seu, umap_point_size = 0.3, spatial_point_size = 0.6, label_size = 3) {
 
-  pal <- c(okabe_ito_palette[c(4, 1, 8, 5, 2, 3, 6, 7, 9)], "lightgreen", "red", "grey90")
+  pal <- c(okabe_ito_palette[c(4, 1, 8, 5, 2, 3, 6, 7, 9)], "darkgreen", "lightgreen", "red", "grey90")
   pl1 <- plot_one_xy(seu, point_size = umap_point_size, label_size = label_size, what = "umap", meta_column = "cell_type", discrete_palette = pal, with_legend = FALSE)
   pl2 <- plot_one_xy(seu, point_size = spatial_point_size, label_size = label_size, what = "spatial", meta_column = "cell_type", discrete_palette = pal, with_legend = TRUE) + guides(colour = guide_legend(override.aes = list(size = 3)))
   plot_grid(pl1, pl2, nrow = 1, rel_widths = c(1, 1.2))
@@ -577,3 +571,103 @@ plot_cluster_cell_type_jaccard <- function(seu) {
     scale_fill_viridis_c(option = "cividis") +
     labs(fill = "Jaccard")
 }
+
+
+plot_expression_pseudotime <- function(seu, gids, pt_column = "pseudotime_beta", point_size = 0.8) {
+  ex <- get_gene_expression(seu, gids) |> 
+    filter(expression > 0)
+  pt <- seu@meta.data |> 
+    as_tibble(rownames = "cell_id") |> 
+    select(cell_id, pseudo_time = all_of(pt_column)) |> 
+    drop_na()
+  inner_join(ex, pt, by = "cell_id") |> 
+    ggplot(aes(x = pseudo_time, y = expression)) +
+    th +
+    geom_point(size = point_size) +
+    facet_wrap(~ gene_symbol, scales = "free_y") +
+    labs(x = "Pseudo-time", y = "Normalised expression")
+}
+
+
+
+
+plot_volma <- function(res, group_var, point_size, point_alpha) {
+  r <- res |>
+    mutate(
+      group = get(group_var)
+    ) |>
+    select(x, y, sel, group)
+  r_sel <- r |> filter(sel)
+  r_nsel <- r |> filter(!sel)
+
+  rm(res, r)  # Minimise environment for serialisation
+
+  g <- ggplot() +
+    theme_bw() +
+    theme(
+      panel.grid = element_blank(),
+      legend.position = "none"
+    ) +
+    geom_point(data = r_nsel, aes(x = x, y = y), colour = "grey70",
+               size = point_size, alpha = point_alpha) +
+    facet_wrap( ~ group)
+
+  if (nrow(r_sel) > 0) {
+    g <- g + geom_point(data = r_sel, aes(x = x, y = y), colour = "black",
+                        size = point_size, alpha = point_alpha)
+  }
+  g
+}
+
+plot_ma <- function(res, a = "AveExpr", fc = "logFC", p = "PValue", fdr = "FDR", group_var = "contrast",
+                    fdr_limit = 0.05, point_size = 0.5, point_alpha = 0.5) {
+  res |>
+    mutate(
+      x = get(a),
+      y = get(fc),
+      sel = get(fdr) < fdr_limit
+    ) |>
+    plot_volma(group_var, point_size, point_alpha) +
+    geom_hline(yintercept = 0, linewidth = 0.1, alpha = 0.5) +
+    labs(x = expression(log[10]~Intensity), y = expression(log[2]~FC))
+}
+
+plot_volcano <- function(res, fc = "avg_log2FC", p = "p_val", fdr = "p_val_adj", group_var = "contrast",
+                         fdr_limit = 0.05, point_size = 0.5, point_alpha = 0.5) {
+  res |>
+    mutate(
+      pval = get(p),
+      pval = if_else(pval == 0, .Machine$double.xmin, pval),
+      x = get(fc),
+      y = -log10(pval),
+      sel = get(fdr) < fdr_limit
+    ) |>
+    plot_volma(group_var, point_size, point_alpha) +
+    geom_vline(xintercept = 0, linewidth = 0.1, alpha = 0.5) +
+    labs(x = expression(log[2]~FC), y = expression(-log[10]~P)) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.03)))
+}
+
+plot_pdist <- function(res, p = "PValue", group_var = "contrast", n_bins = 50) {
+  brks <- seq(0, 1, length.out = n_bins)
+  r <- res |>
+    mutate(p = get(p), grp = get(group_var)) |>
+    select(p, grp)
+  rm(res)
+  ggplot(r, aes(x = p, y = after_stat(density))) +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    geom_histogram(breaks = brks) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.03))) +
+    facet_wrap(~grp)
+}
+
+plot_vmp <- function(res, a = "AveExpr", fc = "logFC", p = "PValue", fdr = "FDR", group = "contrast",
+                     fdr_limit = 0.05, point_size = 0.5, point_alpha = 0.5, n_bins = 50){
+  list(
+    volcano = plot_volcano(res, fc, p, fdr, group, fdr_limit, point_size, point_alpha),
+    ma = plot_ma(res, a, fc, p, fdr, group, fdr_limit, point_size, point_alpha),
+    pdist = plot_pdist(res, p, group, n_bins)
+  )
+}
+

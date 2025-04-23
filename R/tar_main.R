@@ -75,6 +75,7 @@ targets_main <- function() {
       png_cell_type = plot_cell_type(seu_mark) |> gs("cell_type", NAME, 8, 4),
       fig_cluster_cell_type = plot_cluster_cell_type_jaccard(seu_mark),
       fig_dots_cell_type = plot_gene_dots(seu_mark, tissue_markers$gene_symbol, meta_column = "cell_type"),
+      tbl_cell_type_count = cell_type_count(seu_mark),
 
       # Insulin pathway
       png_ins_path = plot_expression(seu, goi$insulin_signalling_pathway, umap_point_size = 0.5, spatial_point_size = 0.5) |> gs("insulin_path", NAME, 7, 48),
@@ -122,35 +123,48 @@ targets_main <- function() {
       tbl_hub_genes = get_hub_genes(seu_hdwgcna),
 
       # Pseudo time
-      pseudo_time_beta = run_slingshot(seu_mark, cell_types = c("MPC", "Beta")),
+      pseudo_time_cl26 = run_slingshot(seu_mark, meta_col = "cluster", clusters = c("2", "6"), reduction = "UMAP"),
+      fig_lineage_cl26 = plot_slingshot_lineage(pseudo_time_cl26),
+      pseudo_time_beta = run_slingshot(seu_mark, meta_col = "cell_type", clusters = c("MPC", "Beta")),
       fig_lineage_beta = plot_slingshot_lineage(pseudo_time_beta),
-      pseudo_time_beta_umap = run_slingshot(seu_mark, cell_types = c("MPC", "Beta"), reduction = "UMAP"),
-      fig_lineage_beta_umap = plot_slingshot_lineage(pseudo_time_beta_umap),
-      pseudo_time_delta = run_slingshot(seu_mark, cell_types = c("MPC", "Delta")),
+      pseudo_time_delta = run_slingshot(seu_mark, meta_col = "cell_type", clusters = c("MPC", "Delta")),
       fig_lineage_delta = plot_slingshot_lineage(pseudo_time_delta),
       seu_mark_pt = seu_mark |>
         add_pseudotime(pseudo_time_beta, colname = "pseudotime_beta") |> 
-        add_pseudotime(pseudo_time_delta, colname = "pseudotime_delta"),
-      fig_spatial_pt_beta = plot_spatial_meta(seu_mark_pt, meta_column = "pseudotime_beta"),
+        add_pseudotime(pseudo_time_delta, colname = "pseudotime_delta") |> 
+        add_pseudotime(pseudo_time_cl26, colname = "pseudotime_cl26"),
+      png_spatial_pt = cowplot::plot_grid(
+        plot_spatial_meta(seu_mark_pt, meta_column = "pseudotime_beta", point_size = 0.8),
+        plot_spatial_meta(seu_mark_pt, meta_column = "pseudotime_delta", point_size = 0.8),
+        ncol = 1, labels = c("Beta", "Delta")
+      ) |> gs("spatial_pt", NAME, 8, 12),
 
       # Differential expression late/MPC
       de_beta_mpc = seurat_de(seu_mark, group_1 = "Beta"),
       de_delta_mpc = seurat_de(seu_mark, group_1 = "Delta"),
-      gse_beta_mpc = fgsea_all_terms(de_beta_mpc, fterms, feature_var = "gene_symbol", rank_expr = "avg_log2FC"),
-      gse_delta_mpc = fgsea_all_terms(de_delta_mpc, fterms, feature_var = "gene_symbol", rank_expr = "avg_log2FC"),
+      de_mpc = bind_rows(de_beta_mpc, de_delta_mpc),
+      fig_volcano_mpc = plot_volcano(de_mpc, fdr_limit = 0.01),
 
+      gse_mpc = fgsea_all_terms(de_mpc, fterms, feature_var = "gene_symbol", rank_expr = "avg_log2FC") |> tibble::add_column(experiment = NAME),
+
+      top_genes_de_beta_mpc = de_beta_mpc |> dplyr::filter(p_val_adj < 0.01 & avg_log2FC > 0) |> dplyr::arrange(p_val) |> head(12) |> pull(gene_symbol),
+      png_expression_pt_beta_mpc = plot_expression_pseudotime(seu_mark_pt, top_genes_de_beta_mpc, pt_column = "pseudotime_beta") |> gs("expr_pt_beta", NAME, 8, 7),
 
       # Save data for external use
       sav_loupe = save_for_loupe(seu_mark_pt, paste0("tab/clusters_", NAME, ".csv")),
       sav_cors = save_correlation(tbl_key_corr_cscore, paste0("tab/correlation_", NAME, ".csv")),
       sav_enr = save_group_enrichment(tbl_keycorr_enrichment, paste0("tab/keycorr_enrichment_", NAME, ".csv")),
-      sav_mods = save_spatial_modules(tbl_modules, paste0("tab/spatial_modules_", NAME, ".csv"))
+      sav_mods = save_spatial_modules(tbl_modules, paste0("tab/spatial_modules_", NAME, ".csv")),
+
+      # Prepare for shiny
+      dex = make_dexdash(seu_mark, de_mpc, NAME)
     )
   )
 
   combine_samples <- list(
     tar_combine(cell_data_all, map_experiments$cell_data, command = bind_rows(!!!.x)),
-    tar_combine(gene_detection_all, map_experiments$gene_detection, command = bind_rows(!!!.x))
+    tar_combine(gene_detection_all, map_experiments$gene_detection, command = bind_rows(!!!.x)),
+    tar_combine(gse_all, map_experiments$gse_mpc, command = bind_rows(!!!.x))
   )
 
   for_report <- tar_plan(
@@ -160,7 +174,7 @@ targets_main <- function() {
   )
 
   for_shiny <- tar_plan(
-    sav_genes = gns |> dplyr::select(gene_symbol, description) |> dplyr::distinct() |> qs2::qs_save("shiny/data/gene_info.qs")
+    sav_de = save_for_shiny_de(dex_1, dex_2, gns, fterms, gse_all)
   )
 
   c(

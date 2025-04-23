@@ -15,7 +15,7 @@ server <- function(input, output, session) {
   # Note: an undefined reactive value defaults to NULL, so we can start with empty list
   app_state <- new_app_state()
   
-  data <- read_all_data()
+  data <- read_all_data(data_path = "../data")
   
   # server logic: modules
   mod_global_input_server("global_input", app_state, data)
