@@ -1,6 +1,8 @@
 #!/usr/bin/env Rscript
 #$ -mods l_hard m_mem_free 64G
 
+# Older version of the script. OBSOLETE.
+
 # Get command line arguments
 args <- commandArgs(trailingOnly = TRUE)
 

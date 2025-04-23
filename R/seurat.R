@@ -271,28 +271,29 @@ find_gene_correlation_cor <- function(seu, sel_genes, assay = "Spatial.008um", m
 }
 
 
-find_gene_correlation_cscore <- function(seu, sel_genes, assay = "Spatial.008um", min_overlap = 100, n_top = 3000) {
-  # Find overlap between sel_genes and all other genes
-  over_genes <- get_overlapping_genes(seu, sel_genes, min_overlap)
-  top_genes <- get_top_genes(seu, assay, n_top)
-  good_genes <- intersect(over_genes, top_genes) |> union(sel_genes)
+find_gene_correlation_cscore <- function(seu, assay = "Spatial.008um") {
+  
+  all_genes <- Features(seu)
+
+  # For testing
+  all_genes <- c("NKX6-1", "PDX1", "PTF1A", "SOX9", "NEUROD1")
+
 
   # CSCORE searches for assay "RNA", so we need to rename
   seur <- seu |> 
     RenameAssays(assay, "RNA")
-  cs <- CSCORE::CSCORE(seur, good_genes)
+  cs <- CSCORE::CSCORE(seur, all_genes)
 
   cr <- cs$est |> 
     as_tibble(rownames = "gene_1") |> 
-    pivot_longer(-gene_1, names_to = "gene_symbol", values_to = "correlation") |> 
-    filter(gene_1 %in% sel_genes)
+    pivot_longer(-gene_1, names_to = "gene_2", values_to = "correlation")
   pv <- cs$p_value |> 
     as_tibble(rownames = "gene_1") |> 
-    pivot_longer(-gene_1, names_to = "gene_symbol", values_to = "p_value") |> 
-    filter(gene_1 %in% sel_genes)
-  full_join(cr, pv, by = c("gene_1", "gene_symbol")) |> 
-    mutate(p_adj = p.adjust(p_value, method = "BH")) |>    # adjust on selection, other tests ignored
-    arrange(desc(correlation))
+    pivot_longer(-gene_1, names_to = "gene_2", values_to = "p_value")
+  full_join(cr, pv, by = c("gene_1", "gene_2")) |> 
+    mutate(p_adj = p.adjust(p_value, method = "BH")) |> 
+    arrange(desc(correlation)) |> 
+    filter(gene_1 <= gene_2)
 }
 
 

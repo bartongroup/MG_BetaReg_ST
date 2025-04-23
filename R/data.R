@@ -165,9 +165,8 @@ tabulate_correlated_genes <- function(tbl_cor, fdr_limit = 0.01, n_top = 16) {
 
 # CS-SCORE correlation does not fit in memory of my laptop. Hence,
 # I need to save the needed data and run a standalone script on the cluster.
-save_for_external_correlation <- function(seu, key_marker_genes_endoc, suffix) {
+save_for_external_correlation <- function(seu, suffix) {
   saveRDS(seu, file = file.path("ext", str_glue("seu_{suffix}.rds")))
-  saveRDS(key_marker_genes_endoc, file = file.path("ext", str_glue("key_marker_genes_endoc_{suffix}.rds")))
 }
 
 
