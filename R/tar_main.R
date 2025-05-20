@@ -154,7 +154,8 @@ targets_main <- function() {
       png_cellchat_heatmap_weight = plot_cellchat_heatmap(cellchat_comp, paste0("cellchat_heatmap_weight", NAME, ".png"), measure = "weight"),
       fig_cellchat_rank = plot_cellchat_rank(cellchat_comp),
       fig_cellchat_bubble = plot_cellchat_bubble_sel(cellchat_comp, prob_limit = 0.01),
-      png_cellchat_chord_notch = plot_cellchat_chords(cellchat_comp, NAME, CELLCHAT_PATHWAYS),
+      png_cellchat_chords = plot_cellchat_chords(cellchat_comp, NAME, CELLCHAT_PATHWAYS),
+      png_cellchat_networks = plot_cellchat_networks(cellchat_comp, NAME, CELLCHAT_PATHWAYS),
 
       # TWCOM
       # ABANDONED. Uses more than 500 GB of memory.

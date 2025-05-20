@@ -202,3 +202,30 @@ plot_cellchat_chords <- function(cellchat, sample, paths, prefix = "cellchat_cho
     plot_cellchat_chord(cellchat, path, pfile)
   }
 }
+
+
+plot_cellchat_network <- function(cellchat, pathway, pfile) {
+
+  png(filename = file.path("fig", pfile), width = 800, height = 800)
+  par(mfrow = c(1, 1))
+
+  CellChat::netAnalysis_signalingRole_network(
+    cellchat,
+    signaling = pathway,
+    width = 12,
+    height = 3,
+    font.size = 12
+  ) |> 
+    print()
+  
+  dev.off()
+}
+
+
+plot_cellchat_networks <- function(cellchat, sample, paths, prefix = "cellchat_network") {
+  cellchat <- CellChat::netAnalysis_computeCentrality(cellchat)
+  for(path in paths) {
+    pfile = str_glue("{prefix}_{sample}_{path}.png")
+    plot_cellchat_network(cellchat, path, pfile)
+  }
+}
