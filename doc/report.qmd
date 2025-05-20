@@ -70,6 +70,22 @@ gt_table <- function(s) {
       )
     )
 } 
+
+enrichment_table <- function(enr) {
+  enr |> 
+    dplyr::arrange(group, desc(odds_ratio)) |> 
+    dplyr::group_by(group) |> 
+    dplyr::select(term_id, term_name, n_with_sel, odds_ratio, ids, group) |> 
+    gt() |> 
+    gt::fmt_number(
+      columns = odds_ratio,
+      n_sigfig = 2
+    ) |>
+    gt::tab_style(
+      gt::cell_fill("lightskyblue1", alpha = 0.5),
+      gt::cells_row_groups()
+    )
+}
 ```
 
 # Background
@@ -231,11 +247,7 @@ Functional enrichment was found for each set of top cluster markers and the resu
 #| label: tbl-cluster-enrichment
 #| tbl-cap: Functional enrichment from top cluster genes. The table is grouped per cluster. `n_with_sel` is the number of genes with the given term in the selection (correlated subset).
 tar_read(tbl_cluster_enrichment_1) |> 
-  dplyr::mutate(group = group |> as.numeric()) |> 
-  dplyr::arrange(group) |> 
-  dplyr::group_by(group) |> 
-  dplyr::select(term_id, term_name, n_with_sel, odds_ratio, ids, group) |> 
-  gt()
+  enrichment_table() 
 ```
 
 :::
@@ -357,14 +369,7 @@ For each marker gene a set of correlated (co-expressed) genes was created with c
 #| label: tbl-keycorr-enrichment
 #| tbl-cap: Functional enrichment from top key marker co-expressed genes. `n_with_sel` is the number of genes with the given term in the selection (correlated subset).
 tar_read(tbl_keycorr_enrichment_1) |> 
-  dplyr::arrange(group) |> 
-  dplyr::group_by(group) |> 
-  dplyr::select(term_id, term_name, n_with_sel, odds_ratio, ids, group) |> 
-  gt() |> 
-  gt::fmt_number(
-    columns = odds_ratio,
-    n_sigfig = 2
-  )
+  enrichment_table() 
 ```
 
 :::
@@ -375,19 +380,19 @@ tar_read(tbl_keycorr_enrichment_1) |>
 
 To identify cell types we adapt the PAGE method from the R package [*Giotto*](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-021-02286-2), which, in turn, is based on the PAGE set enrichment method described in [Kim and Volsky paper](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-6-144). The advantage of this method is the bootstrap employed to assess statistical significance of cell identification.
 
-PAGE (Parametric Analysis of Gene Set Enrichment) works as follows. We start with normalised, log-transformed expression $x_{gi}$ from gene $g$ and spot $i$. The fold change is defined as
+PAGE (Parametric Analysis of Gene Set Enrichment) works as follows. The starting point are normalised, log-transformed expression $x_{gi}$ from gene $g$ and spot $i$. These values are the outcome of the *NormalizeData()* function from *Seurat*. Next, a fold change is calculated as
 
 $$
 f_{gi} = x_{gi} - \bar{x}_{g}.
 $$
 
-Here, $\bar{x}_{g}$ is the mean for a gene $g$ across all spots. Note that we use subtraction for a log-fold-change because data are already logarithmic. For a set of genes $M$ (marker genes for a given cell type) we find the mean fold change
+Here, $\bar{x}_{g}$ is the mean for a gene $g$ across all spots. Note that subtraction, not ratio, is used to calculate the fold change because data are already logarithmic. For a set of genes $M$ (marker genes for a given cell type) the mean fold change is calculated
 
 $$
 S_{Mi} = \frac{1}{|M|} \sum_{g \in M} f_{gi}.
 $$
 
-Here, $|M|$ represents the size of set $M$. The idea of this method is that, regardless of the distribution of the original expression, or fold changes, the distribution of $S_{Mi}$ is normal, for a sufficiently large set size, due to the Central Theorem. Kim and Volsky suggest the set size of 10 is sufficient. (NOTE: we use much smaller sets in our calculations). Hence, the quantity $S_{Mi}$ can be compared to the null normal distribution, with the mean and standard deviation fold change calculated across all genes:
+Here, $|M|$ denotes the size of set $M$. The idea of this method is that, regardless of the distribution of the original expression, or fold changes, the distribution of $S_{Mi}$ is approximately normal, for a sufficiently large set size, due to the [Central Limit Theorem](https://en.wikipedia.org/wiki/Central_limit_theorem). Kim and Volsky suggest the set size of 10 is sufficient. (NOTE: we use much smaller sets in our calculations, so our results are not perfect). Hence, at each spot $i$, the quantity $S_{Mi}$ can be compared to the null normal distribution, with the mean and standard deviation fold change calculated across all genes:
 
 $$
 \begin{aligned}
@@ -404,7 +409,7 @@ $$
 
 The cell type for a given spot is selected as the one giving the largest, significant enrichment score. If no scores are significant, the type is defined as "Unknown".
 
-Statistical significance of the enrichment score is assessed using bootstrap. A random gene set $R$ of size $|M|$ is selected from all genes and $S_{Ri}$ and $ES_{Ri}$ are calculated. The bootstrap (without replacement) is repeated N = 1000 times and the p-value is defined as the proportion of bootstraps returning the score larger than observed.
+Statistical significance of the enrichment score is assessed using a bootstrap. A random gene set $R$ of size $|M|$ is selected from all genes and $S_{Ri}$ and $ES_{Ri}$ are calculated. The bootstrap (without replacement) is repeated N = 1000 times and the p-value is defined as the proportion of bootstraps returning the score larger than observed.
 
 $$
 p_i = \frac{1 + \#\{ES_{Ri} > ES_{Mi}\}}{1 + N}.
@@ -414,9 +419,9 @@ The +1 in numerator and denominator are used to created a conservative, unbiased
 
 ### Marker genes
 
-A subset of marker genes (shown in @tbl-markers) was selected for cell type annotation. The genes were selected to be unique for the given cell type. The cell-type markers are listed in @tbl-cell-markers.
+A subset of marker genes (shown in @tbl-markers) was selected for cell type annotation. The genes were selected to be unique for the given cell type. They are listed in @tbl-cell-markers.
 
-Note that originally provided genes SLC4A4 and ANXA4 for ductal cells are highly correlated with MPC markers, making them impossible to distinguish. I have consulted ChatGPT and replaced them with MUC1 and KRT19.
+Note that originally provided genes SLC4A4 and ANXA4 for ductal cells are highly correlated with MPC markers, making them impossible to distinguish. I have consulted ChatGPT, looked at Reactome pathways for ductal cells, and replaced them with MUC1 and KRT19. I also added ANXA4 and ANXA9.
 
 ```{r}
 #| label: tbl-cell-markers
@@ -484,7 +489,7 @@ Here we check how our derived cell types correlated with the cell type markers u
 tar_read(fig_dots_cell_type_1)
 ```
 
-### Cell type marker genes
+### Cell type DE genes
 
 Differentially expressed markers were found for each cell type, versus all other types (the same way as cluster markers were found in @sec-cluster-markers). These are genes expressed more in a given cell type, than other cell types. @fig-cell-type-cluster-markers shows the dot plot for expression of 30 top differentially expressed genes in each cell type.
 
@@ -504,14 +509,7 @@ The differentially-expressed cell-type marker genes (that is genes DE in a given
 #| label: tbl-cell-type-enrichment
 #| tbl-cap: Functional enrichment from top cell-type marker genes. `n_with_sel` is the number of genes with the given term in the selection (correlated subset).
 tar_read(cell_type_enrichment_1) |> 
-  dplyr::arrange(group) |> 
-  dplyr::group_by(group) |> 
-  dplyr::select(term_id, term_name, n_with_sel, odds_ratio, ids, group) |> 
-  gt() |> 
-  gt::fmt_number(
-    columns = odds_ratio,
-    n_sigfig = 2
-  )
+  enrichment_table() 
 ```
 
 :::

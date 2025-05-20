@@ -131,7 +131,7 @@ targets_main <- function() {
       # wg = wgcna_analysis(cor_file),
 
       # hdWGCNA
-      seu_hdwgcna = hd_wgcna_analysis(seu_mark, NAME, soft_power = NULL),
+      seu_hdwgcna = hd_wgcna_analysis(seu, NAME, soft_power = NULL),
       png_module_dendro = {png(paste0("fig/module_dendro_", NAME, ".png"), width = 2000, height = 1000, pointsize = 32);hdWGCNA::PlotDendrogram(seu_hdwgcna);dev.off()},
       fig_metacells_spatial = plot_metacells_spatial(seu_hdwgcna),
       png_modules_spatial = plot_modules_spatial(seu_hdwgcna) |> gs("modules_spatial", NAME, 8, 13),

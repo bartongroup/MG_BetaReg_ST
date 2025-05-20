@@ -12,7 +12,7 @@
     "Immune" : ["LYZ", "S100A9"],
     "Matrix" : ["COL16A1", "LUM", "POSTN"],
     "Blood" : ["HBA2", "HBB", "HBM", "SLC4A1"],
-    "Ductal" : ["MUC1", "KRT19", "CFTR"],
+    "Ductal" : ["MUC1", "KRT19", "CFTR", "PROM1", "ANXA4", "ANXA9"],
     "Acinar" : ["CPA1", "CLPS"]
   },
   "tissue_markers_negative" : {
