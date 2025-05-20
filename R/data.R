@@ -15,7 +15,14 @@ EXPERIMENTS_ALL <- tibble::tibble(
   MIN_DETECTED_GENES_PER_CELL = c(10, 10, 10, 10),
   MIN_COUNTS_PER_CELL = c(10, 10, 10, 10),
   MIN_DETECTIONS_PER_GENE = c(5, 5, 5, 5),
-  MAX_MT_FRACTION = c(0.1, 0.1, 0.1, 0.1)
+  MAX_MT_FRACTION = c(0.1, 0.1, 0.1, 0.1),
+  CELLCHAT_SCALE_DISTANCE = c(0.15, 0.15, 0.1, 0.1),
+  CELLCHAT_PATHWAYS = list(
+    c("NOTCH", "FLRT", "MK", "THBS", "COLLAGEN", "LAMININ"),
+    c("NOTCH", "FLRT", "CADM"),
+    c("NOTCH"),
+    c("NOTCH")
+  )
 ) |> 
   dplyr::mutate(
     DATA_PATH = file.path(top_data_path, stringr::str_glue("{SAMPLE}_Results"), "outs"),
@@ -34,6 +41,14 @@ read_markers <- function(fname) {
     mutate(gene_symbol = as_factor(gene_symbol))
 }
 
+read_risk_alleles <- function(t1d_file, t2d_file) {
+  t1d <- read_csv(t1d_file)
+  t2d <- read_csv(t2d_file)
+  list(
+    t1d = t1d$Name,
+    t2d = t2d$Name
+  )
+}
 
 group_enrichment <- function(df, fterms, group_var = "cluster", gene_var = "gene_symbol", fdr_limit = 0.05) {
   onts <- names(fterms)
@@ -72,10 +87,18 @@ group_enrichment <- function(df, fterms, group_var = "cluster", gene_var = "gene
 }
 
 
-get_unique_markers <- function(tissue_markers) {
-  tissue_markers |> 
+# At the moment, negative markers are not used
+get_unique_markers <- function(tissue_markers_positive, tissue_markers_negative) {
+  pos <- tissue_markers_positive |> 
     enframe(name = "cell_type", value = "gene_symbol") |> 
-    unnest(gene_symbol)
+    unnest(gene_symbol) |> 
+    add_column(effect = "positive")
+  neg <- tissue_markers_negative |> 
+    enframe(name = "cell_type", value = "gene_symbol") |> 
+    unnest(gene_symbol) |> 
+    add_column(effect = "negative")
+  # bind_rows(pos, neg)
+  pos
 }
 
 
@@ -131,6 +154,37 @@ mark_cell_types_by_max <- function(seu, tissue_markers) {
 }
 
 
+annotate_cell_types <- function(seu, tissue_markers, seed = 42) {
+  set.seed(seed)
+  cell_types <- tissue_markers$cell_type |> unique()
+  tm <- tissue_markers |> 
+    group_by(cell_type) |> 
+    summarise(genes = list(gene_symbol)) |> 
+    deframe()
+  s <- AddModuleScore(
+    seu,
+    features = tm,
+    name = "celltype"
+  )
+  meta_scores <- s@meta.data |> 
+    as_tibble(rownames = "cell_id") |> 
+    select(cell_id, starts_with("celltype")) |> 
+    set_names(c("cell_id"), names(tm))
+  ct <- meta_scores  |> 
+    pivot_longer(-cell_id) |> 
+    mutate(value = if_else(value < 0, 0, value)) |> 
+    group_by(cell_id) |> 
+    summarise(cell_type = if_else(sum(value) == 0, "Other", name[which.max(value)]))
+
+  meta_extra <- left_join(meta_scores, ct, by = "cell_id") |> 
+    select(-cell_id) |> 
+    mutate(cell_type = factor(cell_type, levels = c(cell_types, "Other")))
+
+  seu@meta.data$cell_type <- NULL
+  seu@meta.data <- bind_cols(seu@meta.data, meta_extra)
+  seu
+}
+
 find_top_cor_genes <- function(tbl_cor, fdr_limit = 0.01, min_cor = NULL, n_top = NULL) {
   tb <- tbl_cor |> 
     filter(p_adj < fdr_limit)
@@ -163,9 +217,9 @@ tabulate_correlated_genes <- function(tbl_cor, fdr_limit = 0.01, n_top = 16) {
     rename(key_gene = gene_1)
 }
 
-# CS-SCORE correlation does not fit in memory of my laptop. Hence,
+# Some tools do not fit in memory of my laptop. Hence,
 # I need to save the needed data and run a standalone script on the cluster.
-save_for_external_correlation <- function(seu, suffix) {
+save_for_cluster_run <- function(seu, suffix) {
   saveRDS(seu, file = file.path("ext", str_glue("seu_{suffix}.rds")))
 }
 
@@ -213,11 +267,11 @@ save_correlation <- function(cors, fname, fdr_limit = 0.05) {
     write_csv(fname)
 }
 
-save_group_enrichment <- function(enr, fname, fdr_limit = 0.05) {
+save_enrichment <- function(enr, fname, fdr_limit = 0.05, group_var = "group") {
   enr |> 
-    select(group, ontology, term_id, term_name, N_with, n_with_sel, odds_ratio, p_value, p_adjust, genes = ids) |> 
-      mutate(across(where(is.numeric), ~signif(.x, 4))) |> 
-      write_csv(fname)
+    select({{ group_var }}, ontology, term_id, term_name, N_with, n_with_sel, odds_ratio, p_value, p_adjust, genes = ids) |> 
+    mutate(across(where(is.numeric), ~signif(.x, 4))) |> 
+    write_csv(fname)
 }
 
 save_spatial_modules <- function(mods, fname, fdr_limit = 0.05) {
@@ -255,4 +309,88 @@ jaccard_clusters_cell_types <- function(seu) {
       n_int = intersect(m_cl[[cluster]], m_ct[[cell_type]]) |> length(),
       j = n_int / n_un
     )
+}
+
+
+# Enrichment score from fold change and a vector of gene names
+ES <- function(fc, genes, mu, delta) {
+  n <- length(genes)
+  if(n == 0)
+    return(0)
+  Sm <- colMeans(fc[genes, , drop = FALSE], na.rm = TRUE)  # mean fold change for the cell type
+  ES <- sqrt(n) * (Sm - mu) / delta    # Enrichment score
+}
+
+annotate_cells_page <- function(seu, tissue_markers, n_boot = 1000, p_val_limit = 0.05, n_cores = 10) {
+  # Normalised data matrix
+  m <- GetAssayData(seu, layer = "data")
+  # Mean per gene across spots
+  gm <- rowMeans(m, na.rm = TRUE)
+  keep <- gm > 0
+  m <- m[keep, , drop = FALSE]
+  gm <- gm[keep]
+  good_genes <- names(gm)
+  # Fold changes
+  fc <- m - gm
+  # Mean and std per spot across genes
+  mu <- colMeans(fc, na.rm = TRUE)
+  delta <- MatrixGenerics::colSds(as.matrix(fc), na.rm = TRUE)
+
+  options(future.globals.maxSize = 6000 * 1024^2)
+  future::plan(future::multicore, workers = n_cores)
+
+  annot <- tissue_markers |> 
+    group_split(cell_type) |> 
+    furrr::future_map(function(w) {
+      cell_type <- w$cell_type[1]
+      # Enrichment score for positive genes
+      genes_pos <- w |> filter(effect == "positive") |> pull(gene_symbol)
+      stopifnot(all(genes_pos %in% good_genes))
+      ES_obs <- ES(fc, genes_pos, mu, delta)
+
+      # Null distribution
+      null_mat <- replicate(n_boot, {
+        boot_genes_pos <- sample(good_genes, length(genes_pos))
+        ES(fc, boot_genes_pos, mu, delta)
+      })
+
+      p_val <- map_dbl(1:length(ES_obs), function(i) {
+        (1 + sum(null_mat[i, ] >= ES_obs[i])) / (1 + n_boot)
+      })
+
+      tibble(
+        cell_type = cell_type,
+        cell_id = names(ES_obs),
+        ES = ES_obs,
+        p_val = p_val
+      )
+    },
+    .options = furrr::furrr_options(seed = TRUE)
+  ) |> 
+      list_rbind()
+  
+  future::plan(future::sequential)
+  
+  cell_types <- tissue_markers$cell_type |> unique()
+
+  score_tab <- annot |> 
+    pivot_wider(id_cols = cell_id, names_from = cell_type, values_from = c(ES, p_val))
+
+  cell_annots <- annot |> 
+    filter(p_val < p_val_limit) |> 
+    group_by(cell_id) |> 
+    summarise(cell_type = cell_type[which.max(ES)])
+
+  meta_extra <- tibble(
+    cell_id = rownames(seu@meta.data )
+  ) |> 
+    left_join(score_tab, by = "cell_id") |> 
+    left_join(cell_annots, by = "cell_id") |> 
+    mutate(cell_type = replace_na(cell_type, "Unknown")) |> 
+    select(-cell_id) |> 
+    mutate(cell_type = factor(cell_type, levels = c(cell_types, "Unknown")))
+
+  seu@meta.data$cell_type <- NULL
+  seu@meta.data <- bind_cols(seu@meta.data, meta_extra)
+  seu
 }

@@ -213,7 +213,7 @@ sh_plot_expression <- function(seu, gene, group_var, layer) {
   } else {
     mt <- mt |> 
       dplyr::mutate(
-        grp = grp |> forcats::as_factor() |> forcats::fct_relevel(c("MPC", "EP", "Beta")) |> forcats::fct_relevel("Other", after = Inf),
+        grp = grp |> forcats::as_factor() |> forcats::fct_relevel(c("MPC", "EP", "Beta")) |> forcats::fct_relevel("Unknown", after = Inf),
         i = grp |> as.integer()
       )
   }

@@ -181,7 +181,7 @@ The resolution parameter in the Leiden algorithm controls the granularity of ide
 knitr::include_graphics("../fig/resolutions_1.png") 
 ```
 
-## Cluster markers
+## Cluster markers {#sec-cluster-markers}
 
 The figures below show the top 12 marker genes in each cluster, with the highest fold change with respect to other clusters.
 
@@ -371,11 +371,56 @@ tar_read(tbl_keycorr_enrichment_1) |>
 
 ## Cell types
 
-The following procedure was applied to identify cell types. Marker genes identifying mostly one cell type were selected, as show in @tbl-cell-markers. For each marker gene, its expression across cells has been normalised between zero and one, with one corresponding to the highest expression observed. Then, the mean of normalised expression was calculated for each cell type (as indicated in @tbl-cell-markers). Finally, each cell was annotated with the type with the highest mean normalised expression.
+### The method
+
+To identify cell types we adapt the PAGE method from the R package [*Giotto*](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-021-02286-2), which, in turn, is based on the PAGE set enrichment method described in [Kim and Volsky paper](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-6-144). The advantage of this method is the bootstrap employed to assess statistical significance of cell identification.
+
+PAGE (Parametric Analysis of Gene Set Enrichment) works as follows. We start with normalised, log-transformed expression $x_{gi}$ from gene $g$ and spot $i$. The fold change is defined as
+
+$$
+f_{gi} = x_{gi} - \bar{x}_{g}.
+$$
+
+Here, $\bar{x}_{g}$ is the mean for a gene $g$ across all spots. Note that we use subtraction for a log-fold-change because data are already logarithmic. For a set of genes $M$ (marker genes for a given cell type) we find the mean fold change
+
+$$
+S_{Mi} = \frac{1}{|M|} \sum_{g \in M} f_{gi}.
+$$
+
+Here, $|M|$ represents the size of set $M$. The idea of this method is that, regardless of the distribution of the original expression, or fold changes, the distribution of $S_{Mi}$ is normal, for a sufficiently large set size, due to the Central Theorem. Kim and Volsky suggest the set size of 10 is sufficient. (NOTE: we use much smaller sets in our calculations). Hence, the quantity $S_{Mi}$ can be compared to the null normal distribution, with the mean and standard deviation fold change calculated across all genes:
+
+$$
+\begin{aligned}
+  & \mu_i = \frac{1}{G} \sum_{g = 1}^G f_{gi} \\
+  & \sigma_i = \sqrt{\frac{1}{G - 1} \sum_{g = 1}^G (f_{gi} - \mu_i)^2}
+\end{aligned}
+$$
+
+$G$ is the total number of genes. The enrichment score for set M is then defined as a Z-score with respect to the null distribution:
+
+$$
+ES_{Mi} = \frac{S_{Mi} - \mu_i}{\sigma_i / \sqrt{m}}.
+$$
+
+The cell type for a given spot is selected as the one giving the largest, significant enrichment score. If no scores are significant, the type is defined as "Unknown".
+
+Statistical significance of the enrichment score is assessed using bootstrap. A random gene set $R$ of size $|M|$ is selected from all genes and $S_{Ri}$ and $ES_{Ri}$ are calculated. The bootstrap (without replacement) is repeated N = 1000 times and the p-value is defined as the proportion of bootstraps returning the score larger than observed.
+
+$$
+p_i = \frac{1 + \#\{ES_{Ri} > ES_{Mi}\}}{1 + N}.
+$$
+
+The +1 in numerator and denominator are used to created a conservative, unbiased estimator. It helps with small sample sizes.
+
+### Marker genes
+
+A subset of marker genes (shown in @tbl-markers) was selected for cell type annotation. The genes were selected to be unique for the given cell type. The cell-type markers are listed in @tbl-cell-markers.
+
+Note that originally provided genes SLC4A4 and ANXA4 for ductal cells are highly correlated with MPC markers, making them impossible to distinguish. I have consulted ChatGPT and replaced them with MUC1 and KRT19.
 
 ```{r}
 #| label: tbl-cell-markers
-#| tbl-cap: Marker genes used to identify cell types.
+#| tbl-cap: Marker genes used to identify cell types. 
 tar_read(tissue_markers) |> 
   group_by(cell_type) |> 
   summarise(genes = str_c(gene_symbol, collapse = ", ")) |> 
@@ -383,7 +428,34 @@ tar_read(tissue_markers) |>
   gt()
 ```
 
-The results of this procedure are shown in @fig-cell-types.
+### Results
+
+The spatial distribution of normalised scores $ES_{Mi}$ for each cell type are illustrated in @fig-cell-type-scores.
+
+```{r}
+#| label: fig-cell-type-scores
+#| fig-cap: Normalised scores for each cell type.
+knitr::include_graphics("../fig/cell_type_scores_1.png")
+```
+
+As it is hard to compare images of slides of different cell types, @fig-cell-type-dif-spatial shows the difference between cell type scores (shown in @fig-cell-type-scores), for a few pairs of cell types. The largest distinction is between Beta and Delta cells.
+
+```{r}
+#| label: fig-cell-type-dif-spatial
+#| fig-cap: Difference between normalised cell type scores (see @fig-cell-type-scores) for Beta and other endocrine cells.
+knitr::include_graphics("../fig/dif_spatial_1.png") 
+```
+
+For an alternative view, a one-dimensional section across the slide was selected and the expression of INS (Beta marker) and SST (Delta marker) was found for spots following the line. The result is show in @fig-cell-type-section.
+
+```{r}
+#| label: fig-cell-type-section
+#| fig-cap: Expression of INS and SST along a section through the slide. The parameter $t$ along the section runs from 0 (top of the black line in the upper panel) to 1 (bottom of the line).
+knitr::include_graphics("../fig/spatial_section_ins_sst.png") 
+```
+
+
+The combined results of the cell annotation procedure are shown in @fig-cell-types.
 
 ```{r}
 #| label: fig-cell-types
@@ -412,6 +484,38 @@ Here we check how our derived cell types correlated with the cell type markers u
 tar_read(fig_dots_cell_type_1)
 ```
 
+### Cell type marker genes
+
+Differentially expressed markers were found for each cell type, versus all other types (the same way as cluster markers were found in @sec-cluster-markers). These are genes expressed more in a given cell type, than other cell types. @fig-cell-type-cluster-markers shows the dot plot for expression of 30 top differentially expressed genes in each cell type.
+
+```{r}
+#| label: fig-cell-type-cluster-markers
+#| fig-cap: Dot plots for top 30 differentially expressed markers for each cell type. The genes are arranged from from the largest to the smallest (top to bottom) mean log-fold change.
+knitr::include_graphics("../fig/cell_type_marker_dots_1.png")
+```
+
+### Cell type marker enrichment
+
+The differentially-expressed cell-type marker genes (that is genes DE in a given cell type versus other cell types) were used to find functional enrichment in each detected cell type. Only genes with adjusted p-value < 0.01 and the mean log2-folc-change > 1 were selected as the strongest markers. Results are shown in @tbl-cell-type-enrichment.
+
+::: {style="height: 600px; width: fit-content; overflow-y: scroll; margin-left: auto; margin-right: auto; font-size: 10pt"}
+
+```{r}
+#| label: tbl-cell-type-enrichment
+#| tbl-cap: Functional enrichment from top cell-type marker genes. `n_with_sel` is the number of genes with the given term in the selection (correlated subset).
+tar_read(cell_type_enrichment_1) |> 
+  dplyr::arrange(group) |> 
+  dplyr::group_by(group) |> 
+  dplyr::select(term_id, term_name, n_with_sel, odds_ratio, ids, group) |> 
+  gt() |> 
+  gt::fmt_number(
+    columns = odds_ratio,
+    n_sigfig = 2
+  )
+```
+
+:::
+
 ### Comparison with clustering
 
 @fig-clust-cell-type shows the comparison between clustering and cell type detection. For each pair cluster-cell type a Jaccard index has been calculated to show the level of agreement between the two partition methods. Jaccard index is the size of the intersection divided by the size of the union of the cells belonging to the cluster and the cell type.
@@ -423,6 +527,18 @@ tar_read(fig_dots_cell_type_1)
 #| fig-height: 4
 tar_read(fig_cluster_cell_type_1)
 ```
+
+### Other approaches
+
+I have found two R packages that do a similar job and I tried using them on our data.
+
+#### CellAssign
+
+Based on [this paper](https://www.nature.com/articles/s41592-019-0529-1), uses Bayesian inference. The package requires *tensorflow* installed, which in turn is a Python package. After a lot of hassle, I managed to install both *tensorflow* and *CellAssign*, however I could not get it to work. With our data, it stops immediately with error *unable to find an inherited method for function ‘assay’ for signature ‘x = "matrix", i = "character"’*. I would try to debug it and see where exactly it stops in the package, but I tried running the function with the example data provided by the authors. It crashes with error *ValueError: Tried to convert 'shape' to a tensor and failed. Error: Cannot convert a partially known TensorShape (1, ?) to a Tensor.*. This seems to be an internal tensorflow error, which suggests that *CellAssign* does not use *tensorflow* properly. Package instructions suggest using *tensorflow* version 2.1.0, but currently available versions are 2.16-2.19. *CellAssign* package has not been updated in 5 years and is seems it is out of sync with *tensorflow*. The authors have not responded to issues in their GitHubb archive since March 2023. It looks like yet another defunct, abandoned package.
+
+#### SC-TYPE
+
+This package works, but I don't trust the results. Cell type assignment is based on the standardised count matrix. As we have plenty of zeroes for each gene, the mean and standard deviation are meaningless, and the standardised scores differ from gene to gene depending on the proportion of zeroes. I'm surprised no reviewer raised this point in the [paper](https://www.nature.com/articles/s41467-022-28803-w). The other issue is that with multiple markers per cell type, the Z-scores are summed up. This means that when a cell type has 4 marker genes, it will always be more significant than a cell type with just one marker gene. As a result, there are far fewer spots annotated as Beta, by comparison to our standard method - because it is based on only one gene, INS. I think this method is flawed and no more sophisticated or statistically grounded that the method we use.
 
 ## Spatial WGCNA
 
@@ -438,6 +554,8 @@ tar_read(fig_metacells_spatial_1)
 ```
 
 Co-expression analysis is done similarly to widely-used *WGCNA* package. The pipeline selects 2000 most variable genes, aggregates cells into metacells (for each cluster sparately) to reduce noise, and normalizes the data. It then constructs a weighted gene co-expression network (WGCNA), testing different soft-thresholding powers to identify scale-free topology. A final network is built using the optimal power, and modules of co-expressed genes are identified. The pipeline calculates module eigengenes (summary profiles for each module) and evaluates intramodular connectivity (hub genes) to prioritize biologically relevant networks. This approach helps uncover coordinated gene programs across cell states or spatial domains.
+
+### Results
 
 Traditionally, modules are identified by colours, hence the names. @fig-modules-dendrogram shows the dendrogram used to created modules.
 
@@ -477,6 +595,18 @@ set.seed(632)
 tar_read(igr_hub_gene_network_1) |> 
   plot(vertex.label.cex = 0.6, margin = c(-0.1, -0.1, -0.1, -0.1))
 ```
+
+
+
+```{r}
+#| label: fig-modules-dots
+#| fig-cap: Expression of top 30 hub genes in each module as a function of cell type.
+knitr::include_graphics("../fig/modules_dots_1.png")
+```
+
+### Module enrichment
+
+Functional enrichment for several ontologies (GO, KEGG, Reactome and WikiPathways) has been calculated for all genes assigned to the module with the kME score greater than 0. The full results are available for download from @sec-downloads.
 
 
 ## Pseudo-time
@@ -526,6 +656,50 @@ tar_read(fig_volcano_mpc_1)
 ```
 
 
+## Cell-cell communication
+
+Here we attempt to infer cell-cell communication. [*FlowSig*](https://github.com/axelalmet/flowsig) has been suggested. *FlowSig* requires data to be pre-processed by [*COMMOT*](https://github.com/zcang/COMMOT), a Python package. However, this package is not actively maintained and my attempts to install it failed. Moreover, there is an [issue](https://github.com/zcang/COMMOT/issues/36) raised on *COMMOT's* website about lack of Visium HD support almost a year ago, with no answer. It seems *COMMOT* has been abandoned, there are installation issues and it does not work properly with Visium HD. Welcome to the world of bioinformatics.
+
+This [cell-cell interaction tool comparison](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-022-02783-y) recommends *CellChat* as the best tool out of 16 tools they compared.
+
+Therefore, we use [*CellChat*](https://www.nature.com/articles/s41467-021-21246-9), an R package for cell-cell communication. It starts with a curated database of 2021 validated ligand-receptor interactions, taking into account the known composition of ligand-receptor complexes, including complexes with multimeric ligands and receptors, as well as several cofactors: soluble agonists, antagonists, co-stimulatory and co-inhibitory membrane-bound receptors.
+
+For each ligand-receptor pair *CellChat* estimates communication probability, based on mass-action kinetics, where reaction rates are proportional to the product of reactant concentrations (ligand times receptor expression), with a characteristic saturation. Known agonists and antagonists concentrations modify the probability. Distance between cells is taken into account as an inverse scaling factor - the larger the distance between cells, the lower the probability of interaction.
+
+```{r}
+#| label: fig-cellchat-rank
+#| fig-cap: CellChat interactions, grouped by interaction pathway, ranked by the number of interactions (left) and the mean streangth of interaction (right).
+#| fig-width: 8
+#| fig-height: 6
+tar_read(fig_cellchat_rank_1)
+```
+
+
+```{r}
+#| label: fig-cellchat-circle
+#| fig-cap: Illustraction of interaction count and strenght.
+knitr::include_graphics("../fig/cellchat_circle_1.png") 
+```
+
+
+::: {#fig-cellchat-pathways layout-ncol=2}
+
+![NOTCH](../fig/cellchat_chord_1_NOTCH.png)
+
+![FLRT](../fig/cellchat_chord_1_FLRT.png)
+
+![MK](../fig/cellchat_chord_1_MK.png)
+
+![COLLAGEN](../fig/cellchat_chord_1_COLLAGEN.png)
+
+![LAMININ](../fig/cellchat_chord_1_LAMININ.png)
+
+![THBS](../fig/cellchat_chord_1_THBS.png)
+
+Examples of CellChat communication pathways.
+
+:::
+
 
 # Resources {#sec-resources}
 
@@ -543,6 +717,7 @@ tar_read(fig_volcano_mpc_1)
  - [Correlation with key markers](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/correlation_1.csv)
  - [Enrichment for key marker co-correlated sets ](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/keycorr_enrichment_1.csv)
  - [Modules](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/spatial_modules_1.csv)
+ - [Module enrichment](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/module_enrichment_1.csv)
 
 
 ### Sample 2
@@ -551,6 +726,7 @@ tar_read(fig_volcano_mpc_1)
  - [Correlation with key markers](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/correlation_2.csv)
  - [Enrichment for key marker co-correlated sets ](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/keycorr_enrichment_2.csv)
  - [Modules](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/spatial_modules_2.csv)
+ - [Module enrichment](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/module_enrichment_2.csv)
 
 
 

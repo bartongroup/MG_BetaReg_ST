@@ -109,8 +109,8 @@ get_average_expression <- function(seu, assay = "Spatial.008um", layer = "data",
     pivot_longer(-gene_symbol, names_to = group_var, values_to = layer)
 }
 
-get_gene_expression <- function(seu, genes, norm_per_gene = FALSE) {
-  d <- GetAssayData(seu, layer = "data")[genes, , drop = FALSE] |> 
+get_gene_expression <- function(seu, genes, norm_per_gene = FALSE, layer = "data") {
+  d <- GetAssayData(seu, layer = layer)[genes, , drop = FALSE] |> 
     t() |> 
     as_tibble(rownames = "cell_id") |> 
     pivot_longer(-cell_id, names_to = "gene_symbol", values_to = "expression")
@@ -219,10 +219,10 @@ cluster_seurat <- function(seu, dims = 1:40, resolutions = c(0.1, 0.125, 0.15, 0
 }
 
 
-find_cluster_markers <- function(seu, genes = NULL) {
+find_group_markers <- function(seu, genes = NULL, group_by = "cluster") {
   #DefaultAssay(seu) <- "Spatial.008um"
   df <- seu |> 
-    FindAllMarkers(test.use = "wilcox", features = genes) 
+    FindAllMarkers(test.use = "wilcox", features = genes, group.by = group_by) 
   if(nrow(df) > 0) {
     df |> 
       as_tibble() |> 
@@ -309,7 +309,7 @@ annotate_clusters <- function(seu, key_markers, resolution = NULL) {
     genes <- key_markers |> 
       filter(cell_type == ct & gene_symbol %in% all_genes) |> 
       pull(gene_symbol)
-    cm <- find_cluster_markers(seu, genes)
+    cm <- find_group_markers(seu, genes, group_by = "cluster")
     if(!is.null(cm)) {
       cm <- cm |> add_column(cell_type = ct, .before = 1)
     }

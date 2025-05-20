@@ -1,0 +1,12 @@
+List,Name,ID,FeatureType
+T1D Risk Alleles,RSBN1,ENSG00000081019,Gene Expression
+T1D Risk Alleles,ATXN2,ENSG00000204842,Gene Expression
+T1D Risk Alleles,IL2RA,ENSG00000134460,Gene Expression
+T1D Risk Alleles,CTLA4,ENSG00000163599,Gene Expression
+T1D Risk Alleles,CLEC16A,ENSG00000038532,Gene Expression
+T1D Risk Alleles,TCF7L2,ENSG00000148737,Gene Expression
+T1D Risk Alleles,BACH2,ENSG00000112182,Gene Expression
+T1D Risk Alleles,UBASH3A,ENSG00000160185,Gene Expression
+T1D Risk Alleles,FAP,ENSG00000078098,Gene Expression
+T1D Risk Alleles,RNLS,ENSG00000184719,Gene Expression
+T1D Risk Alleles,APOBR,ENSG00000184730,Gene Expression

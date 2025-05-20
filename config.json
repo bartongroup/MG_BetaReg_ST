@@ -10,6 +10,7 @@
   "designations" : {
     "go" : "goa_human",
     "re" : "Homo sapiens",
-    "kg" : "hsa"
+    "kg" : "hsa",
+    "wi" : "Homo sapiens"
   }
 }

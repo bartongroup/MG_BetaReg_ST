@@ -37,6 +37,8 @@ get_functional_terms_sym <- function(designations, codes = EXPERIMENTAL_GO_CODES
   re <- fenr::fetch_reactome(species = designations$re)
   cat("Loading KEGG data\n")
   kg <- fenr::fetch_kegg(species = designations$kg)
+  cat("Loading WIKI data\n")
+  wi <- fenr::fetch_wiki(species = designations$wi)
 
   go_cc <- go
   go_bp <- go
@@ -64,12 +66,38 @@ get_functional_terms_sym <- function(designations, codes = EXPERIMENTAL_GO_CODES
 
   kg$mapping <- kg$mapping
 
+  wi$mapping <- wi$mapping |> 
+    filter(type == "GeneProduct") |> 
+    select(term_id, gene_symbol = text_label)
+
   list(
     go_cc = go_cc,
     go_bp = go_bp,
     go_mf = go_mf,
     re = re,
-    kg = kg
+    kg = kg,
+    wi = wi
+  )
+}
+
+
+fetch_biocarta <- function() {
+  lnk <- "https://maayanlab.cloud/static/hdfs/harmonizome/data/biocarta/gene_attribute_edges.txt.gz"
+
+  raw <- read_tsv(lnk, skip = 1, show_col_types = FALSE) |> 
+    select(gene_symbol = GeneSym, term_id = `Pathway ID`, term_name = Pathway) |> 
+    mutate(term_id = as.character(term_id))
+
+  terms <- raw |> 
+    select(term_id, term_name) |> 
+    distinct()
+  mapping <- raw |> 
+    select(gene_symbol, term_id) |> 
+    distinct()
+
+  list(
+    terms = terms,
+    mapping = mapping
   )
 }
 

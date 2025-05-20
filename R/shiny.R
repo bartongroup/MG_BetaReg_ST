@@ -54,6 +54,8 @@ save_for_shiny_de <- function(dex_1, dex_2, gns, fterms, gse) {
     mutate(name = id) |>
     distinct()
 
+  names(fterms) <- c("GO CC", "GO BP", "GO MF", "Reactome", "KEGG", "WikiPathways")
+
   write_shiny_file(dexset)
   write_shiny_file(features)
   write_shiny_file(fterms)

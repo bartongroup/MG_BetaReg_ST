@@ -22,13 +22,18 @@ targets_main <- function() {
     cell_cycle_markers = get_cell_cycle_markers(config$species, gns),
     mito_genes =  gns |> filter(chr == "MT") |> pull(gene_symbol),
 
-    key_markers = read_markers("info/key_markers.xlsx"),
-    key_markers_endoc = key_markers |> filter(cell_type %in% c("MPC", "EP", "Beta", "Alpha", "Delta", "Epsilon")) |> droplevels(),
+    tar_target(key_marker_file, "info/key_markers.xlsx", format = "file"),
+    key_markers = read_markers(key_marker_file),
+    key_markers_endoc = key_markers |> filter(cell_type %in% c("MPC", "EP", "Beta", "Alpha", "Delta", "Epsilon", "PP")) |> droplevels(),
+
+    tar_target(t1d_file, "info/T1D Risk Alleles.csv", format = "file"),
+    tar_target(t2d_file, "info/T2D Risk Alleles.csv", format = "file"),
+    risk_genes = read_risk_alleles(t1d_file, t2d_file),
 
     tar_target(genes_of_interest_file, "info/genes.json", format = "file"),
     goi = jsonlite::read_json(genes_of_interest_file, simplifyVector = TRUE),
 
-    tissue_markers = get_unique_markers(goi$tissue_markers)
+    tissue_markers = get_unique_markers(goi$tissue_markers_positive, goi$tissue_markers_negative)
   )
 
   map_experiments <- tar_map(
@@ -41,7 +46,10 @@ targets_main <- function() {
       seu = load_visium_data(DATA_PATH, mito_genes) |>
         NormalizeData() |>
         cluster_seurat(ident_res = RESOLUTION, resolutions = RESOLUTIONS, nfeatures = 2000),
-      seu_mark = seu |> mark_cell_types_by_max(tissue_markers),
+      #seu_mark = seu |> mark_cell_types_by_max(tissue_markers),
+      #seu_mark = seu |> annotate_cell_types(tissue_markers),
+      #seu_mark = seu |> annotate_cells_sctype(tissue_markers),
+      seu_mark = annotate_cells_page(seu, tissue_markers, n_boot = 1000, p_val_limit = 0.05),
 
       # Save seurat for shiny
       sav_seu = save_for_shiny(seu_mark, NAME),
@@ -55,7 +63,7 @@ targets_main <- function() {
       cell_data = get_cell_data(seu)|> tibble::add_column(sample = NAME),
 
       # Clustering
-      cluster_markers = find_cluster_markers(seu),
+      cluster_markers = find_group_markers(seu, group_by = "cluster"),
       top_cluster_markers = get_top_cluster_markers(cluster_markers, n_top = 12),
       top_cluster_genes = top_cluster_markers$gene_symbol |> unique(),
       tbl_cluster_enrichment = group_enrichment(top_cluster_markers, fterms, group_var = "cluster"),
@@ -68,19 +76,29 @@ targets_main <- function() {
       png_key_markers = plot_key_markers_umap_spatial(seu, key_markers, file_prefix = paste0("key_markers_", NAME)),
       png_key_markers_expr = plot_gene_expression(seu, key_marker_genes) |> gs("key_marker_expr", NAME, 8, 12),
       fig_dots_key_markers = plot_gene_dots(seu, key_marker_genes),
-      png_xy_marker_mpc_ep = plot_gene_vs_gene_cluster(seu, goi$tissue_markers$MPC, goi$tissue_markers$EP, clust_sel = c(2, 6)) |> gs("xy_marker_mpc_ep", NAME, 6, 5),
-      png_xy_marker_mpc_beta = plot_gene_vs_gene_cluster(seu, goi$tissue_markers$MPC, goi$tissue_markers$Beta, clust_sel = c(2, 6)) |> gs("xy_marker_mpc_beta", NAME, 6, 5),
+      png_xy_marker_mpc_ep = plot_gene_vs_gene_cluster(seu, goi$tissue_markers_positive$MPC, goi$tissue_markers_positive$EP, clust_sel = c(2, 6)) |> gs("xy_marker_mpc_ep", NAME, 6, 5),
+      png_xy_marker_mpc_beta = plot_gene_vs_gene_cluster(seu, goi$tissue_markers_positive$MPC, goi$tissue_markers_positive$Beta, clust_sel = c(2, 6)) |> gs("xy_marker_mpc_beta", NAME, 6, 5),
 
       # Cell types
+      png_cell_type_scores = plot_cell_type_scores(seu_mark, tissue_markers) |> gs("cell_type_scores", NAME, 8, 22),
       png_cell_type = plot_cell_type(seu_mark) |> gs("cell_type", NAME, 8, 4),
       fig_cluster_cell_type = plot_cluster_cell_type_jaccard(seu_mark),
-      fig_dots_cell_type = plot_gene_dots(seu_mark, tissue_markers$gene_symbol, meta_column = "cell_type"),
+      fig_dots_cell_type = plot_gene_dots(seu_mark, unique(tissue_markers$gene_symbol), meta_column = "cell_type"),
       tbl_cell_type_count = cell_type_count(seu_mark),
+      png_dif_spatial = plot_spatial_differences(seu_mark, pairs = list(c("Beta", "Alpha"), c("Beta", "Delta"), c("Beta", "Epsilon")), point_size = 0.35) |> gs("dif_spatial", NAME, 8, 8),
+      cell_type_markers = find_group_markers(seu_mark, group_by = "cell_type"),
+      png_cell_type_marker_dots = plot_cell_type_marker_dots(seu_mark, cell_type_markers) |> gs("cell_type_marker_dots", NAME, 8, 35),
+      cell_type_markers_sel = cell_type_markers |> dplyr::filter(p_val_adj < 0.01 & avg_log2FC > 1),
+      cell_type_enrichment = group_enrichment(cell_type_markers_sel, fterms, group_var = "cluster"),
 
       # Insulin pathway
       png_ins_path = plot_expression(seu, goi$insulin_signalling_pathway, umap_point_size = 0.5, spatial_point_size = 0.5) |> gs("insulin_path", NAME, 7, 48),
-      png_ins_path_expr = plot_gene_expression(seu, goi$insulin_signalling_pathway) |> gs("insulin_path_expr", NAME, 8, 12),
-      fig_dots_ins_path = plot_gene_dots(seu, goi$insulin_signalling_pathway),
+      png_ins_path_expr = plot_gene_expression(seu, goi$insulin_signalling_pathway, meta_column = "cell_type") |> gs("insulin_path_expr", NAME, 8, 12),
+      fig_dots_ins_path = plot_gene_dots(seu, goi$insulin_signalling_pathway, meta_column = "cell_type"),
+
+      # Risk genes
+      fig_dots_t1d = plot_gene_dots(seu_mark, risk_genes$t1d, meta_column = "cell_type"),
+      fig_dots_t2d = plot_gene_dots(seu_mark, risk_genes$t2d, meta_column = "cell_type"),
 
       # Correlation
       key_marker_genes = key_markers$gene_symbol |> unique() |> intersect(SeuratObject::Features(seu)),
@@ -93,7 +111,7 @@ targets_main <- function() {
       # tbl_key_corr_cscore = find_gene_correlation_cscore(seu),
       
       # Next two lines are for running correlation on a large-memory cluster node.
-      sav_external_cor = save_for_external_correlation(seu, NAME),  # prepare date for external script
+      sav_external_cor = save_for_cluster_run(seu, NAME),  # prepare date for external script
       cor_file = paste0("ext/cor_", NAME, ".parquet"),              # load results after running the external script
       tbl_key_corr_cscore = read_correlation_markers(cor_file, key_marker_genes_endoc),
 
@@ -116,11 +134,31 @@ targets_main <- function() {
       seu_hdwgcna = hd_wgcna_analysis(seu_mark, NAME, soft_power = NULL),
       png_module_dendro = {png(paste0("fig/module_dendro_", NAME, ".png"), width = 2000, height = 1000, pointsize = 32);hdWGCNA::PlotDendrogram(seu_hdwgcna);dev.off()},
       fig_metacells_spatial = plot_metacells_spatial(seu_hdwgcna),
-      png_modules_spatial = plot_modules_spatial(seu_hdwgcna) |> gs("modules_spatial", NAME, 8, 10),
-      png_modules_expr_score = plot_modules_expr_score(seu_hdwgcna, n_genes = "all") |> gs("modules_score", NAME, 8, 10),
+      png_modules_spatial = plot_modules_spatial(seu_hdwgcna) |> gs("modules_spatial", NAME, 8, 13),
+      png_modules_expr_score = plot_modules_expr_score(seu_hdwgcna, n_genes = "all") |> gs("modules_score", NAME, 8, 13),
       igr_hub_gene_network = plot_hub_gene_network(seu_hdwgcna, n_hubs = 12),
       tbl_modules = get_modules(seu_hdwgcna),
       tbl_hub_genes = get_hub_genes(seu_hdwgcna),
+      tbl_module_enrichment = module_enrichment(tbl_modules, gene_detection$gene_symbol, fterms, kme_limit = 0, fdr_limit = 0.05),
+      png_modules_dots = plot_modules_dots(seu_mark, tbl_hub_genes) |> gs("modules_dots", NAME, 8, 25),
+
+      # CellChat
+      cellchat = create_cellchat(seu_mark) |> preprocess_cellchat(),
+      cellchat_comp = compute_cellchat(cellchat, n_boot = 100, scale_distance = CELLCHAT_SCALE_DISTANCE, raw_use = TRUE, population_size = FALSE),
+      # This gives huge amount of interactions with very low probabilities:
+      # cellchat_comp_smth = compute_cellchat(cellchat, n_boot = 100, scale_distance = CELLCHAT_SCALE_DISTANCE, raw_use = FALSE),
+      # This gives exactly the same interactions as the main one, but probabilities are very low
+      # cellchat_comp_pop = compute_cellchat(cellchat, n_boot = 100, scale_distance = CELLCHAT_SCALE_DISTANCE, population_size = TRUE),
+      png_cellchat_circle = plot_cellchat_circle(cellchat_comp, paste0("cellchat_circle_", NAME, ".png")),
+      png_cellchat_heatmap_count = plot_cellchat_heatmap(cellchat_comp, paste0("cellchat_heatmap_count", NAME, ".png"), measure = "count"),
+      png_cellchat_heatmap_weight = plot_cellchat_heatmap(cellchat_comp, paste0("cellchat_heatmap_weight", NAME, ".png"), measure = "weight"),
+      fig_cellchat_rank = plot_cellchat_rank(cellchat_comp),
+      fig_cellchat_bubble = plot_cellchat_bubble_sel(cellchat_comp, prob_limit = 0.01),
+      png_cellchat_chord_notch = plot_cellchat_chords(cellchat_comp, NAME, CELLCHAT_PATHWAYS),
+
+      # TWCOM
+      # ABANDONED. Uses more than 500 GB of memory.
+      # sav_external_twcom = save_for_cluster_run(seu_mark, NAME),
 
       # Pseudo time
       pseudo_time_cl26 = run_slingshot(seu_mark, meta_col = "cluster", clusters = c("2", "6"), reduction = "UMAP"),
@@ -153,8 +191,9 @@ targets_main <- function() {
       # Save data for external use
       sav_loupe = save_for_loupe(seu_mark_pt, paste0("tab/clusters_", NAME, ".csv")),
       sav_cors = save_correlation(tbl_key_corr_cscore, paste0("tab/correlation_", NAME, ".csv")),
-      sav_enr = save_group_enrichment(tbl_keycorr_enrichment, paste0("tab/keycorr_enrichment_", NAME, ".csv")),
+      sav_enr = save_enrichment(tbl_keycorr_enrichment, paste0("tab/keycorr_enrichment_", NAME, ".csv"), group_var = "group"),
       sav_mods = save_spatial_modules(tbl_modules, paste0("tab/spatial_modules_", NAME, ".csv")),
+      sav_mod_enr = save_enrichment(tbl_module_enrichment, paste0("tab/module_enrichment_", NAME, ".csv"), group_var = "module"),
 
       # Prepare for shiny
       dex = make_dexdash(seu_mark, de_mpc, NAME)
@@ -170,11 +209,21 @@ targets_main <- function() {
   for_report <- tar_plan(
     fig_counts = plot_all_counts(cell_data_all, gene_detection_all),
     png_marginals = plot_grid(fig_marginals_1, fig_marginals_2, ncol = 1, labels = 1:2)  |> gs("marginals", "all", 8, 6),
-    png_detections = plot_grid(fig_count_det_1, fig_count_det_2, labels = 1:2) |> gs("detections", "all", 8, 3)
+    png_detections = plot_grid(fig_count_det_1, fig_count_det_2, labels = 1:2) |> gs("detections", "all", 8, 3),
+
+    sct_1 = tibble::tibble(x = c(5120, 5230), y = c(-3400, -5400)),
+    png_section_ins_sst = plot_spatial_section(seu_1, "INS", "SST", sct_1) |> gs("spatial_section_ins_sst", width = 8, height = 8),
+    png_section_ins_gcg = plot_spatial_section(seu_1, "INS", "GCG", sct_1) |> gs("spatial_section_ins_gcg", width = 8, height = 8),
+    png_section_ins_ghrl = plot_spatial_section(seu_1, "INS", "GHRL", sct_1) |> gs("spatial_section_ins_ghrl", width = 8, height = 8)
   )
 
   for_shiny <- tar_plan(
     sav_de = save_for_shiny_de(dex_1, dex_2, gns, fterms, gse_all)
+  )
+
+  for_external_run <- tar_plan(
+    # lr = get_ligands_receptors(),
+    # sav_lr = saveRDS(lr, file = file.path("ext", "cellchat_ligand_receptor.rds"))
   )
 
   c(
@@ -183,7 +232,8 @@ targets_main <- function() {
     map_experiments,
     combine_samples,
     for_report,
-    for_shiny
+    for_shiny,
+    for_external_run
   )
 
 }

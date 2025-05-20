@@ -1,0 +1,11 @@
+List,Name,ID,FeatureType
+T2D Risk Alleles ,TCF7L2,ENSG00000148737,Gene Expression
+T2D Risk Alleles ,CDKN2B,ENSG00000147883,Gene Expression
+T2D Risk Alleles ,CDKAL1,ENSG00000145996,Gene Expression
+T2D Risk Alleles ,CDKN1C,ENSG00000129757,Gene Expression
+T2D Risk Alleles ,IGF2BP2,ENSG00000073792,Gene Expression
+T2D Risk Alleles ,FTO,ENSG00000140718,Gene Expression
+T2D Risk Alleles ,SLC30A8,ENSG00000164756,Gene Expression
+T2D Risk Alleles ,CCND2,ENSG00000118971,Gene Expression
+T2D Risk Alleles ,HHEX,ENSG00000152804,Gene Expression
+T2D Risk Alleles ,PAX4,ENSG00000106331,Gene Expression

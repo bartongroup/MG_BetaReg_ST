@@ -73,6 +73,17 @@ plot_modules_spatial <- function(seu, features = "hMEs", point_size = 0.4, ncol 
     labs(x = NULL, y = NULL, colour = "Rel expr")
 }
 
+plot_modules_dots <- function(seu, tbl_hub_genes) {
+  modules <- tbl_hub_genes$module |> unique() |> as.character()
+  pl <- map(modules, function(mdl) {
+    gns <- tbl_hub_genes |> 
+      filter(module == mdl) |> 
+      pull(gene_name)
+    plot_gene_dots(seu, gns, meta_column = "cell_type", with_legend = FALSE, title = mdl)
+  })
+  plot_grid(plotlist = pl, ncol = 2)
+}
+
 
 plot_metacells_spatial <- function(seu, group_var = "cluster", point_size = 0.6) {
   # Spatial coordinates of individual cells
@@ -111,4 +122,28 @@ plot_hub_gene_network <- function(seu, n_hubs = 12, future_globals_max_size = 10
   options(future.globals.maxSize = future_globals_max_size * 1024^2)
   seu |>
     hdWGCNA::HubGeneNetworkPlot(n_hubs = n_hubs, return_graph = TRUE)
+}
+
+
+module_enrichment <- function(tbl_modules, all_genes, fterms, kme_limit = 0, fdr_limit = 0.05) {
+  tbl_modules |> 
+    select(-color) |> 
+    pivot_longer(-c(gene_name, module), names_to = "module_sel", values_to = "score") |> 
+    mutate(module_sel = str_remove(module_sel, "kME_")) |> 
+    filter(module == module_sel & score > kme_limit) |> 
+    group_split(module) |> 
+    map(function(w) {
+      sel_genes <- w$gene_name |> unique()
+      ontologies <- names(fterms)
+      map(ontologies, function(ont) {
+        df <- fenr::functional_enrichment(all_genes, sel_genes, fterms[[ont]])
+        if(nrow(df) > 0) {
+          df <- df |> 
+            filter(p_adjust < fdr_limit) |> 
+            add_column(module = w$module[1], ontology = ont, .before = 1)
+        }
+      }) |> 
+        list_rbind()
+    }) |> 
+      list_rbind()
 }

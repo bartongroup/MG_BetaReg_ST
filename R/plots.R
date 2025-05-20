@@ -139,14 +139,21 @@ plot_all_counts <- function(cell_data_all, gene_detection_all) {
   })
 }
 
-plot_spatial_meta <- function(seu, meta_column = "pseudotime", point_size = 0.6) {
-  get_spatial_coordinates(seu) |> 
-    mutate(val = seu@meta.data[[meta_column]]) |> 
+plot_spatial_meta <- function(seu, meta_column = "pseudotime", point_size = 0.6, palette = "viridis") {
+  d <- get_spatial_coordinates(seu) |> 
+    mutate(val = seu@meta.data[[meta_column]])
+  mx <- max(abs(d$val))
+  pl <-  d |> 
   ggplot(aes(x = x, y = y, colour = val)) +
     thm +
     geom_point(size = point_size, shape = 15, stroke = 0.1) +
-    scale_colour_viridis_c(option = "cividis") +
     labs(x = NULL, y = NULL, colour = meta_column)
+  if(palette == "viridis") {
+    pl <- pl + scale_colour_viridis_c(option = "cividis")
+  } else if(palette == "divergent") {
+    pl <- pl + scale_colour_distiller(type = "div", palette = "RdBu", limits = c(-mx, mx))
+  }
+  pl
 }
 
 plot_reduction_meta <- function(seu, reduction = "pca", meta_column = "pseudotime", point_size = 0.6) {
@@ -236,6 +243,7 @@ plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap
       ggplot(aes(x = x, y = y)) +
       thm +
       geom_point(aes(colour = value), size = point_size, shape = point_shape, stroke = 0.1) +
+      guides(color = guide_legend(override.aes = list(size = 3))) +
       labs(x = NULL, y = NULL)
     if(is.null(discrete_palette)) {
       pl <- pl + scale_colour_brewer(palette = "Paired")
@@ -276,7 +284,7 @@ plot_resolutions <- function(seu, resolutions, umap_point_size = 0.2, spatial_po
 
 plot_cell_type <- function(seu, umap_point_size = 0.3, spatial_point_size = 0.6, label_size = 3) {
 
-  pal <- c(okabe_ito_palette[c(4, 1, 8, 5, 2, 3, 6, 7, 9)], "darkgreen", "lightgreen", "red", "grey90")
+  pal <- c(okabe_ito_palette[c(4, 1, 8, 5, 2, 3, 6, 7, 9)], "darkgreen", "lightgreen", "red", "brown", "magenta", grey(0.95))
   pl1 <- plot_one_xy(seu, point_size = umap_point_size, label_size = label_size, what = "umap", meta_column = "cell_type", discrete_palette = pal, with_legend = FALSE)
   pl2 <- plot_one_xy(seu, point_size = spatial_point_size, label_size = label_size, what = "spatial", meta_column = "cell_type", discrete_palette = pal, with_legend = TRUE) + guides(colour = guide_legend(override.aes = list(size = 3)))
   plot_grid(pl1, pl2, nrow = 1, rel_widths = c(1, 1.2))
@@ -304,7 +312,7 @@ plot_expression <- function(seu, genes, umap_point_size = 0.1, spatial_point_siz
 }
 
 
-plot_gene_expression <- function(seu, gids, layer = "data", width = 0.3, ncol = NULL) {
+plot_gene_expression <- function(seu, gids, layer = "data", meta_column = "cluster", width = 0.3, ncol = NULL) {
   
   # Necessary to avoid keeping large (~1 GB) environment within ggplot object
   env <- new.env(parent = globalenv())
@@ -322,7 +330,7 @@ plot_gene_expression <- function(seu, gids, layer = "data", width = 0.3, ncol = 
     pivot_longer(-cell_id, names_to = "gene_symbol") |>
     left_join(mt, by = "cell_id") |> 
     mutate(
-      grp = cluster,
+      grp = get(meta_column),
       igrp = as.integer(grp)
     )
   env$groups <- levels(env$d$grp)
@@ -350,7 +358,10 @@ plot_gene_expression <- function(seu, gids, layer = "data", width = 0.3, ncol = 
   with(env, {
     ggplot(d, aes(x = igrp, y = value)) +
       theme_bw() +
-      theme(panel.grid = element_blank()) +
+      theme(
+        panel.grid = element_blank(),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)
+      ) +
       geom_quasirandom(size = 0.5, colour = "grey60", width = width) +
       geom_segment(data = m, aes(x = igrp - wid, xend = igrp + wid, y = md, yend = md), linewidth = 1) +
       geom_col(data = m, aes(y = min_y), fill = "brown", width = wid) +
@@ -394,9 +405,11 @@ plot_gene_heatmap <- function(seu, gns, resolution = NULL) {
 }
 
 
-plot_gene_dots <- function(seu, gns, meta_column = "cluster") {
+plot_gene_dots <- function(seu, gns, meta_column = "cluster", with_legend = TRUE, title = NULL) {
   env <- new.env(parent = globalenv())
   env$meta_column <- meta_column
+  env$with_legend <- with_legend
+  env$title <- title
 
   Idents(seu) <- meta_column
   
@@ -405,7 +418,7 @@ plot_gene_dots <- function(seu, gns, meta_column = "cluster") {
     as_tibble(rownames = "gene_symbol")
    
   with(env, {
-    ggplot(d, aes(x = id, y = features.plot, colour = avg.exp.scaled, size = pct.exp)) +
+    pl <- ggplot(d, aes(x = id, y = fct_rev(features.plot), colour = avg.exp.scaled, size = pct.exp)) +
       th +
       theme(
         axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)
@@ -413,9 +426,26 @@ plot_gene_dots <- function(seu, gns, meta_column = "cluster") {
       geom_point() +
       scale_colour_gradient(low = "grey90", high = "blue") +
       scale_radius(range = c(1, 6)) +
-      labs(x = meta_column, y = "Gene", size = "Percent expressed", colour = "Average expresion")
+      labs(x = meta_column, y = "Gene", size = "Percent expressed", colour = "Average expresion", title = title)
+    if(!with_legend)
+      pl <- pl + theme(legend.position = "none")
+    pl
   })
 }
+
+plot_cell_type_marker_dots <- function(seu, cell_type_markers, n_top = 30) {
+  cell_types <- cell_type_markers$cluster |> unique() |> as.character()
+  pl <- map(cell_types, function(ct) {
+    gns <- cell_type_markers |> 
+      filter(cluster == ct) |> 
+      slice_max(avg_log2FC, n = n_top) |> 
+      arrange(desc(avg_log2FC)) |> 
+      pull(gene_symbol)
+    plot_gene_dots(seu, gns, meta_column = "cell_type", with_legend = FALSE, title = ct)
+  })
+  plot_grid(plotlist = pl, ncol = 2)
+}
+
 
 
 plot_png_expression_genes <- function(seu, genes, file_name) {
@@ -671,3 +701,122 @@ plot_vmp <- function(res, a = "AveExpr", fc = "logFC", p = "PValue", fdr = "FDR"
   )
 }
 
+plot_cell_type_scores <- function(seu, tissue_markers, point_size = 0.4) {
+  cell_types <- tissue_markers$cell_type |> unique()
+  pls <- map(cell_types, function(ct) {
+    ct <- str_glue("ES_{ct}")
+    plot_spatial_meta(seu, ct, point_size)
+  })
+  plot_grid(plotlist = pls, ncol = 2)
+}
+
+
+plot_gene_overlap <- function(seu, gene_1, gene_2, section = NULL, point_size = 0.6) {
+  only_1 <- str_glue("{gene_1} only")
+  only_2 <- str_glue("{gene_2} only")
+
+  xy <- get_spatial_coordinates(seu)
+  ex <- get_gene_expression(seu, c(gene_1, gene_2), layer = "count") |> 
+    pivot_wider(id_cols = cell_id, names_from = gene_symbol, values_from = expression) |> 
+    rename(g1 := !!gene_1, g2 := !!gene_2) |> 
+    mutate(
+      state = case_when(
+        g1 > 0 & g2 > 0 ~ "Both",
+        g1 == 0 & g2 > 0 ~ only_2,
+        g1 > 0 & g2 == 0 ~ only_1,
+        g1 == 0 & g2 == 0 ~ "None"
+      ) |> 
+        factor(levels = c(only_1, only_2, "Both", "None"))
+    )
+  
+  pl <- inner_join(xy, ex, by = "cell_id") |> 
+    ggplot(aes(x = x, y = y, colour = state)) +
+    thm +
+    geom_point(size = point_size, shape = 15, stroke = 0.1) +
+    scale_colour_manual(values = c(okabe_ito_palette[c(2, 3, 1)], "grey90")) +
+    guides(color = guide_legend(override.aes = list(size = 3))) +
+    labs(x = NULL, y = NULL, colour = "Gene expression")
+
+  if(!is.null(section)) {
+    pl <- pl + 
+      geom_path(data = section, aes(x = x, y = y), colour = "black", linewidth = 1)
+  }
+
+  pl
+}
+
+
+dist_to_segment <- function(xy, segment) {
+  x1 <- segment$x[1]
+  x2 <- segment$x[2]
+  y1 <- segment$y[1]
+  y2 <- segment$y[2]
+  dx <- x2 - x1
+  dy <- y2 - y1
+
+  xy |> 
+    mutate(
+      # projection parameter t
+      t = ((x - x1) * dx + (y - y1) * dy) / (dx^2 + dy^2),
+      # projection point
+      proj_x = x1 + t * dx,
+      proj_y = y1 + t * dy,
+      # Euclidean distance
+      dst = sqrt((x - proj_x)^2 + (y - proj_y)^2)
+    )
+}
+
+
+
+plot_expression_section <- function(seu, gene_1, gene_2, section, layer = "data") {
+  
+  rad <- seu@images$slice1.008um@boundaries$centroids@radius
+  ex <- get_gene_expression(seu, c(gene_1, gene_2), layer = layer) |> 
+    mutate(gene_symbol = factor(gene_symbol, levels = c(gene_1, gene_2)))
+  ylab <- ifelse(layer == "count", "UMI count", "log1p normalised count")
+
+  pl <- seu |> 
+    get_spatial_coordinates() |> 
+    dist_to_segment(section) |> 
+    filter(dst < rad / 2 & t >=0 & t <= 1) |> 
+    arrange(t) |> 
+    left_join(ex, by = "cell_id") |> 
+  ggplot(aes(x = t, y = expression, colour = gene_symbol)) +
+    th +
+    geom_line(, linewidth = 1.3) +
+    scale_colour_manual(values = okabe_ito_palette[c(2, 3)]) +
+    labs(x = "t", y = ylab, colour = "Gene")
+
+  if(layer == "count")
+    pl <- pl + geom_hline(yintercept = 0, colour = "brown", alpha = 0.3)
+  pl
+}
+
+plot_spatial_section <- function(seu, gene_1, gene_2, section, point_size = 0.8, layer = "count") {
+  pl1 <- plot_gene_overlap(seu, gene_1, gene_2, section, point_size)
+  pl2 <- plot_expression_section(seu, gene_1, gene_2, section, layer = layer)
+
+  plot_grid(pl1, pl2, ncol = 1, rel_heights = c(2, 1), align = "v")
+}
+
+plot_spatial_difference <- function(seu, type_1, type_2, point_size = 0.6) {
+  newcol <- str_glue("{type_1} - {type_2}")
+  seu[[newcol]] <- seu[[type_1]] - seu[[type_2]]
+  plot_spatial_meta(seu, meta_column = newcol, point_size = point_size, palette = "divergent") +
+    theme(
+      legend.text = element_text(size = 7),
+      legend.title = element_text(size = 7),
+      legend.key.size = unit(0.4, 'cm')
+    )
+}
+
+# pairs is a list of vectors
+plot_spatial_differences <- function(seu, pairs, point_size = 0.6) {
+  pl <- map(pairs, function(pair) {
+    ct1 <- paste0("ES_", pair[1])
+    ct2 <- paste0("ES_", pair[2])
+    plot_spatial_difference(seu, ct1, ct2, point_size)
+  })
+
+  plot_grid(plotlist = pl, ncol = 2)
+}
