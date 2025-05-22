@@ -61,6 +61,9 @@ targets_main <- function() {
       # Gene detection
       gene_detection = get_gene_detection(seu) |> tibble::add_column(sample = NAME),
       cell_data = get_cell_data(seu)|> tibble::add_column(sample = NAME),
+      fig_hormone_overlap = plot_upset_expressed_cells(seu, c("INS", "SST", "GCG", "GHRL", "PPY")),
+      fig_mpc_overlap = plot_upset_expressed_cells(seu, c("SOX9", "PTF1A", "NKX6-1", "PDX1")),
+      fig_ep_overlap = plot_upset_expressed_cells(seu, c("PAX4", "PAX6", "NEUROD1", "NEUROG3")),
 
       # Clustering
       cluster_markers = find_group_markers(seu, group_by = "cluster"),

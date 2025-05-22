@@ -154,6 +154,8 @@ In summary, MPCs are early, multipotent cells that can become various pancreatic
 
  - **GHRL** (Ghrelin) Primarily expressed by epsilon cells in the pancreas (though predominantly produced in the stomach), ghrelin stimulates appetite, promotes growth hormone release, and modulates glucose metabolism and insulin sensitivity.
 
+ - **PPY** (Pancreatic Polypeptide) Expressed by pancreatic PP (gamma) cells. Modulates digestive processes by inhibiting pancreatic enzyme secretion, gallbladder contraction, and gastrointestinal motility. It also helps regulate appetite and satiety.
+
 # Proposal
 
 This is analysis of 10X VisiumHD STseq experiment of the embryonic pancreas at 8wpc – the key time in development when insulin producing beta cell form.
@@ -549,6 +551,19 @@ tar_read(tbl_expr_pct_1) |>
     palette = c("white", "darkgreen")
   )
 ```
+
+### Hormone expression overlap
+
+It is obvious that there are plenty of cells (spots) expressing more than one endocrine hormone gene, suggesting some of the Alpha, Beta, Delta, Epsilon and PP cells are not fully developed, as we expect exclusive expression of the corresponding hormones (GCG, INS, SST, GHRL, PPY) in matured cell types. The overlap between expression of all four genes is shown in @fig-hormone-overlap.
+
+```{r}
+#| label: fig-hormone-overlap
+#| fig-cap: Overlap of the spots expressing five pancreatic endocrine hormones. Each column shows the overlap between spots expressing a given gene. 48%, 27%, 16%, 40% and 44% of INS, SST, GCG, GHRL and PPY expressing cells, respectively, express their gene uniquely.
+#| fig-width: 8
+#| fig-height: 4
+tar_read(fig_hormone_overlap_1) 
+```
+
 
 ### Cell type DE genes
 

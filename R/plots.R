@@ -834,3 +834,19 @@ plot_spatial_differences <- function(seu, pairs, point_size = 0.6) {
 
   plot_grid(plotlist = pl, ncol = 1)
 }
+
+
+plot_upset_expressed_cells <- function(seu, gns, expr_limit = 0) {
+  m <- get_gene_expression(seu, gns, layer = "data") |> 
+    filter(expression > expr_limit) |> 
+    mutate(expression = 1) |> 
+    pivot_wider(id_cols = cell_id, names_from = gene_symbol, values_from = expression, values_fill = 0) |> 
+    ComplexHeatmap::make_comb_mat()
+  
+  ComplexHeatmap::UpSet(
+    m,
+    top_annotation = ComplexHeatmap::upset_top_annotation(m, add_numbers = TRUE, numbers_rot = 0),
+    right_annotation = ComplexHeatmap::upset_right_annotation(m, add_numbers = TRUE),
+    comb_col = c("black", "brown", "darkblue", "darkgreen", "darkorchid3")[ComplexHeatmap::comb_degree(m)]
+  )
+}

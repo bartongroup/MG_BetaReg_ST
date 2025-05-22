@@ -350,3 +350,22 @@ get_expression_percentage <- function(seu, gns, meta_column = "cell_type") {
     as_tibble(rownames = "gid") |> 
     select(gene_symbol = features.plot, avg_exp = avg.exp, pct_exp = pct.exp, group = id)
 }
+
+unique_hormone_expressors <- function(seu) {
+  gnt <- tribble(
+    ~gene_symbol, ~cell_type,
+    "GCG", "Alpha",
+    "INS", "Beta",
+    "SST", "Delta",
+    "GHRL", "Epsilon",
+    "PPY", "PP"
+  )
+
+  get_gene_expression(seu, gnt$gene_symbol) |>
+    filter(expression > 0) |>
+    group_by(cell_id) |>
+    summarise(n = n(), gene_symbol = str_c(gene_symbol, collapse = ",")) |>
+    filter(n == 1) |> 
+    select(-n) |> 
+    left_join(gnt, by = "gene_symbol")
+}
