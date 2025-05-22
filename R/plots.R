@@ -11,14 +11,15 @@ thm <- th +
     axis.ticks = ggplot2::element_blank()
   )
 
-gs <- function(gg, name, sample = NULL, width, height) {
+gs <- function(gg, name, sample = NULL, width, height, dpi = 120) {
   if(is.null(sample)) {
-    fname <- file.path("fig", paste0(name, ".png"))
+    fname <- file.path("doc", "images", paste0(name, ".png"))
   } else {
-    fname <- file.path("fig", paste0(name, "_", sample, ".png"))
+    fname <- file.path("doc", "images", paste0(name, "_", sample, ".png"))
   }
-  ggsave(filename = fname, plot = gg, device = "png",
-         width = width, height = height, dpi = 300)
+
+  ggsave(filename = fname, plot = gg, device = "png", limitsize = FALSE,
+         width = width, height = height, dpi = dpi)
 }
 
 scientific_10 <- function(x) {
@@ -449,8 +450,8 @@ plot_cell_type_marker_dots <- function(seu, cell_type_markers, n_top = 30) {
 
 
 plot_png_expression_genes <- function(seu, genes, file_name) {
-  plot_expression(seu, genes, spatial_point_size = 0.25, umap_point_size = 0.25, grid_label_size = 10) |> 
-    gs(file_name, width = 4, height = 2 * length(genes))
+  plot_expression(seu, genes, spatial_point_size = 0.4, umap_point_size = 0.4, grid_label_size = 10) |> 
+    gs(file_name, width = 8, height = 4 * length(genes))
 }
 
 
@@ -489,6 +490,7 @@ plot_top_cluster_umap_spatial <- function(seu, top_cluster_markers, file_prefix 
 
 
 plot_cor_heat <- function(tbl_cor, fdr_limit = 0.01, min_cor = NULL, n_top = NULL, cluster_rows = TRUE, cluster_columns = TRUE) {
+  env <- new.env(parent = globalenv())
 
   top_genes <- find_top_cor_genes(tbl_cor, fdr_limit, min_cor, n_top)
 
@@ -502,40 +504,47 @@ plot_cor_heat <- function(tbl_cor, fdr_limit = 0.01, min_cor = NULL, n_top = NUL
     pivot_wider(id_cols = gene_2, names_from = gene_1, values_from = correlation, values_fill = NA) |> 
     column_to_rownames("gene_2") |> 
     as.matrix()
-  tab <- tab[, intersect(levels(tbl_cor$gene_1), colnames(tab))]
   
-  palet <- circlize::colorRamp2(c(-1, 0, 1), c("#2166AC", "#FFFFFF", "#B2182B"), space = "LAB")
-  ComplexHeatmap::Heatmap(tab, col = palet, name = "Correlation", cluster_columns = cluster_columns, cluster_rows = cluster_rows)
+  env$tab <- tab[, intersect(levels(tbl_cor$gene_1), colnames(tab))]
+  env$palet <- circlize::colorRamp2(c(-1, 0, 1), c("#2166AC", "#FFFFFF", "#B2182B"), space = "LAB")
+  env$cluster_columns <- cluster_columns
+  env$cluster_rows = cluster_rows
+
+  with(env, {
+    ComplexHeatmap::Heatmap(tab, col = palet, name = "Correlation", cluster_columns = cluster_columns, cluster_rows = cluster_rows)
+  })
   #ggheatmap(tab, palette = "distiller", with.y.text = TRUE, legend.name = "Correlation")
 }
 
-plot_gene_vs_gene_cluster <- function(seu, genes1, genes2, clust_sel = NULL, point_size = 0.5) {
+plot_gene_vs_gene <- function(seu, genes1, genes2, group_var = "cluster", group_sel = NULL, point_size = 0.5) {
 
   mt <- get_cell_data(seu) |> 
-    select(cell_id, cluster)
+    mutate(group = get(group_var)) |> 
+    select(cell_id, group)
 
   palette <- okabe_ito_palette
-  if(!is.null(clust_sel)) {
+  if(!is.null(group_sel)) {
     mt <- mt |> 
       mutate(
-        cluster = as.character(cluster),
-        cluster = if_else(cluster %in% clust_sel, cluster, "0")
+        group = as.character(group),
+        group = if_else(group %in% group_sel, group, "Other"),
+        group = fct_relevel(group, "Other")
       ) 
     palette <- c("grey90", okabe_ito_palette)
   }
 
-  d1 <- get_gene_expression(seu, genes1, norm_per_gene = TRUE) |> 
+  d1 <- get_gene_expression(seu, genes1, norm_per_gene = FALSE) |> 
     summarise(gr1 = mean(expression), .by = cell_id)
-  d2 <- get_gene_expression(seu, genes2, norm_per_gene = TRUE) |> 
+  d2 <- get_gene_expression(seu, genes2, norm_per_gene = FALSE) |> 
     summarise(gr2 = mean(expression), .by = cell_id)
 
   inner_join(d1, d2, by = "cell_id") |> 
     left_join(mt, by = "cell_id") |> 
-  ggplot(aes(x = gr1, y = gr2, colour = cluster)) +
+  ggplot(aes(x = gr1, y = gr2, colour = group)) +
     th +
     geom_point(size = point_size) +
     scale_colour_manual(values = palette) +
-    labs(x = str_c(genes1, collapse = ","), y = str_c(genes2, collapse = ","))
+    labs(x = str_c(genes1, collapse = ","), y = str_c(genes2, collapse = ","), colour = group_var)
 }
 
 
@@ -593,13 +602,18 @@ make_combmat_for_upset <- function(mex, ...) {
 
 
 plot_cluster_cell_type_jaccard <- function(seu) {
-  seu |>
-    jaccard_clusters_cell_types() |> 
-    ggplot(aes(x = cluster, y = cell_type, fill = j)) +
-    th +
-    geom_tile() +
-    scale_fill_viridis_c(option = "cividis") +
-    labs(fill = "Jaccard")
+  env <- new.env(parent = globalenv())
+
+  env$d <- seu |>
+    jaccard_clusters_cell_types()
+  with(env, {
+    d |> 
+      ggplot(aes(x = cluster, y = cell_type, fill = j)) +
+      th +
+      geom_tile() +
+      scale_fill_viridis_c(option = "cividis") +
+      labs(fill = "Jaccard")
+  })
 }
 
 
@@ -818,5 +832,5 @@ plot_spatial_differences <- function(seu, pairs, point_size = 0.6) {
     plot_spatial_difference(seu, ct1, ct2, point_size)
   })
 
-  plot_grid(plotlist = pl, ncol = 2)
+  plot_grid(plotlist = pl, ncol = 1)
 }

@@ -29,27 +29,32 @@ add_pseudotime <- function(seu, sl, lineage = 1, colname = "pseudotime", ...)  {
 }
 
 plot_slingshot_lineage <- function(sl, lineage = 1, point_size = 0.6) {
+  env <- new.env(parent = globalenv())
+  env$point_size <- point_size
+  
   lng <- str_glue("Lineage{lineage}")
   
   d <- slingshot::SlingshotDataSet(sl)
   
-  curves <- d@curves[[lng]]$s |>
+  env$curves <- d@curves[[lng]]$s |>
     as_tibble() |> 
     select(1, 2) |> 
     set_names(c("x", "y"))
 
-  red <- d@reducedDim |> 
+  env$red <- d@reducedDim |> 
     as_tibble() |> 
     select(1, 2) |> 
     set_names(c("x", "y")) |> 
     mutate(cl = SummarizedExperiment::colData(sl)$cl)
 
-  axes <- colnames(d@reducedDim)[1:2]
+  env$axes <- colnames(d@reducedDim)[1:2]
 
-  ggplot() +
-    thm +
-    geom_point(data = red, aes(x = x, y = y, colour = cl), size = point_size) +
-    scale_colour_brewer(palette = "Paired") +
-    geom_path(data = curves, aes(x = x, y = y), colour = "brown", linewidth = 1.5) +
-    labs(x = axes[1], y = axes[2])
+  with(env, {
+    ggplot() +
+      thm +
+      geom_point(data = red, aes(x = x, y = y, colour = cl), size = point_size) +
+      scale_colour_brewer(palette = "Paired") +
+      geom_path(data = curves, aes(x = x, y = y), colour = "brown", linewidth = 1.5) +
+      labs(x = axes[1], y = axes[2])
+  })
 }

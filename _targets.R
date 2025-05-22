@@ -11,7 +11,7 @@ required_packages <- read.delim("R/packages.txt", header = FALSE, col.names = "n
 tar_option_set(packages = required_packages, format = "qs")
 
 # Create dirs if necessary
-for (d in c("data", "tab", "fig", "cache")) if (!dir.exists(d)) dir.create(d)
+for (d in c("data", "tab", "fig", "doc/images")) if (!dir.exists(d)) dir.create(d)
 
 # for interactive session only
 if (interactive()) sapply(required_packages, library, character.only = TRUE)

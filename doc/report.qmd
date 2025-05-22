@@ -22,7 +22,7 @@ format:
       - report.scss
     toc: true
     number-sections: true
-self-contained: true
+self-contained: false
 editor: 
   markdown: 
     wrap: 72
@@ -92,21 +92,23 @@ enrichment_table <- function(enr) {
 
 This Section was written by DeepSeek.
 
+## Key cell types
+
 MPCs (Multipotent Progenitor Cells), endocrine progenitors, and beta cells are all related to the development and function of the pancreas, particularly in the context of diabetes research and regenerative medicine. Here's a breakdown of each:
 
-## MPCs (Multipotent Progenitor Cells)
+### MPCs (Multipotent Progenitor Cells)
 
  - Definition: MPCs are stem-like cells that have the potential to differentiate into multiple cell types within a specific lineage. In the pancreas, MPCs are early progenitor cells that can give rise to various pancreatic cell types, including both exocrine (e.g., acinar cells) and endocrine (e.g., alpha, beta, delta cells) lineages.
 
  - Role: During pancreatic development, MPCs are crucial for forming the different cell types that make up the pancreas. They are multipotent, meaning they are not yet fully specialized and can still choose between different developmental paths.
 
-## EPs (Endocrine Progenitors)
+### EPs (Endocrine Progenitors)
 
  - Definition: Endocrine progenitors are a more specialized type of progenitor cell that is committed to becoming part of the endocrine pancreas. The endocrine pancreas is responsible for producing hormones like insulin, glucagon, and somatostatin, which regulate blood sugar levels.
 
  - Role: These cells are derived from MPCs and are specifically destined to differentiate into the hormone-producing cells of the pancreas, including beta cells, alpha cells, and delta cells. They are a key intermediate step in the development of functional endocrine cells.
 
-## Beta Cells
+### Beta Cells
 
  - Definition: Beta cells are a type of endocrine cell found in the pancreatic islets of Langerhans. They are responsible for producing, storing, and releasing insulin, the hormone that lowers blood glucose levels.
 
@@ -114,13 +116,43 @@ MPCs (Multipotent Progenitor Cells), endocrine progenitors, and beta cells are a
 
  - Regeneration: Research into MPCs and endocrine progenitors is particularly important for diabetes treatment, as scientists aim to regenerate or replace beta cells in diabetic patients.
 
-## Connection Between These Cells
+### Connection Between These Cells
 
 During pancreatic development, MPCs give rise to endocrine progenitors, which then differentiate into specialized endocrine cells, including beta cells.
 
 Understanding this developmental pathway is critical for regenerative medicine approaches aimed at generating new beta cells for diabetes treatment, either by stimulating endogenous progenitors or by differentiating stem cells in the lab.
 
 In summary, MPCs are early, multipotent cells that can become various pancreatic cell types, endocrine progenitors are more specialized cells committed to the endocrine lineage, and beta cells are the final, functional cells that produce insulin.
+
+## Key genes
+
+### Developmental transcription factors
+
+ - **PTF1A** Critical for early specification of pancreatic progenitor cells toward the acinar lineage (digestive enzyme-producing cells). Essential for establishing pancreatic identity and proper organ morphology.
+
+ - **SOX9** Marks multipotent pancreatic progenitor cells. Crucial for pancreatic ductal lineage formation and maintenance of progenitor cell populations during organogenesis.
+
+ - **PDX1** Key transcription factor marking early pancreatic progenitors (multipotent pancreatic cells, MPCs). Essential for pancreatic development, beta-cell maturation, and insulin gene expression.
+
+ - **NKX6-1** Essential for differentiation and maturation of beta cells. Works alongside PDX1 to regulate beta-cell fate determination and insulin production.
+
+ - **NEUROG3** Transiently expressed in endocrine progenitor cells, crucially controlling their differentiation into hormone-producing endocrine cells (alpha, beta, delta, epsilon).
+
+ - **NEUROD1** Acts downstream of NEUROG3. Necessary for maturation and survival of endocrine cell lineages, particularly beta cells, regulating insulin transcription.
+
+ - **PAX4** Drives endocrine progenitor differentiation toward the beta and delta cell lineages. Essential for pancreatic beta-cell specification and survival.
+
+ - **PAX6** Broadly involved in endocrine cell differentiation. Essential for formation and function of alpha cells (glucagon), and contributes to beta and delta cell development.
+
+### Human pancreatic hormones
+
+ - **INS** (Insulin) Primarily expressed by pancreatic beta cells, insulin regulates glucose metabolism by promoting cellular glucose uptake, thus reducing blood glucose levels.
+
+ - **SST** (Somatostatin) Produced mainly by delta cells in the pancreas, somatostatin inhibits the release of insulin, glucagon, and various digestive enzymes, helping to modulate overall pancreatic endocrine activity.
+
+ - **GCG** (Glucagon) Secreted by pancreatic alpha cells, glucagon raises blood glucose levels by stimulating glycogen breakdown and gluconeogenesis in the liver, functioning in opposition to insulin.
+
+ - **GHRL** (Ghrelin) Primarily expressed by epsilon cells in the pancreas (though predominantly produced in the stomach), ghrelin stimulates appetite, promotes growth hormone release, and modulates glucose metabolism and insulin sensitivity.
 
 # Proposal
 
@@ -162,16 +194,16 @@ tar_read(fig_counts)
 ```
 
 
-```{r}
+```{r, out.width="100%"}
 #| label: fig-marginals
 #| fig-cap: "Distribution of: Left - total count (number of UMIs) per cell. Middle -  Number of genes detected per cell. Right -  Fraction of counts coming from mitochondrial genes. Labels 1-4 indicate sample numbers."
-knitr::include_graphics("../fig/marginals_all.png") 
+knitr::include_graphics("images/marginals_all.png") 
 ```
 
-```{r}
+```{r, out.width="100%"}
 #| label: fig-detections
 #| fig-cap: "Number of genes detected per cell as a function of the total count in a cell. One point corresponds to one cell. Colour indicates mitochondrial contamination. Labels 1-4 indicate sample numbers."
-knitr::include_graphics("../fig/detections_all.png") 
+knitr::include_graphics("images/detections_all.png") 
 ```
 
 # Sample 1
@@ -191,10 +223,10 @@ The resolution parameter in the Leiden algorithm controls the granularity of ide
 
 @fig-umap-clusters compares several resolution levels, showing both UMAP and spatial distributions of cells. For this data set, resolution of 0.4 was selected as optimal.
 
-```{r}
+```{r, out.width="100%"}
 #| label: fig-umap-clusters
 #| fig-cap: UMAP reduction at different clustering levels. 
-knitr::include_graphics("../fig/resolutions_1.png") 
+knitr::include_graphics("images/resolutions_1.png")  
 ```
 
 ## Cluster markers {#sec-cluster-markers}
@@ -207,7 +239,7 @@ The figures below show the top 12 marker genes in each cluster, with the highest
 # This function should be placed in an R chunk with results: asis, inside ::: {.panel-tabset}
 dynamic_png_panels <- function(file_pattern, name_pattern) {
 
-  image_files <- list.files("../fig", pattern = file_pattern, full.names = TRUE) |> 
+  image_files <- list.files("images", pattern = file_pattern, full.names = TRUE) |> 
     sort()
   names <- str_extract(image_files, name_pattern)
 
@@ -216,7 +248,7 @@ dynamic_png_panels <- function(file_pattern, name_pattern) {
   knit_child(text = knit_expand(text = "
 ### {{sec_name}}
 
-![]({{image_path}})
+![]({{image_path}}){width=100%}
 ", sec_name = names[i], image_path = image_files[i]), quiet = TRUE)
 })
 
@@ -301,7 +333,7 @@ Figures below show the expression of the key markers on the UMAP and spatial plo
 #| label: celltype-panels
 #| results: asis
 
-dynamic_png_panels("^key_markers_1_\\w+\\.png$", "(?<=1_)\\w+(?=\\.)")
+dynamic_png_panels("^key_markers_1_\\w+\\.png$", "(?<=1_)\\w+(?=\\.)") 
 ```
 
 :::
@@ -309,10 +341,10 @@ dynamic_png_panels("^key_markers_1_\\w+\\.png$", "(?<=1_)\\w+(?=\\.)")
 @fig-key-markers-expr shows expression of the key markers across clusters and @fig-markers-dot-plot shows the dot-plot of the key markers across clusters.
 
 
-```{r}
+```{r, out.width="100%"}
 #| label: fig-key-markers-expr
 #| fig-cap: Expression (top) and percentage of expresses cells (bottom) for each of the key markers across clusters. 
-knitr::include_graphics("../fig/key_marker_expr_1.png")
+knitr::include_graphics("images/key_marker_expr_1.png")
 ```
 
 
@@ -433,39 +465,50 @@ tar_read(tissue_markers) |>
   gt()
 ```
 
-### Results
+### Enrichment score
 
 The spatial distribution of normalised scores $ES_{Mi}$ for each cell type are illustrated in @fig-cell-type-scores.
 
-```{r}
+```{r, out.width="100%"}
 #| label: fig-cell-type-scores
 #| fig-cap: Normalised scores for each cell type.
-knitr::include_graphics("../fig/cell_type_scores_1.png")
+knitr::include_graphics("images/cell_type_scores_1.png")
 ```
 
-As it is hard to compare images of slides of different cell types, @fig-cell-type-dif-spatial shows the difference between cell type scores (shown in @fig-cell-type-scores), for a few pairs of cell types. The largest distinction is between Beta and Delta cells.
+As it is hard to compare images of slides of different cell types, @fig-cell-type-dif-spatial shows the difference between cell type scores (shown in @fig-cell-type-scores), for a few pairs of cell types. 
 
-```{r}
+```{r, out.width="100%"}
 #| label: fig-cell-type-dif-spatial
-#| fig-cap: Difference between normalised cell type scores (see @fig-cell-type-scores) for Beta and other endocrine cells.
-knitr::include_graphics("../fig/dif_spatial_1.png") 
+#| fig-cap: Difference between normalised cell type scores (see @fig-cell-type-scores) for a few pairs of cell types.
+knitr::include_graphics("images/dif_spatial_1.png") 
 ```
 
 For an alternative view, a one-dimensional section across the slide was selected and the expression of INS (Beta marker) and SST (Delta marker) was found for spots following the line. The result is show in @fig-cell-type-section.
 
-```{r}
+```{r, out.width="100%"}
 #| label: fig-cell-type-section
 #| fig-cap: Expression of INS and SST along a section through the slide. The parameter $t$ along the section runs from 0 (top of the black line in the upper panel) to 1 (bottom of the line).
-knitr::include_graphics("../fig/spatial_section_ins_sst.png") 
+knitr::include_graphics("images/spatial_section_ins_sst.png") 
+```
+
+Another view is show in @fig-gene-gene-ins-sst, where expression of SST and INS is shown for individual cells in a scatter plot. While, ideally, we would like Delta and Beta cells expressing SST and INS exclusively, there is a large overlap where both genes are expressed. The division line between the annotated cell types is certainly arbitrary. The cells in the middle of the plot are probably not fully committed to either cell type.
+
+```{r, out.width="100%"}
+#| label: fig-gene-gene-ins-sst
+#| fig-cap: Expression of SST vs INS in all cells. Cell types annotated as Beta and Delta are marked by colours.
+#| out-width: "60%"
+knitr::include_graphics("images/gene_gene_ins_sst_1.png")
 ```
 
 
+### Cell annotation results
+
 The combined results of the cell annotation procedure are shown in @fig-cell-types.
 
-```{r}
+```{r, out.width="100%"}
 #| label: fig-cell-types
 #| fig-cap: Cell types detected.
-knitr::include_graphics("../fig/cell_type_1.png")
+knitr::include_graphics("images/cell_type_1.png")
 ```
 
 @tbl-cell-type-count shows the number of cells identified in each cell type.
@@ -489,14 +532,32 @@ Here we check how our derived cell types correlated with the cell type markers u
 tar_read(fig_dots_cell_type_1)
 ```
 
+```{r}
+#| label: tbl-cell-type-perc
+#| tbl-cap: Percentage of cells expressing marker genes for each annotated cell types.
+tar_read(tbl_expr_pct_1) |> 
+  pivot_wider(id_cols = gene_symbol, names_from = group, values_from = pct_exp, values_fill = 0) |> 
+  rename(Gene = gene_symbol) |> 
+  gt() |> 
+  fmt_number(
+    columns = -Gene,
+    n_sigfig = 2
+  ) |> 
+  data_color(
+    columns = -Gene,
+    method = "numeric",
+    palette = c("white", "darkgreen")
+  )
+```
+
 ### Cell type DE genes
 
 Differentially expressed markers were found for each cell type, versus all other types (the same way as cluster markers were found in @sec-cluster-markers). These are genes expressed more in a given cell type, than other cell types. @fig-cell-type-cluster-markers shows the dot plot for expression of 30 top differentially expressed genes in each cell type.
 
-```{r}
+```{r, out.width="100%"}
 #| label: fig-cell-type-cluster-markers
 #| fig-cap: Dot plots for top 30 differentially expressed markers for each cell type. The genes are arranged from from the largest to the smallest (top to bottom) mean log-fold change.
-knitr::include_graphics("../fig/cell_type_marker_dots_1.png")
+knitr::include_graphics("images/cell_type_marker_dots_1.png")
 ```
 
 ### Cell type marker enrichment
@@ -557,18 +618,18 @@ Co-expression analysis is done similarly to widely-used *WGCNA* package. The pip
 
 Traditionally, modules are identified by colours, hence the names. @fig-modules-dendrogram shows the dendrogram used to created modules.
 
-```{r}
+```{r, out.width="100%"}
 #| label: fig-modules-dendrogram
 #| fig-cap: Dendrogram and division of variable genes into modules.
-knitr::include_graphics("../fig/module_dendro_1.png") 
+knitr::include_graphics("images/module_dendro_1.png") 
 ```
 
  @fig-modules-expr-score shows the expression score of each module.
 
-```{r}
+```{r, out.width="100%"}
 #| label: fig-modules-expr-score
 #| fig-cap: Expression scores for each of the WGCNA modules calculated using a [UCell](https://www.sciencedirect.com/science/article/pii/S2001037021002816?via%3Dihub) method.
-knitr::include_graphics("../fig/modules_score_1.png")
+knitr::include_graphics("images/modules_score_1.png")
 ```
 
 
@@ -596,10 +657,10 @@ tar_read(igr_hub_gene_network_1) |>
 
 
 
-```{r}
+```{r, out.width="100%"}
 #| label: fig-modules-dots
 #| fig-cap: Expression of top 30 hub genes in each module as a function of cell type.
-knitr::include_graphics("../fig/modules_dots_1.png")
+knitr::include_graphics("images/modules_dots_1.png")
 ```
 
 ### Module enrichment
@@ -626,17 +687,17 @@ plot_grid(pl1, pl2, nrow = 1, labels = c("Beta", "Delta"))
 ```
 
 
-```{r}
+```{r, out.width="100%"}
 #| label: fig-slingshot-spatial
 #| fig-cap: Pseudo-time distribution across the slide.
-knitr::include_graphics("../fig/spatial_pt_1.png") 
+knitr::include_graphics("images/spatial_pt_1.png") 
 ```
 
 
-```{r}
+```{r, out.width="100%"}
 #| label: fig-slingshot-expression-pseudotime
 #| fig-cap: Expression vs pseudo-time for top differentially expressed genes between Beta and MPC.
-knitr::include_graphics("../fig/expr_pt_beta_1.png") 
+knitr::include_graphics("images/expr_pt_beta_1.png") 
 ```
 
 ## Differential expression between cell types
@@ -664,6 +725,8 @@ Therefore, we use [*CellChat*](https://www.nature.com/articles/s41467-021-21246-
 
 For each ligand-receptor pair *CellChat* estimates communication probability, based on mass-action kinetics, where reaction rates are proportional to the product of reactant concentrations (ligand times receptor expression), with a characteristic saturation. Known agonists and antagonists concentrations modify the probability. Distance between cells is taken into account as an inverse scaling factor - the larger the distance between cells, the lower the probability of interaction.
 
+A few selected results are shown below. More results can be explored via interactive online explorer (see @sec-shiny-app) and full table of cell-cell interactions downloaded from @sec-downloads.
+
 ```{r}
 #| label: fig-cellchat-rank
 #| fig-cap: CellChat interactions, grouped by interaction pathway, ranked by the number of interactions (left) and the mean streangth of interaction (right).
@@ -673,26 +736,26 @@ tar_read(fig_cellchat_rank_1)
 ```
 
 
-```{r}
+```{r, out.width="100%"}
 #| label: fig-cellchat-circle
 #| fig-cap: Illustraction of interaction count and strenght.
-knitr::include_graphics("../fig/cellchat_circle_1.png") 
+knitr::include_graphics("images/cellchat_circle_1.png") 
 ```
 
 
 ::: {#fig-cellchat-pathways layout-ncol=2}
 
-![NOTCH](../fig/cellchat_chord_1_NOTCH.png)
+![NOTCH](images/cellchat_chord_1_NOTCH.png)
 
-![FLRT](../fig/cellchat_chord_1_FLRT.png)
+![FLRT](images/cellchat_chord_1_FLRT.png)
 
-![MK](../fig/cellchat_chord_1_MK.png)
+![MK](images/cellchat_chord_1_MK.png)
 
-![COLLAGEN](../fig/cellchat_chord_1_COLLAGEN.png)
+![COLLAGEN](images/cellchat_chord_1_COLLAGEN.png)
 
-![LAMININ](../fig/cellchat_chord_1_LAMININ.png)
+![LAMININ](images/cellchat_chord_1_LAMININ.png)
 
-![THBS](../fig/cellchat_chord_1_THBS.png)
+![THBS](images/cellchat_chord_1_THBS.png)
 
 Examples of CellChat communication pathways.
 
@@ -706,6 +769,7 @@ Examples of CellChat communication pathways.
  - [Differential expression between Beta/Delta and MPC](https://shiny.compbio.dundee.ac.uk/mgierlinski/private/betareg_st/de/)
  - [Gene set enrichment based on differential expression between Beta/Delta and MPC](https://shiny.compbio.dundee.ac.uk/mgierlinski/private/betareg_st/gsea/)
  - [Gene explorer for the genes of interest](https://shiny.compbio.dundee.ac.uk/mgierlinski/private/betareg_st/gene_explorer/)
+ - [Cell-cell communication app](https://shiny.compbio.dundee.ac.uk/mgierlinski/private/betareg_st/cellchat/)
 
 ## Downloads {#sec-downloads}
 
@@ -716,6 +780,7 @@ Examples of CellChat communication pathways.
  - [Enrichment for key marker co-correlated sets ](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/keycorr_enrichment_1.csv)
  - [Modules](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/spatial_modules_1.csv)
  - [Module enrichment](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/module_enrichment_1.csv)
+ - [Cell-cell communication probabilities and pathways](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/cellchat_prob_1.csv)
 
 
 ### Sample 2
@@ -725,7 +790,7 @@ Examples of CellChat communication pathways.
  - [Enrichment for key marker co-correlated sets ](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/keycorr_enrichment_2.csv)
  - [Modules](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/spatial_modules_2.csv)
  - [Module enrichment](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/module_enrichment_2.csv)
-
+ - [Cell-cell communication probabilities and pathways](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/cellchat_prob_2.csv)
 
 
 ## Code

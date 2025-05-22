@@ -55,8 +55,8 @@ targets_main <- function() {
       sav_seu = save_for_shiny(seu_mark, NAME),
 
       # General figures
-      fig_marginals = plot_cell_marginals(cell_data, params, with_vlines = FALSE),
-      fig_count_det = plot_count_det(cell_data, params, with_lines = FALSE),
+      fig_marginals = plot_cell_marginals(cell_data |> dplyr::select(total_count, n_genes, mito_fraction), params, with_vlines = FALSE),
+      fig_count_det = plot_count_det(cell_data |> dplyr::select(total_count, n_genes, mito_fraction), params, with_lines = FALSE),
 
       # Gene detection
       gene_detection = get_gene_detection(seu) |> tibble::add_column(sample = NAME),
@@ -76,8 +76,8 @@ targets_main <- function() {
       png_key_markers = plot_key_markers_umap_spatial(seu, key_markers, file_prefix = paste0("key_markers_", NAME)),
       png_key_markers_expr = plot_gene_expression(seu, key_marker_genes) |> gs("key_marker_expr", NAME, 8, 12),
       fig_dots_key_markers = plot_gene_dots(seu, key_marker_genes),
-      png_xy_marker_mpc_ep = plot_gene_vs_gene_cluster(seu, goi$tissue_markers_positive$MPC, goi$tissue_markers_positive$EP, clust_sel = c(2, 6)) |> gs("xy_marker_mpc_ep", NAME, 6, 5),
-      png_xy_marker_mpc_beta = plot_gene_vs_gene_cluster(seu, goi$tissue_markers_positive$MPC, goi$tissue_markers_positive$Beta, clust_sel = c(2, 6)) |> gs("xy_marker_mpc_beta", NAME, 6, 5),
+      png_xy_marker_mpc_ep = plot_gene_vs_gene(seu, goi$tissue_markers_positive$MPC, goi$tissue_markers_positive$EP, group_sel = c(2, 6)) |> gs("xy_marker_mpc_ep", NAME, 6, 5),
+      png_xy_marker_mpc_beta = plot_gene_vs_gene(seu, goi$tissue_markers_positive$MPC, goi$tissue_markers_positive$Beta, group_sel = c(2, 6)) |> gs("xy_marker_mpc_beta", NAME, 6, 5),
 
       # Cell types
       png_cell_type_scores = plot_cell_type_scores(seu_mark, tissue_markers) |> gs("cell_type_scores", NAME, 8, 22),
@@ -85,11 +85,15 @@ targets_main <- function() {
       fig_cluster_cell_type = plot_cluster_cell_type_jaccard(seu_mark),
       fig_dots_cell_type = plot_gene_dots(seu_mark, unique(tissue_markers$gene_symbol), meta_column = "cell_type"),
       tbl_cell_type_count = cell_type_count(seu_mark),
-      png_dif_spatial = plot_spatial_differences(seu_mark, pairs = list(c("Beta", "Alpha"), c("Beta", "Delta"), c("Beta", "Epsilon")), point_size = 0.35) |> gs("dif_spatial", NAME, 8, 8),
+      tbl_expr_pct = get_expression_percentage(seu_mark, unique(tissue_markers$gene_symbol), meta_column = "cell_type"),
+      png_dif_spatial = plot_spatial_differences(seu_mark, pairs = list(c("EP", "MPC"), c("Beta", "MPC"), c("Beta", "Alpha"), c("Beta", "Delta"), c("Beta", "Epsilon")), point_size = 0.85) |> gs("dif_spatial", NAME, 8, 30),
       cell_type_markers = find_group_markers(seu_mark, group_by = "cell_type"),
       png_cell_type_marker_dots = plot_cell_type_marker_dots(seu_mark, cell_type_markers) |> gs("cell_type_marker_dots", NAME, 8, 35),
       cell_type_markers_sel = cell_type_markers |> dplyr::filter(p_val_adj < 0.01 & avg_log2FC > 1),
       cell_type_enrichment = group_enrichment(cell_type_markers_sel, fterms, group_var = "cluster"),
+      png_gene_gene_ins_sst = plot_gene_vs_gene(seu_mark, "INS", "SST", group_var = "cell_type", group_sel = c("Beta", "Delta")) |> gs("gene_gene_ins_sst", NAME, width = 6, height = 5),
+      png_gene_gene_ins_gcg = plot_gene_vs_gene(seu_mark, "INS", "GCG", group_var = "cell_type", group_sel = c("Beta", "Alpha")) |> gs("gene_gene_ins_gcg", NAME, width = 6, height = 5),
+      png_gene_gene_ins_ghrl = plot_gene_vs_gene(seu_mark, "INS", "GHRL", group_var = "cell_type", group_sel = c("Beta", "Epsilon")) |> gs("gene_gene_ins_ghrl", NAME, width = 6, height = 5),
 
       # Insulin pathway
       png_ins_path = plot_expression(seu, goi$insulin_signalling_pathway, umap_point_size = 0.5, spatial_point_size = 0.5) |> gs("insulin_path", NAME, 7, 48),
@@ -132,7 +136,7 @@ targets_main <- function() {
 
       # hdWGCNA
       seu_hdwgcna = hd_wgcna_analysis(seu, NAME, soft_power = NULL),
-      png_module_dendro = {png(paste0("fig/module_dendro_", NAME, ".png"), width = 2000, height = 1000, pointsize = 32);hdWGCNA::PlotDendrogram(seu_hdwgcna);dev.off()},
+      png_module_dendro = plot_hdwgcna_dendrogram(seu_hdwgcna, NAME),
       fig_metacells_spatial = plot_metacells_spatial(seu_hdwgcna),
       png_modules_spatial = plot_modules_spatial(seu_hdwgcna) |> gs("modules_spatial", NAME, 8, 13),
       png_modules_expr_score = plot_modules_expr_score(seu_hdwgcna, n_genes = "all") |> gs("modules_score", NAME, 8, 13),
@@ -145,6 +149,7 @@ targets_main <- function() {
       # CellChat
       cellchat = create_cellchat(seu_mark) |> preprocess_cellchat(),
       cellchat_comp = compute_cellchat(cellchat, n_boot = 100, scale_distance = CELLCHAT_SCALE_DISTANCE, raw_use = TRUE, population_size = FALSE),
+      cellchat_prob = CellChat::subsetCommunication(cellchat_comp_1) |> tibble::as_tibble() |> dplyr::arrange(desc(prob)),
       # This gives huge amount of interactions with very low probabilities:
       # cellchat_comp_smth = compute_cellchat(cellchat, n_boot = 100, scale_distance = CELLCHAT_SCALE_DISTANCE, raw_use = FALSE),
       # This gives exactly the same interactions as the main one, but probabilities are very low
@@ -195,6 +200,8 @@ targets_main <- function() {
       sav_enr = save_enrichment(tbl_keycorr_enrichment, paste0("tab/keycorr_enrichment_", NAME, ".csv"), group_var = "group"),
       sav_mods = save_spatial_modules(tbl_modules, paste0("tab/spatial_modules_", NAME, ".csv")),
       sav_mod_enr = save_enrichment(tbl_module_enrichment, paste0("tab/module_enrichment_", NAME, ".csv"), group_var = "module"),
+      sav_cellchat = save_cellchat(cellchat_comp, NAME),
+      sav_cellchat_prob = readr::write_csv(cellchat_prob, paste0("tab/cellchat_prob_", NAME, ".csv")),
 
       # Prepare for shiny
       dex = make_dexdash(seu_mark, de_mpc, NAME)

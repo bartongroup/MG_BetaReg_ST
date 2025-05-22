@@ -281,6 +281,10 @@ save_spatial_modules <- function(mods, fname, fdr_limit = 0.05) {
     write_csv(fname)
 }
 
+save_cellchat <- function(cellchat, suffix) {
+  fname <- file.path("shiny", "data", str_glue("cellchat_{suffix}.qs"))
+  qs2::qs_save(cellchat, fname)
+}
 
 save_for_shiny <- function(seu, suffix) {
   fname <- file.path("shiny", "data", str_glue("seu_{suffix}.qs"))

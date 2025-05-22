@@ -1,1 +1,1 @@
-rsync -rvm --include='*/' --include='.htaccess' --include='/doc/*.html' --include='tab/*' --exclude='*' . cluster:/cluster/gjb_lab/mgierlinski/public_html/betareg_st
+rsync -rvm --include='*/' --include='.htaccess' --include='/doc/*.html' --include='/doc/images/*' --include='/doc/report_files/*' --include='/doc/' --include='tab/*' --exclude='*' . cluster:/cluster/gjb_lab/mgierlinski/public_html/betareg_st

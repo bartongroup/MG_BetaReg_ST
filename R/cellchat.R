@@ -84,7 +84,7 @@ compute_cellchat <- function(cellchat, n_cores = 8, n_boot = 100, type = "triMea
 
 plot_cellchat_circle <- function(cellchat, pfile) {
 
-  png(filename = file.path("fig", pfile), width = 1200, height = 600)
+  png(filename = file.path("doc", "images", pfile), width = 1200, height = 600)
   par(mfrow = c(1, 2), xpd = TRUE)
 
   cnt <- cellchat@net$count
@@ -109,7 +109,7 @@ plot_cellchat_circle <- function(cellchat, pfile) {
 
 plot_cellchat_heatmap <- function(cellchat, pfile, measure = "weight") {
 
-  png(filename = file.path("fig", pfile), width = 800, height = 800)
+  png(filename = file.path("doc", "images", pfile), width = 800, height = 800)
   par(mfrow = c(1, 2))
 
   CellChat::netVisual_heatmap(
@@ -123,6 +123,16 @@ plot_cellchat_heatmap <- function(cellchat, pfile, measure = "weight") {
   dev.off()
 }
 
+
+plot_one_rank <- function(d, what) {
+  d |>
+    ggplot(aes(x = contribution, y = name)) +
+    th +
+    geom_col() +
+    scale_x_continuous(expand = expansion(mult = c(0, 0.04))) +
+    labs(x = what, y = NULL)
+}
+
 plot_cellchat_rank <- function(cellchat) {
 
   env <- new.env(parent =  globalenv())
@@ -130,18 +140,10 @@ plot_cellchat_rank <- function(cellchat) {
   env$d1 <- CellChat::rankNet(cellchat, mode = "single", measure = "count", return.data = TRUE)$signaling.contribution |> as_tibble() 
   env$d2 <- CellChat::rankNet(cellchat, mode = "single", measure = "weight", return.data = TRUE)$signaling.contribution |> as_tibble()
 
-  env$plot_one_ <- function(d, what) {
-    d |>
-      ggplot(aes(x = contribution, y = name)) +
-      th +
-      geom_col() +
-      scale_x_continuous(expand = expansion(mult = c(0, 0.04))) +
-      labs(x = what, y = NULL)
-  }
 
   with(env, {
-    pl1 <- plot_one_(d1, "Number of interactions")
-    pl2 <- plot_one_(d2, "Information flow")
+    pl1 <- plot_one_rank(d1, "Number of interactions")
+    pl2 <- plot_one_rank(d2, "Information flow")
 
     plot_grid(pl1, pl2, nrow = 1)
   })
@@ -183,7 +185,7 @@ plot_cellchat_bubble_sel <- function(cellchat, prob_limit = 0.01, point_size = 2
 
 plot_cellchat_chord <- function(cellchat, pathway, pfile) {
 
-  png(filename = file.path("fig", pfile), width = 800, height = 800)
+  png(filename = file.path("doc", "images", pfile), width = 800, height = 800)
   par(mfrow = c(1, 1))
 
   CellChat::netVisual_chord_cell(
@@ -206,7 +208,7 @@ plot_cellchat_chords <- function(cellchat, sample, paths, prefix = "cellchat_cho
 
 plot_cellchat_network <- function(cellchat, pathway, pfile) {
 
-  png(filename = file.path("fig", pfile), width = 800, height = 800)
+  png(filename = file.path("doc", "images", pfile), width = 800, height = 800)
   par(mfrow = c(1, 1))
 
   CellChat::netAnalysis_signalingRole_network(

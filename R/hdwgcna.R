@@ -85,25 +85,34 @@ plot_modules_dots <- function(seu, tbl_hub_genes) {
 }
 
 
-plot_metacells_spatial <- function(seu, group_var = "cluster", point_size = 0.6) {
+plot_metacells_spatial <- function(seu, group_var = "cluster", point_size = 0.9) {
+  env <- new.env(parent = globalenv())
+  env$point_size <- point_size
+  env$group_var <- group_var
+
   # Spatial coordinates of individual cells
   spat <- seu@reductions$spatial@cell.embeddings |> 
     as_tibble(rownames = "cell_id")
   # Get metacells
   mc <- hdWGCNA::GetMetacellObject(seu)
-  mc@meta.data |>
+  env$d <- mc@meta.data |>
     as_tibble(rownames = "metacell_id") |> 
     mutate(group = get(group_var)) |> 
     separate_longer_delim(cells_merged, delim = ",") |> 
     left_join(spat, by = c("cells_merged" = "cell_id")) |> 
     group_by(metacell_id, group) |> 
     summarise(x = mean(spatial_2), y = -mean(spatial_1)) |> 
-    ungroup() |> 
-    ggplot(aes(x = x, y = y, colour = group)) +
-    thm +
-    geom_point() +
-    scale_colour_brewer(palette = "Paired") +
-    labs(x = NULL, y = NULL, colour = group_var)
+    ungroup()
+
+  with(env, {
+    d |> 
+      ggplot(aes(x = x, y = y, colour = group)) +
+      thm +
+      geom_point(size = point_size) +
+      scale_colour_brewer(palette = "Paired") +
+      labs(x = NULL, y = NULL, colour = group_var)
+  })
+
 }
 
 get_modules <- function(seu) {
@@ -146,4 +155,14 @@ module_enrichment <- function(tbl_modules, all_genes, fterms, kme_limit = 0, fdr
         list_rbind()
     }) |> 
       list_rbind()
+}
+
+
+plot_hdwgcna_dendrogram <- function(seu_hdwgcna, suffix) {
+  pfile <- file.path("doc", "images", str_glue("module_dendro_{suffix}.png"))
+  png(pfile, width = 2000, height = 1000, pointsize = 32)
+  
+  hdWGCNA::PlotDendrogram(seu_hdwgcna)
+  
+  dev.off()
 }

@@ -340,3 +340,13 @@ seurat_de <- function(seu, group_1 = "Beta", group_2 = "MPC", meta_col = "cell_t
     as_tibble(rownames = "gene_symbol") |> 
     add_column(contrast = str_glue("{group_1}-{group_2}"))
 }
+
+
+get_expression_percentage <- function(seu, gns, meta_column = "cell_type") {
+  Idents(seu) <- meta_column
+  
+  dp <- DotPlot(seu, features = gns)
+  dp$data |> 
+    as_tibble(rownames = "gid") |> 
+    select(gene_symbol = features.plot, avg_exp = avg.exp, pct_exp = pct.exp, group = id)
+}
