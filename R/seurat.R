@@ -26,7 +26,10 @@ load_visium_data <- function(path, mito_genes, bin_size = 8) {
   return(seu)
 }
 
-
+load_features <- function(ffile) {
+  read_tsv(ffile, col_names = c("gene_id", "gene_symbol", "dummy")) |> 
+    pull(gene_symbol)
+}
 
 
 #' Download cell cycle markers
@@ -218,6 +221,17 @@ cluster_seurat <- function(seu, dims = 1:40, resolutions = c(0.1, 0.125, 0.15, 0
     RunUMAP(dims = dims, seed.use = seed)
 }
 
+# Simpler version when we don't need clustering
+process_seurat <- function(seu, dims = 1:40,
+                           seed = 42, nfeatures = 3000) {
+  seu <- seu |> 
+    NormalizeData() |> 
+    FindVariableFeatures(nfeatures = nfeatures) |> 
+    ScaleData() |> 
+    RunPCA(approx = FALSE) |> 
+    RunUMAP(dims = dims, seed.use = seed)
+}
+
 
 find_group_markers <- function(seu, genes = NULL, group_by = "cluster") {
   #DefaultAssay(seu) <- "Spatial.008um"
@@ -368,4 +382,31 @@ unique_hormone_expressors <- function(seu) {
     filter(n == 1) |> 
     select(-n) |> 
     left_join(gnt, by = "gene_symbol")
+}
+
+
+get_hormone_count <- function(seu, gns = c("INS", "SST", "GCG", "GHRL", "PPY")) {
+  get_gene_expression(seu, gns, layer = "data") |> 
+    filter(expression > 0) |> 
+    count(cell_id, name = "n_hormones_expressed") |> 
+    count(n_hormones_expressed) |> 
+    mutate(perc = 100 * n / sum(n))
+}
+
+
+combine_resolution_area <- function(seu_8um, seu_2um, genes, x_cen, y_cen, size, layer = "counts") {
+  sp8 <- get_spatial_coordinates(seu_8um) |> 
+    filter(abs(x - x_cen) < size & abs(y - y_cen) < size)
+  sp2 <- get_spatial_coordinates(seu_2um) |> 
+    filter(abs(x - x_cen) < size & abs(y - y_cen) < size)
+  ex8 <- get_gene_expression(seu_8um, genes, layer = layer) |> 
+    filter(cell_id %in% sp8$cell_id)
+  ex2 <- get_gene_expression(seu_2um, genes, layer = layer) |> 
+    filter(cell_id %in% sp2$cell_id)
+
+  d8 <- inner_join(sp8, ex8, by = "cell_id") |> 
+    add_column(resolution = "8um")
+  d2 <- inner_join(sp2, ex2, by = "cell_id") |> 
+    add_column(resolution = "2um")
+  bind_rows(d8, d2)
 }

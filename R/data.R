@@ -4,6 +4,7 @@ top_data_path <- "data/spaceranger_output"
 EXPERIMENTS_ALL <- tibble::tibble(
   SAMPLE = c("1_18191", "2_17961", "3_18171", "4_17966"),
   NAME = c("1", "2", "3", "4"),
+  NAME2 = c("2um_1", "2um_2", "2um_3", "2um_4"),
   RESOLUTIONS = list(
     c(0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5),
     c(0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5),
@@ -49,6 +50,18 @@ read_risk_alleles <- function(t1d_file, t2d_file) {
     t2d = t2d$Name
   )
 }
+
+
+tb <- function(df, name, sample = NULL) {
+  if(is.null(sample)) {
+    fname <- file.path("doc", "tables", paste0(name, ".txt"))
+  } else {
+    fname <- file.path("doc", "tables", paste0(name, "_", sample, ".txt"))
+  }
+
+  readr::write_tsv(df, fname)
+}
+
 
 group_enrichment <- function(df, fterms, group_var = "cluster", gene_var = "gene_symbol", fdr_limit = 0.05) {
   onts <- names(fterms)
@@ -325,7 +338,7 @@ ES <- function(fc, genes, mu, delta) {
   ES <- sqrt(n) * (Sm - mu) / delta    # Enrichment score
 }
 
-annotate_cells_page <- function(seu, tissue_markers, n_boot = 1000, p_val_limit = 0.05, n_cores = 10) {
+annotate_cells_page <- function(seu, tissue_markers, n_boot = 1000, p_val_limit = 0.05, n_cores = 10, verbose = FALSE) {
   # Normalised data matrix
   m <- GetAssayData(seu, layer = "data")
   # Mean per gene across spots
@@ -340,13 +353,15 @@ annotate_cells_page <- function(seu, tissue_markers, n_boot = 1000, p_val_limit 
   mu <- colMeans(fc, na.rm = TRUE)
   delta <- MatrixGenerics::colSds(as.matrix(fc), na.rm = TRUE)
 
-  options(future.globals.maxSize = 6000 * 1024^2)
+  options(future.globals.maxSize = 100 * 1024^3)
   future::plan(future::multicore, workers = n_cores)
 
   annot <- tissue_markers |> 
     group_split(cell_type) |> 
     furrr::future_map(function(w) {
       cell_type <- w$cell_type[1]
+      if(verbose)
+        cat(cell_type, "\n")
       # Enrichment score for positive genes
       genes_pos <- w |> filter(effect == "positive") |> pull(gene_symbol)
       stopifnot(all(genes_pos %in% good_genes))

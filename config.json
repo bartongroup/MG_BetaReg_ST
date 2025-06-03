@@ -1,5 +1,6 @@
 {
   "top_data_path" : "data/spaceranger_output",
+  "feature_file" : "data/spaceranger_output/1_18191_Results/outs/binned_outputs/square_008um/filtered_feature_bc_matrix/features.tsv.gz",
   "species" : "human",
   "ensembl" : {
     "biomart" : "ENSEMBL_MART_ENSEMBL",

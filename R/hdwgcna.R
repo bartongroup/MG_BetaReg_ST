@@ -127,8 +127,8 @@ get_hub_genes <- function(seu, n_hubs = 30) {
     as_tibble()
 }
 
-plot_hub_gene_network <- function(seu, n_hubs = 12, future_globals_max_size = 10000) {
-  options(future.globals.maxSize = future_globals_max_size * 1024^2)
+plot_hub_gene_network <- function(seu, n_hubs = 12, future_globals_max_size = 10) {
+  options(future.globals.maxSize = future_globals_max_size * 1024^3)
   seu |>
     hdWGCNA::HubGeneNetworkPlot(n_hubs = n_hubs, return_graph = TRUE)
 }

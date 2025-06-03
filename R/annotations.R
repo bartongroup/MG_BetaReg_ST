@@ -40,6 +40,12 @@ get_functional_terms_sym <- function(designations, codes = EXPERIMENTAL_GO_CODES
   cat("Loading WIKI data\n")
   wi <- fenr::fetch_wiki(species = designations$wi)
 
+  # Older version of fenr (<1.4.2) does not return evidence column. In such case do no filtering.
+  if(is.null(go$mapping[["evidence"]])) {
+    go$mapping$evidence <- "none"
+    codes <- "none"
+  }
+
   go_cc <- go
   go_bp <- go
   go_mf <- go
@@ -50,6 +56,7 @@ get_functional_terms_sym <- function(designations, codes = EXPERIMENTAL_GO_CODES
     filter(namespace == "biological_process")
   go_mf$terms <- go_mf$terms |> 
     filter(namespace == "molecular_function")
+
 
   # Filter non-existent terms and only experimental codes
   go_cc$mapping <- go_cc$mapping |> 

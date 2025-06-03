@@ -449,13 +449,13 @@ plot_cell_type_marker_dots <- function(seu, cell_type_markers, n_top = 30) {
 
 
 
-plot_png_expression_genes <- function(seu, genes, file_name) {
+plot_png_expression_genes <- function(seu, genes, file_name, width = 8) {
   plot_expression(seu, genes, spatial_point_size = 0.4, umap_point_size = 0.4, grid_label_size = 10) |> 
-    gs(file_name, width = 8, height = 4 * length(genes))
+    gs(file_name, width = width, height = 4 * length(genes))
 }
 
 
-plot_key_markers_umap_spatial <- function(seu, key_markers, file_prefix) {
+plot_key_markers_umap_spatial <- function(seu, key_markers, file_prefix, width = 8) {
   all_feat <- Features(seu)
 
   km <- key_markers |> 
@@ -469,7 +469,7 @@ plot_key_markers_umap_spatial <- function(seu, key_markers, file_prefix) {
       filter(cell_type == ct) |> 
       pull(gene_symbol) |> 
       as.character()
-    plot_png_expression_genes(seu, gns, gname)
+    plot_png_expression_genes(seu, gns, gname, width)
   }) 
 }
 
@@ -782,9 +782,9 @@ dist_to_segment <- function(xy, segment) {
 
 
 
-plot_expression_section <- function(seu, gene_1, gene_2, section, layer = "data") {
+plot_expression_section <- function(seu, gene_1, gene_2, section, layer = "data", slice = "slice1.008um") {
   
-  rad <- seu@images$slice1.008um@boundaries$centroids@radius
+  rad <- seu@images[[slice]]@boundaries$centroids@radius
   ex <- get_gene_expression(seu, c(gene_1, gene_2), layer = layer) |> 
     mutate(gene_symbol = factor(gene_symbol, levels = c(gene_1, gene_2)))
   ylab <- ifelse(layer == "count", "UMI count", "log1p normalised count")
@@ -806,9 +806,9 @@ plot_expression_section <- function(seu, gene_1, gene_2, section, layer = "data"
   pl
 }
 
-plot_spatial_section <- function(seu, gene_1, gene_2, section, point_size = 0.8, layer = "count") {
+plot_spatial_section <- function(seu, gene_1, gene_2, section, point_size = 0.8, layer = "count", slice = "slice1.008um") {
   pl1 <- plot_gene_overlap(seu, gene_1, gene_2, section, point_size)
-  pl2 <- plot_expression_section(seu, gene_1, gene_2, section, layer = layer)
+  pl2 <- plot_expression_section(seu, gene_1, gene_2, section, layer = layer, slice = slice)
 
   plot_grid(pl1, pl2, ncol = 1, rel_heights = c(2, 1), align = "v")
 }
@@ -849,4 +849,114 @@ plot_upset_expressed_cells <- function(seu, gns, expr_limit = 0) {
     right_annotation = ComplexHeatmap::upset_right_annotation(m, add_numbers = TRUE),
     comb_col = c("black", "brown", "darkblue", "darkgreen", "darkorchid3")[ComplexHeatmap::comb_degree(m)]
   )
+}
+
+combat_upset_expressed_cells <- function(seu, gns, suffix, sample, expr_limit = 0) {
+  rfile <- file.path("doc", "tables", str_glue("{suffix}_{sample}.rds"))
+  m <- get_gene_expression(seu, gns, layer = "data") |> 
+    filter(expression > expr_limit) |> 
+    mutate(expression = 1) |> 
+    pivot_wider(id_cols = cell_id, names_from = gene_symbol, values_from = expression, values_fill = 0) |> 
+    ComplexHeatmap::make_comb_mat()
+  readr::write_rds(m, rfile)
+}
+
+
+png_upset_expressed_cells <- function(seu, gns, suffix, sample, width, height, expr_limit = 0) {
+  pfile <- file.path("doc", "images", str_glue("{suffix}_{sample}.png"))
+
+  png(pfile, width = width, height = height)
+
+  plot_upset_expressed_cells(seu, gns, expr_limit)
+
+  dev.off()
+}
+
+plot_resolution_comparison <- function(res_comp) {
+  rg <- get_resolution_grid(res_comp, res = "8um")
+
+  # Add fifth corner for completion
+  rg5 <- rg |> 
+    filter(corner_idx == 1) |> 
+    mutate(corner_idx = 5)
+  rg <- bind_rows(rg, rg5)
+
+  rg <- rg |> 
+    # Change order of corners for drawing with a single path
+    group_by(centre_id) |> 
+    mutate(corner_idx = corner_idx |> as.character() |> factor(levels = c("1", "2", "4", "3", "5"))) |>
+    arrange(centre_id, corner_idx)
+
+  res_comp |> 
+    ggplot() +
+    th +
+    theme(legend.position = "none") +
+    geom_text(aes(x = x, y = y, colour = resolution, label = expression)) +
+    geom_path(data = rg, aes(x = x_corner, y = y_corner, group = centre_id)) +
+    facet_wrap(~gene_symbol) +
+    scale_colour_manual(values = c("grey70", "black"))
+}
+
+get_resolution_grid <- function(res_comp, res = "2um") {
+  df <- res_comp |> 
+    filter(resolution == res)
+
+  # This part was written by ChatGPT o4-mini-high:
+
+  knn_res <- FNN::get.knn(df[, c("x","y")], k = 2)
+  # knn_res$nn.index is an n×2 matrix: 1st column = index (always itself, distance=0),
+  #                                     2nd column = index of the actual nearest neighbour
+  # knn_res$nn.dist is the corresponding distances.
+
+  nearest_idx <- knn_res$nn.index[1, 2]   # the second‐closest to row 1
+  nearest_dist <- knn_res$nn.dist[1, 2]   # the distance to that neighbour
+
+  # Extract the vector from centre[1,] to its nearest neighbour:
+  v_x <- df$x[nearest_idx] - df$x[1]
+  v_y <- df$y[nearest_idx] - df$y[1]
+
+  # (3) Side‐length = s = distance between two adjacent centres:
+  s <- sqrt(v_x^2 + v_y^2)
+
+  # Form a unit‐vector along that grid direction:
+  u1 <- c(v_x, v_y) / s    # length‐1
+  # A perpendicular unit‐vector (rotate u1 by +90° CCW):
+  u2 <- c(-u1[2], u1[1])   # also length‐1
+
+  # (4) Corner‐offsets = ±(s/2)*u1 ± (s/2)*u2.  Define the two half‐offsets:
+  half1 <- (s/2) * u1      # half along axis‐1
+  half2 <- (s/2) * u2      # half along axis‐2
+
+  # Precompute the four combinations of ( ±half1  ±half2 ):
+  corner_offsets <- rbind(
+    half1 + half2,
+    half1 - half2,
+    -half1 + half2,
+    -half1 - half2
+  )
+  # corner_offsets is a 4×2 matrix; row 1 = +half1 +half2, etc.
+
+  # (5) Now, for *every* centre in df, we add those four offsets:
+  n_pts <- nrow(df)
+
+  # We’ll build a data.frame with (centre_id, corner_x, corner_y, corner_number).
+  # corner_number = 1..4 to label which of the four corners it is.
+  out_list <- vector("list", length = n_pts * 4)
+  ctr <- 1
+  for (i in seq_len(n_pts)) {
+    cx <- df$x[i]
+    cy <- df$y[i]
+    for (k in 1:4) {
+      out_list[[ctr]] <- tibble(
+        centre_id   = i,
+        corner_idx  = k,
+        x_corner    = cx + corner_offsets[k, 1],
+        y_corner    = cy + corner_offsets[k, 2]
+      )
+      ctr <- ctr + 1
+    }
+  }
+
+  out_list |> 
+    list_rbind()
 }

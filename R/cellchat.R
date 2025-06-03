@@ -40,7 +40,7 @@ preprocess_cellchat <- function(cellchat, n_cores = 8) {
    # CellChat::subsetDB(search = "Secreted Signaling", key = "annotation")
   cellchat@DB <- use_db
 
-  options(future.globals.maxSize = 3000 * 1024^2)
+  options(future.globals.maxSize = 10 * 1024^3)
   
   # Using parallel futures makes it actually slower - uses too much memory and some overheads?
   #with(future::plan(future::multisession, workers = n_cores), {
@@ -56,7 +56,7 @@ compute_cellchat <- function(cellchat, n_cores = 8, n_boot = 100, type = "triMea
                              tm_trim = 0.1, scale_distance = 0.1, interaction_range = 100, contact_range = 10,
                              min_cells = 10, seed = 42) {
   
-  options(future.globals.maxSize = 4000 * 1024^2)
+  options(future.globals.maxSize = 10 * 1024^3)
 
   #with(future::plan(future::multisession, workers = n_cores), {
     CellChat::computeCommunProb(

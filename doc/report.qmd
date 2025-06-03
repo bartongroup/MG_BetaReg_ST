@@ -564,6 +564,19 @@ It is obvious that there are plenty of cells (spots) expressing more than one en
 tar_read(fig_hormone_overlap_1) 
 ```
 
+The numbers and percentages of spots expressing one, two, three, four and five different hormones simultaneously is shown in @tbl-hormone-count.
+
+```{r}
+#| label: tbl-hormone-count
+#| tbl-cap: Number and percentage of endocrine cells (spots) expressing one, two, three, four and five different hormones simultaneously.
+tar_read(hormone_count_1) |> 
+  rename(`Hormones expressed` = n_hormones_expressed, `N of spots` = n, `Percentage` = perc) |> 
+  gt() |> 
+  fmt_number(
+    columns = Percentage,
+    n_sigfig = 3
+  )
+```
 
 ### Cell type DE genes
 
@@ -775,6 +788,157 @@ knitr::include_graphics("images/cellchat_circle_1.png")
 Examples of CellChat communication pathways.
 
 :::
+
+
+# 2 μm data
+
+## Introduction
+
+Here is a summary of my attempt to analyse 2 μm data. The data are included in the distribution we received from Newcastle, with both expression and spatial information. This allows for downstream analysis with *Seurat*. What is missing, is the Loupe Browser file. To create the file we would need to re-run Space Ranger software.
+
+The objects created with *Seurat* using 2 μm data are *large*. Technically, there are 16 time more spots, so each object will take 16 times more memory. I found that some tasks require up to 200 GB of RAM. This makes it impossible to analyse it on my MacBook with 36 GB of memory. Therefore, I needed to run this part of analysis on our HPC cluster, where we have nodes with up to 500 GB of RAM. However, there are some issues with the current cluster configuration, in particular file system access is very unreliable. We are promissed that large upgrades to solve the issues are coming, but these might take months, if not years, to implement (the issues have persited for quite a while). As a result, some calculations halt and do nothing for hours waiting for some unavailable resources.
+
+Therefore, not all calculations are possible of feasible. I have skipped clustering (which we don't use very much), correlation WGCNA and cell-cell interactions. The latter three are probably better run on a 8 μm resolution anyway, due to less noisy data.
+
+## Data overview
+
+```{r, out.width="100%"}
+#| label: fig-counts-2um
+#| fig-cap: Total number cells, reads and the median number of genes per cell from 2 μm resolution data. Compare this to @fig-counts.
+knitr::include_graphics("images/counts_2um_all.png") 
+```
+
+```{r, out.width="100%"}
+#| label: fig-marginals-2um
+#| fig-cap: "Distribution of: Left - total count (number of UMIs) per cell. Middle -  Number of genes detected per cell. Right -  Fraction of counts coming from mitochondrial genes, from 2 μm resolution data. Labels 1-2 indicate sample numbers. Compare to @fig-marginals"
+knitr::include_graphics("images/marginals_2um_all.png") 
+```
+
+```{r, out.width="100%"}
+#| label: fig-detections-2um
+#| fig-cap: "Number of genes detected per cell as a function of the total count in a cell. One point corresponds to one cell. Colour indicates mitochondrial contamination from 2 μm resolution data. Labels 1-4 indicate sample numbers."
+knitr::include_graphics("images/detections_2um_all.png") 
+```
+
+## Cell types
+
+### Enrichment score
+
+The spatial distribution of normalised scores $ES_{Mi}$ for each cell type are illustrated in @fig-cell-type-scores-2um.
+
+```{r, out.width="100%"}
+#| label: fig-cell-type-scores-2um
+#| fig-cap: Normalised scores for each cell type from 2 μm resolution data.
+knitr::include_graphics("images/cell_type_scores_2um_1.png")
+```
+
+```{r, out.width="100%"}
+#| label: fig-cell-type-section-2um
+#| fig-cap: Expression of INS and SST along a section through the slide. The parameter $t$ along the section runs from 0 (top of the black line in the upper panel) to 1 (bottom of the line).
+knitr::include_graphics("images/spatial_section_ins_sst_2um.png") 
+```
+
+### Cell annotation results
+
+The combined results of the cell annotation procedure are shown in @fig-cell-types-2um.
+
+```{r, out.width="100%"}
+#| label: fig-cell-types-2um
+#| fig-cap: Cell types detected.
+knitr::include_graphics("images/cell_type_2um_1.png")
+```
+
+@tbl-cell-type-count-2um shows the number of cells identified in each cell type.
+
+```{r}
+#| label: tbl-cell-type-count-2um
+#| tbl-cap: Count of cells identified in each cell type.
+readr::read_tsv("tables/cell_type_count_2um_1.txt") |> 
+  gt()
+```
+
+### Retrospective validation
+
+Here we check how our derived cell types correlated with the cell type markers used.
+
+```{r, out.width="100%"}
+#| label: fig-dots-cell-type-2um
+#| fig-cap: Dot plot for derived cell types against marker genes cell types were derived from (sanity check).
+knitr::include_graphics("images/dots_cell_type_2um_1.png")
+```
+
+
+```{r}
+#| label: tbl-cell-type-perc-2um
+#| tbl-cap: Percentage of cells expressing marker genes for each annotated cell types. Compare with @tbl-cell-type-perc.
+readr::read_tsv("tables/expr_pct_2um_1.txt") |> 
+  pivot_wider(id_cols = gene_symbol, names_from = group, values_from = pct_exp, values_fill = 0) |> 
+  rename(Gene = gene_symbol) |> 
+  gt() |> 
+  fmt_number(
+    columns = -Gene,
+    n_sigfig = 2
+  ) |> 
+  data_color(
+    columns = -Gene,
+    method = "numeric",
+    palette = c("white", "darkgreen")
+  )
+```
+
+### Hormone expression overlap
+
+It is obvious that there are plenty of cells (spots) expressing more than one endocrine hormone gene, suggesting some of the Alpha, Beta, Delta, Epsilon and PP cells are not fully developed, as we expect exclusive expression of the corresponding hormones (GCG, INS, SST, GHRL, PPY) in matured cell types. The overlap between expression of all four genes is shown in @fig-hormone-overlap-2um.
+
+
+```{r}
+#| label: fig-hormone-overlap-2um
+#| fig-cap: Overlap of the spots expressing five pancreatic endocrine hormones. Each column shows the overlap between spots expressing a given gene. 
+#| fig-width: 8
+#| fig-height: 4
+m <- readr::read_rds("tables/hormone_overlap_2um_1.rds")
+ComplexHeatmap::UpSet(
+  m,
+  top_annotation = ComplexHeatmap::upset_top_annotation(m, add_numbers = TRUE, numbers_rot = 0),
+  right_annotation = ComplexHeatmap::upset_right_annotation(m, add_numbers = TRUE),
+  comb_col = c("black", "brown", "darkblue", "darkgreen", "darkorchid3")[ComplexHeatmap::comb_degree(m)]
+)
+```
+
+The numbers and percentages of spots expressing one, two, three, four and five different hormones simultaneously is shown in @tbl-hormone-count-2um.
+
+```{r}
+#| label: tbl-hormone-count-2um
+#| tbl-cap: Number and percentage of endocrine cells (spots) expressing one, two, three, four and five different hormones simultaneously.
+readr::read_tsv("tables/hormone_count_2um_1.txt") |> 
+  rename(`Hormones expressed` = n_hormones_expressed, `N of spots` = n, `Percentage` = perc) |> 
+  gt() |> 
+  fmt_number(
+    columns = Percentage,
+    n_sigfig = 3
+  )
+```
+
+### 2 μm va 8 μm
+
+```{r}
+#| label: fig-resolution-comparison
+#| fig-cap: Zoomed-in section of the slide, near the high insulin expression area, showing read counts at two different resolutions from INS and SST.
+#| fig-width: 8
+#| fig-height: 4
+tar_read(fig_res_comp) 
+```
+
+### Cell type DE genes
+
+Differentially expressed markers were found for each cell type, versus all other types (the same way as cluster markers were found in @sec-cluster-markers). These are genes expressed more in a given cell type, than other cell types. @fig-cell-type-cluster-markers-2um shows the dot plot for expression of 30 top differentially expressed genes in each cell type.
+
+```{r, out.width="100%"}
+#| label: fig-cell-type-cluster-markers-2um
+#| fig-cap: Dot plots for top 30 differentially expressed markers for each cell type. The genes are arranged from from the largest to the smallest (top to bottom) mean log-fold change.
+knitr::include_graphics("images/cell_type_marker_dots_2um_1.png")
+```
+
 
 
 # Resources {#sec-resources}
