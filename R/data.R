@@ -413,3 +413,4 @@ annotate_cells_page <- function(seu, tissue_markers, n_boot = 1000, p_val_limit 
   seu@meta.data <- bind_cols(seu@meta.data, meta_extra)
   seu
 }
+

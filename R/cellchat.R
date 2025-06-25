@@ -1,3 +1,32 @@
+#' Create a CellChat object from a Seurat spatial dataset
+#'
+#' @description
+#' Wraps CellChat::createCellChat to initialize a CellChat object
+#' using normalized expression data, metadata, and spatial coordinates extracted
+#' from a Seurat object.
+#'
+#' @param seu A Seurat object containing spatial transcriptomics data.
+#' @param spot_diameter_fullres Numeric. The full-resolution diameter of each capture spot
+#'   (in the same units as the spatial coordinates). Default is \code{17.56}.
+#' @param label_var Character. Name of the metadata column in \code{seu@meta.data}
+#'   to use for grouping cells (e.g., cell type). Default is \code{"cell_type"}.
+#' @param spot_size Numeric. Effective diameter to use for downsampling spatial
+#'   spots when computing spatial factors. Default is \code{8}.
+#' @param sub_n_cells Integer. Number of cells to randomly subsample from the full
+#'   dataset (currently not active). Default is \code{5000}.
+#'
+#' @return A CellChat object ready for downstream analysis.
+#'
+#' @details
+#' This function:
+#' \itemize{
+#'   \item Extracts normalized expression data from the \code{data} layer.
+#'   \item Builds metadata including the specified grouping variable.
+#'   \item Computes spatial scaling factors based on \code{spot_diameter_fullres}
+#'         and \code{spot_size}.
+#'   \item Retrieves x–y coordinates via Seurat::GetTissueCoordinates.
+#'   \item Calls CellChat::createCellChat with \code{datatype="spatial"}.
+#' }
 create_cellchat <- function(seu, spot_diameter_fullres = 17.56, label_var = "cell_type", spot_size = 8,
                             sub_n_cells = 5000) {
 
@@ -35,6 +64,28 @@ create_cellchat <- function(seu, spot_diameter_fullres = 17.56, label_var = "cel
   )
 }
 
+#' Preprocess a CellChat object
+#'
+#' @description
+#' Subsets the CellChat database to human interactions, identifies over-expressed
+#' genes and interactions, and smooths the data using the human PPI network.
+#'
+#' @param cellchat A CellChat object created by
+#'   \code{create_cellchat()}.
+#' @param n_cores Integer. Number of cores to use for parallel processing
+#'   (currently unused). Default is \code{8}.
+#'
+#' @return The input \code{CellChat} object with:
+#' \itemize{
+#'   \item \code{@DB} set to \code{CellChat::CellChatDB.human}.
+#'   \item Over-expressed genes and interactions identified.
+#'   \item Expression data smoothed over the human PPI network.
+#' }
+#'
+#' @details
+#' This function increases the maximum future globals size to accommodate
+#' large matrices, but does not currently run in parallel due to memory
+#' overhead.
 preprocess_cellchat <- function(cellchat, n_cores = 8) {
   use_db <- CellChat::CellChatDB.human
    # CellChat::subsetDB(search = "Secreted Signaling", key = "annotation")
@@ -52,6 +103,34 @@ preprocess_cellchat <- function(cellchat, n_cores = 8) {
   #})
 }
 
+#' Compute communication probabilities and aggregate network in CellChat
+#'
+#' @description
+#' Runs bootstrapped communication probability calculations, filters low-support
+#' interactions, computes pathway-level communications, and aggregates the network.
+#'
+#' @param cellchat A preprocessed \code{CellChat::CellChat} object.
+#' @param n_cores Integer. Number of cores for parallel futures (unused). Default is \code{8}.
+#' @param n_boot Integer. Number of bootstrap replicates for communication probability. Default is \code{100}.
+#' @param type Character. Statistical measure for aggregation (e.g., \code{"triMean"}). Default is \code{"triMean"}.
+#' @param raw_use Logical. Whether to use raw expression values. Default is \code{TRUE}.
+#' @param population_size Logical. Whether to normalize by population size. Default is \code{FALSE}.
+#' @param tm_trim Numeric. Trim fraction when computing trimmed mean. Default is \code{0.1}.
+#' @param scale_distance Numeric. Scale factor for spatial distances. Default is \code{0.1}.
+#' @param interaction_range Numeric. Maximum distance for signaling interactions. Default is \code{100}.
+#' @param contact_range Numeric. Maximum distance for contact-dependent signaling. Default is \code{10}.
+#' @param min_cells Integer. Minimum number of cells required to retain an interaction. Default is \code{10}.
+#' @param seed Integer. Random seed for reproducibility. Default is \code{42}.
+#'
+#' @return A \code{CellChat} object with computed communication
+#'   probabilities, filtered interactions, pathway probabilities, and an aggregated
+#'   signaling network.
+#'
+#' @details
+#' Adjusts \code{future.globals.maxSize} for large data objects. Runs
+#' \code{CellChat::computeCommunProb} with contact-dependent smoothing,
+#' then filters by \code{min_cells}, calculates pathway-level probabilities,
+#' and aggregates the final network via \code{CellChat::aggregateNet}.
 compute_cellchat <- function(cellchat, n_cores = 8, n_boot = 100, type = "triMean", raw_use = TRUE, population_size = FALSE,
                              tm_trim = 0.1, scale_distance = 0.1, interaction_range = 100, contact_range = 10,
                              min_cells = 10, seed = 42) {

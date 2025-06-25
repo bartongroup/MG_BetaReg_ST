@@ -23,6 +23,7 @@ targets_8um <- function() {
       fig_count_det = plot_count_det(cell_data |> dplyr::select(total_count, n_genes, mito_fraction), params, with_lines = FALSE),
 
       # Gene detection
+      gene_count = dim(seu)[1],
       gene_detection = get_gene_detection(seu) |> tibble::add_column(sample = NAME),
       cell_data = get_cell_data(seu)|> tibble::add_column(sample = NAME),
       fig_hormone_overlap = plot_upset_expressed_cells(seu, c("INS", "SST", "GCG", "GHRL", "PPY")),
@@ -193,8 +194,12 @@ targets_8um <- function() {
     png_section_ins_ghrl = plot_spatial_section(seu_1, "INS", "GHRL", sct_1) |> gs("spatial_section_ins_ghrl", width = 8, height = 8),
 
     seu_2um = load_visium_data(EXPERIMENTS$DATA_PATH[1], mito_genes, bin_size = 2),
-    res_comp = combine_resolution_area(seu_1, seu_2um, c("INS", "SST"), x_cen = 5170, y_cen = -4406, size = 28),
-    fig_res_comp = plot_resolution_comparison(res_comp)
+    box_coords = list(x = 5154, y = -4196, size = 28),
+    fig_box_ins = plot_spatial_box(seu_1, "INS", x_cen = box_coords$x, y_cen = box_coords$y, size = box_coords$size),
+    res_comp = combine_resolution_area(seu_1, seu_2um, c("INS", "SST", "GCG", "GHRL"), x_cen = box_coords$x, y_cen = box_coords$y, size = box_coords$size),
+    fig_res_comp = plot_resolution_comparison(res_comp),
+
+    tbl_key_markers_count = get_total_count(seu_1) |> dplyr::filter(gene_symbol %in% key_markers$gene_symbol)
   )
 
   for_shiny <- tar_plan(

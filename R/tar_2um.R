@@ -23,6 +23,9 @@ targets_2um <- function() {
       tbl_mpc_overlap = combat_upset_expressed_cells(seu, c("SOX9", "PTF1A", "NKX6-1", "PDX1"), "mpc_overlap", NAME2),
       tbl_ep_overlap = combat_upset_expressed_cells(seu, c("PAX4", "PAX6", "NEUROD1", "NEUROG3"), "ep_overlap", NAME2),
 
+      tbl_cnt_dist_ins = get_count_distribution(seu, "INS") |> tb("count_dist_ins", NAME2),
+      tbl_cnt_dist_sst = get_count_distribution(seu, "SST") |> tb("count_dist_sst", NAME2),
+
       key_marker_genes = key_markers$gene_symbol |> unique() |> intersect(SeuratObject::Features(seu)),
       key_marker_genes_endoc = key_markers_endoc$gene_symbol |> levels() |> intersect(SeuratObject::Features(seu)),
   
@@ -44,7 +47,7 @@ targets_2um <- function() {
       #png_xy_marker_mpc_beta = plot_gene_vs_gene(seu, goi$tissue_markers_positive$MPC, goi$tissue_markers_positive$Beta, group_sel = c(2, 6)) |> gs("xy_marker_mpc_beta", NAME2, 6, 5),
   
       # Cell types
-      png_cell_type_scores = plot_cell_type_scores(seu_mark, tissue_markers) |> gs("cell_type_scores", NAME2, 8, 22),
+      png_cell_type_scores = plot_cell_type_scores(seu_mark, tissue_markers) |> gs("cell_type_scores", NAME2, 32, 88),
       png_cell_type = plot_cell_type(seu_mark) |> gs("cell_type", NAME2, 32, 16),
       #fig_cluster_cell_type = plot_cluster_cell_type_jaccard(seu_mark),
       png_dots_cell_type = plot_gene_dots(seu_mark, unique(tissue_markers$gene_symbol), meta_column = "cell_type") |> gs("dots_cell_type", NAME2, 6, 6),
@@ -74,7 +77,7 @@ targets_2um <- function() {
   )
 
   for_report <- tar_plan(
-    png_counts_2um = plot_all_counts(cell_data_all_2um, gene_detection_all_2um) |> gs("counts_2um", "all", 8, 3),
+    frs_counts_2um = plot_all_counts(cell_data_all_2um, gene_detection_all_2um) |> rs("counts_2um", "all"),
     png_marginals_2um = plot_grid(fig_marginals_2um_1, fig_marginals_2um_2, ncol = 1, labels = 1:2)  |> gs("marginals_2um", "all", 8, 6),
     png_detections_2um = plot_grid(fig_count_det_2um_1, fig_count_det_2um_2, labels = 1:2) |> gs("detections_2um", "all", 8, 3),
 

@@ -214,7 +214,7 @@ knitr::include_graphics("images/detections_all.png")
 
 Clustering in *Seurat* is done using the following approach:
 
-1. Constructing the Shared Nearest Neighbor (SNN) graph:
+1. Constructing the Shared Nearest Neighbour (SNN) graph:
   - Seurat constructs a graph based on PCA-reduced dimensions by identifying the nearest neighbors for each cell.
   - Cells are linked based on their number of shared nearest neighbors (SNN), creating a weighted graph that captures cell-cell similarity.
 2. Clustering with the Leiden algorithm:
@@ -326,6 +326,18 @@ tar_read(key_markers) |>
     )
   ) 
 ```
+
+@tbl-key-markers-count shows the total read count and expression rank of the key marker genes. Note that some of them (like PAX4, PAX6, MAFA and PPY) are very lowly expressed. There are `r N(tar_read(gene_count_1))` genes in total.
+
+```{r}
+#| label: tbl-key-markers-count
+#| tbl-cap: Total read count across all spots for key marker genes. Global rank is the total count rank within all genes. 
+tar_read(tbl_key_markers_count) |> 
+  mutate(rank = as.integer(rank)) |> 
+  rename(Gene = gene_symbol, `Total count` = count, `Global rank` = rank) |> 
+  gt()
+```
+
 
 Figures below show the expression of the key markers on the UMAP and spatial plots, for each tissue type.
 
@@ -510,7 +522,7 @@ The combined results of the cell annotation procedure are shown in @fig-cell-typ
 ```{r, out.width="100%"}
 #| label: fig-cell-types
 #| fig-cap: Cell types detected.
-knitr::include_graphics("images/cell_type_1.png")
+knitr::include_graphics("images/cell_type_1.png") 
 ```
 
 @tbl-cell-type-count shows the number of cells identified in each cell type.
@@ -519,7 +531,12 @@ knitr::include_graphics("images/cell_type_1.png")
 #| label: tbl-cell-type-count
 #| tbl-cap: Count of cells identified in each cell type.
 tar_read(tbl_cell_type_count_1) |> 
-  gt()
+  mutate(percentage = 100 * n / sum(n)) |> 
+  gt() |> 
+  fmt_number(
+    columns = percentage,
+    n_sigfig = 3
+  )
 ```
 
 ### Retrospective validation
@@ -590,7 +607,7 @@ knitr::include_graphics("images/cell_type_marker_dots_1.png")
 
 ### Cell type marker enrichment
 
-The differentially-expressed cell-type marker genes (that is genes DE in a given cell type versus other cell types) were used to find functional enrichment in each detected cell type. Only genes with adjusted p-value < 0.01 and the mean log2-folc-change > 1 were selected as the strongest markers. Results are shown in @tbl-cell-type-enrichment.
+The differentially-expressed cell-type marker genes (that is genes DE in a given cell type versus other cell types) were used to find functional enrichment in each detected cell type. Only genes with adjusted p-value < 0.01 and the mean log2-fold-change > 1 were selected as the strongest markers. Results are shown in @tbl-cell-type-enrichment.
 
 ::: {style="height: 600px; width: fit-content; overflow-y: scroll; margin-left: auto; margin-right: auto; font-size: 10pt"}
 
@@ -621,7 +638,7 @@ I have found two R packages that do a similar job and I tried using them on our 
 
 #### CellAssign
 
-Based on [this paper](https://www.nature.com/articles/s41592-019-0529-1), uses Bayesian inference. The package requires *tensorflow* installed, which in turn is a Python package. After a lot of hassle, I managed to install both *tensorflow* and *CellAssign*, however I could not get it to work. With our data, it stops immediately with error *unable to find an inherited method for function ‘assay’ for signature ‘x = "matrix", i = "character"’*. I would try to debug it and see where exactly it stops in the package, but I tried running the function with the example data provided by the authors. It crashes with error *ValueError: Tried to convert 'shape' to a tensor and failed. Error: Cannot convert a partially known TensorShape (1, ?) to a Tensor.*. This seems to be an internal tensorflow error, which suggests that *CellAssign* does not use *tensorflow* properly. Package instructions suggest using *tensorflow* version 2.1.0, but currently available versions are 2.16-2.19. *CellAssign* package has not been updated in 5 years and is seems it is out of sync with *tensorflow*. The authors have not responded to issues in their GitHubb archive since March 2023. It looks like yet another defunct, abandoned package.
+Based on [this paper](https://www.nature.com/articles/s41592-019-0529-1), uses Bayesian inference. The package requires *tensorflow* installed, which in turn is a Python package. After a lot of hassle, I managed to install both *tensorflow* and *CellAssign*, however I could not get it to work. With our data, it stops immediately with error *unable to find an inherited method for function ‘assay’ for signature ‘x = "matrix", i = "character"’*. I would try to debug it and see where exactly it stops in the package, but I tried running the function with the example data provided by the authors. It crashes with error *ValueError: Tried to convert 'shape' to a tensor and failed. Error: Cannot convert a partially known TensorShape (1, ?) to a Tensor.*. This seems to be an internal tensorflow error, which suggests that *CellAssign* does not use *tensorflow* properly. Package instructions suggest using *tensorflow* version 2.1.0, but currently available versions are 2.16-2.19. *CellAssign* package has not been updated in 5 years and is seems it is out of sync with *tensorflow*. The authors have not responded to issues in their GitHub archive since March 2023. It looks like yet another defunct, abandoned package.
 
 #### SC-TYPE
 
@@ -796,7 +813,7 @@ Examples of CellChat communication pathways.
 
 Here is a summary of my attempt to analyse 2 μm data. The data are included in the distribution we received from Newcastle, with both expression and spatial information. This allows for downstream analysis with *Seurat*. What is missing, is the Loupe Browser file. To create the file we would need to re-run Space Ranger software.
 
-The objects created with *Seurat* using 2 μm data are *large*. Technically, there are 16 time more spots, so each object will take 16 times more memory. I found that some tasks require up to 200 GB of RAM. This makes it impossible to analyse it on my MacBook with 36 GB of memory. Therefore, I needed to run this part of analysis on our HPC cluster, where we have nodes with up to 500 GB of RAM. However, there are some issues with the current cluster configuration, in particular file system access is very unreliable. We are promissed that large upgrades to solve the issues are coming, but these might take months, if not years, to implement (the issues have persited for quite a while). As a result, some calculations halt and do nothing for hours waiting for some unavailable resources.
+The objects created with *Seurat* using 2 μm data are *large*. Technically, there are 16 time more spots, so each object will take 16 times more memory. I found that some tasks require up to 200 GB of RAM. This makes it impossible to analyse it on my MacBook with 36 GB of memory. Therefore, I needed to run this part of analysis on our HPC cluster, where we have nodes with up to 500 GB of RAM. However, there are some issues with the current cluster configuration, in particular file system access is very unreliable. We are promised that large upgrades to solve the issues are coming, but these might take months, if not years, to implement (the issues have persisted for quite a while). As a result, some calculations halt and do nothing for hours waiting for some unavailable resources.
 
 Therefore, not all calculations are possible of feasible. I have skipped clustering (which we don't use very much), correlation WGCNA and cell-cell interactions. The latter three are probably better run on a 8 μm resolution anyway, due to less noisy data.
 
@@ -805,7 +822,9 @@ Therefore, not all calculations are possible of feasible. I have skipped cluster
 ```{r, out.width="100%"}
 #| label: fig-counts-2um
 #| fig-cap: Total number cells, reads and the median number of genes per cell from 2 μm resolution data. Compare this to @fig-counts.
-knitr::include_graphics("images/counts_2um_all.png") 
+#| fig-width: 8
+#| fig-height: 4
+readr::read_rds("images/counts_2um_all.rds")
 ```
 
 ```{r, out.width="100%"}
@@ -829,7 +848,7 @@ The spatial distribution of normalised scores $ES_{Mi}$ for each cell type are i
 ```{r, out.width="100%"}
 #| label: fig-cell-type-scores-2um
 #| fig-cap: Normalised scores for each cell type from 2 μm resolution data.
-knitr::include_graphics("images/cell_type_scores_2um_1.png")
+knitr::include_graphics("images/cell_type_scores_2um_1.png") 
 ```
 
 ```{r, out.width="100%"}
@@ -854,7 +873,12 @@ knitr::include_graphics("images/cell_type_2um_1.png")
 #| label: tbl-cell-type-count-2um
 #| tbl-cap: Count of cells identified in each cell type.
 readr::read_tsv("tables/cell_type_count_2um_1.txt") |> 
-  gt()
+  mutate(percentage = 100 * n / sum(n)) |> 
+  gt() |> 
+  fmt_number(
+    columns = percentage,
+    n_sigfig = 3
+  )
 ```
 
 ### Retrospective validation
@@ -890,7 +914,6 @@ readr::read_tsv("tables/expr_pct_2um_1.txt") |>
 
 It is obvious that there are plenty of cells (spots) expressing more than one endocrine hormone gene, suggesting some of the Alpha, Beta, Delta, Epsilon and PP cells are not fully developed, as we expect exclusive expression of the corresponding hormones (GCG, INS, SST, GHRL, PPY) in matured cell types. The overlap between expression of all four genes is shown in @fig-hormone-overlap-2um.
 
-
 ```{r}
 #| label: fig-hormone-overlap-2um
 #| fig-cap: Overlap of the spots expressing five pancreatic endocrine hormones. Each column shows the overlap between spots expressing a given gene. 
@@ -909,7 +932,7 @@ The numbers and percentages of spots expressing one, two, three, four and five d
 
 ```{r}
 #| label: tbl-hormone-count-2um
-#| tbl-cap: Number and percentage of endocrine cells (spots) expressing one, two, three, four and five different hormones simultaneously.
+#| tbl-cap: Number and percentage of endocrine cells (spots) expressing one, two, three, four and five different hormones simultaneously. See @tbl-hormone-count for comparison.
 readr::read_tsv("tables/hormone_count_2um_1.txt") |> 
   rename(`Hormones expressed` = n_hormones_expressed, `N of spots` = n, `Percentage` = perc) |> 
   gt() |> 
@@ -919,15 +942,54 @@ readr::read_tsv("tables/hormone_count_2um_1.txt") |>
   )
 ```
 
+
 ### 2 μm va 8 μm
+
+
+```{r}
+#| label: fig-box-ins
+#| fig-cap: Selection box shows in details in @fig-resolution-comparison. Shading indicates expression of insulin.
+#| fig-width: 8
+#| fig-height: 8
+tar_read(fig_box_ins) 
+```
 
 ```{r}
 #| label: fig-resolution-comparison
-#| fig-cap: Zoomed-in section of the slide, near the high insulin expression area, showing read counts at two different resolutions from INS and SST.
+#| fig-cap: Zoomed-in section of the slide, as shown in @fig-box-ins, with read counts at two different resolutions from four hormones. Black and grey numbers show the read counts from 8 and 2 μm resolutions, respectively. Black boxes indicate the extent of the 8 μm grid boxes.
 #| fig-width: 8
-#| fig-height: 4
-tar_read(fig_res_comp) 
+#| fig-height: 8
+tar_read(fig_res_comp)
 ```
+
+### How many counts per spot in 2 μm?
+
+@fig-resolution-comparison shows that many 2 μm spots have very low read counts of 1 or 2. How common is it? Below, we look at the distribution of counts (and percentage of cells) for two genes, INS (@tbl-count-dist-2um-ins) and SST (@tbl-count-dist-2um-sst). We see, in particular in the case of SST, that the expression levels are low everywhere, for example, 96% of 2 μm spots have SST read count of 3 or less. The 2 μm resolution data are very noisy.
+
+```{r}
+#| label: tbl-count-dist-2um-ins
+#| tbl-cap: Count distribution for insulin from 2 μm data. The columns show UMI count per spot, the number of spots, percentage of spots and the cumulative percentage of spots with a given count per spot. Only spots with count > 0 are taken into account.
+readr::read_tsv("tables/count_dist_ins_2um_1.txt") |> 
+  rename(`Read count` = expression, `N spots` = n, `Pct spots` = pct_spots, `Cumulative pct` = pct_cumul) |> 
+  gt() |> 
+  fmt_number(
+    columns = c(3, 4),
+    n_sigfig = 3
+  )
+```
+
+```{r}
+#| label: tbl-count-dist-2um-sst
+#| tbl-cap: Count distribution for somatostatin from 2 μm data. The columns show UMI count per spot, the number of spots, percentage of spots and the cumulative percentage of spots with a given count per spot. Only spots with count > 0 are taken into account.
+readr::read_tsv("tables/count_dist_sst_2um_1.txt") |> 
+  rename(`Read count` = expression, `N spots` = n, `Pct spots` = pct_spots, `Cumulative pct` = pct_cumul) |> 
+  gt() |> 
+  fmt_number(
+    columns = c(3, 4),
+    n_sigfig = 3
+  )
+```
+
 
 ### Cell type DE genes
 

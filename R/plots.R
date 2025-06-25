@@ -11,7 +11,7 @@ thm <- th +
     axis.ticks = ggplot2::element_blank()
   )
 
-gs <- function(gg, name, sample = NULL, width, height, dpi = 120) {
+gs <- function(gg, name, sample = NULL, width, height, dpi = 240) {
   if(is.null(sample)) {
     fname <- file.path("doc", "images", paste0(name, ".png"))
   } else {
@@ -21,6 +21,17 @@ gs <- function(gg, name, sample = NULL, width, height, dpi = 120) {
   ggsave(filename = fname, plot = gg, device = "png", limitsize = FALSE,
          width = width, height = height, dpi = dpi)
 }
+
+rs <- function(gg, name, sample = NULL) {
+  if(is.null(sample)) {
+    fname <- file.path("doc", "images", paste0(name, "rds"))
+  } else {
+    fname <- file.path("doc", "images", paste0(name, "_", sample, ".rds"))
+  }
+
+  readr::write_rds(gg, fname)
+}
+
 
 scientific_10 <- function(x) {
   parse(
@@ -200,6 +211,7 @@ plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap
     point_shape <- 16
   } else {
     xy <- get_spatial_coordinates(seu)
+    corners <- get_resolution_grid(xy)
     point_shape <- 15
   }
 
@@ -213,18 +225,30 @@ plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap
         summarise(expression = mean(expression)) |> 
         add_column(gene_symbol = "Combined")
     }
-    d <- inner_join(xy, ex, by = "cell_id") 
-    # Plot zeroes first, then expressed genes on top
-    d0 <- d |> filter(expression == 0)
-    d1 <- d |> filter(expression > 0)
 
-    pl <- d0 |> 
-      ggplot(aes(x = x, y = y, colour = expression)) +
-        thm +
-        geom_point(data = d0, size = point_size, shape = point_shape, stroke = 0.1) +
-        geom_point(data = d1, size = point_size, shape = point_shape, stroke = 0.1) +
-        scale_colour_distiller(palette = "Purples", direction = 1) +
-        labs(x = NULL, y = NULL)
+    if(what == "umap") {
+      d <- inner_join(xy, ex, by = "cell_id") 
+    # Plot zeroes first, then expressed genes on top
+      d0 <- d |> filter(expression == 0)
+      d1 <- d |> filter(expression > 0)
+      pl <- d |> 
+        ggplot(aes(x = x, y = y, colour = expression)) +
+          thm +
+          geom_point(data = d0, size = point_size, shape = point_shape, stroke = 0.1) +
+          geom_point(data = d1, size = point_size, shape = point_shape, stroke = 0.1) +
+          scale_colour_distiller(palette = "Purples", direction = 1) +
+          labs(x = NULL, y = NULL)
+    } else {
+      d <- inner_join(corners, ex, by = "cell_id") 
+      pl <- d |> 
+        ggplot(aes(x = x_corner, y = y_corner, group = cell_id, fill = expression)) +
+          thm +
+          geom_polygon(colour = NA, linewidth = 0) +
+          scale_fill_distiller(palette = "Purples", direction = 1) +
+          labs(x = NULL, y = NULL)  
+    }
+
+
    if(length(genes) > 1 & !combine_genes)
       pl <- pl + facet_wrap(~ gene_symbol)
     
@@ -239,26 +263,43 @@ plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap
     }
 
     cl <- get_meta_column(seu, col)
-    xy_cl <- inner_join(xy, cl, by = "cell_id")
-    pl <- xy_cl |>
+    
+
+    if(what == "umap") {
+      xy_cl <- inner_join(xy, cl, by = "cell_id")
+      pl <- xy_cl |>
       ggplot(aes(x = x, y = y)) +
       thm +
       geom_point(aes(colour = value), size = point_size, shape = point_shape, stroke = 0.1) +
       guides(color = guide_legend(override.aes = list(size = 3))) +
       labs(x = NULL, y = NULL)
-    if(is.null(discrete_palette)) {
-      pl <- pl + scale_colour_brewer(palette = "Paired")
-    } else {
-      pl <- pl + scale_colour_manual(values = discrete_palette)
-    }
-
-    if(what == "umap") {
+      if(is.null(discrete_palette)) {
+        pl <- pl + scale_colour_brewer(palette = "Paired")
+      } else {
+        pl <- pl + scale_colour_manual(values = discrete_palette)
+      }
       xy_cl_mean <- xy_cl |>
         group_by(value) |> 
         summarise(mx = mean(x), my = mean(y))
       pl <- pl +  
         geom_text(data = xy_cl_mean, aes(label = value, x = mx, y = my), colour = "black", size = label_size)
+
+    } else {
+      xy_cl <- inner_join(corners, cl, by = "cell_id")
+      pl <- xy_cl |>
+        ggplot(aes(x = x_corner, y = y_corner, group = centre_id, fill = value)) +
+        thm +
+        geom_polygon(colour = NA, linewidth = 0) +
+        guides(fill = guide_legend(override.aes = list(size = 3))) +
+        labs(x = NULL, y = NULL)  
+        if(is.null(discrete_palette)) {
+          pl <- pl + scale_fill_brewer(palette = "Paired")
+        } else {
+          pl <- pl + scale_fill_manual(values = discrete_palette)
+        }
+  
     }
+
 
   }
 
@@ -288,7 +329,7 @@ plot_cell_type <- function(seu, umap_point_size = 0.3, spatial_point_size = 0.6,
   pal <- c(okabe_ito_palette[c(4, 1, 8, 5, 2, 3, 6, 7, 9)], "darkgreen", "lightgreen", "red", "brown", "magenta", grey(0.95))
   pl1 <- plot_one_xy(seu, point_size = umap_point_size, label_size = label_size, what = "umap", meta_column = "cell_type", discrete_palette = pal, with_legend = FALSE)
   pl2 <- plot_one_xy(seu, point_size = spatial_point_size, label_size = label_size, what = "spatial", meta_column = "cell_type", discrete_palette = pal, with_legend = TRUE) + guides(colour = guide_legend(override.aes = list(size = 3)))
-  plot_grid(pl1, pl2, nrow = 1, rel_widths = c(1, 1.2))
+  plot_grid(pl1, pl2, nrow = 1, rel_widths = c(1, 1.4))
 
 }
 
@@ -872,8 +913,28 @@ png_upset_expressed_cells <- function(seu, gns, suffix, sample, width, height, e
   dev.off()
 }
 
+plot_spatial_box <- function(seu, gene, x_cen, y_cen, size, point_size = 0.6) {
+  xy <- get_spatial_coordinates(seu)
+  ex <- get_gene_expression(seu, gene)
+
+  bx <- tibble(
+    x = c(x_cen - size, x_cen + size, x_cen + size, x_cen - size, x_cen - size),
+    y = c(y_cen - size, y_cen - size, y_cen + size, y_cen + size, y_cen - size)
+  )
+
+  inner_join(xy, ex, by = "cell_id") |> 
+    ggplot() +
+    th +
+    theme(legend.position = "none") +
+    geom_point(aes(x = x, y = y, colour = expression), size = point_size) +
+    scale_colour_distiller(palette = "Blues", direction = 1) +
+    geom_path(data = bx, aes(x = x, y = y))
+}
+
 plot_resolution_comparison <- function(res_comp) {
-  rg <- get_resolution_grid(res_comp, res = "8um")
+  rg <- res_comp |> 
+    filter(resolution == "8um") |> 
+    get_resolution_grid()
 
   # Add fifth corner for completion
   rg5 <- rg |> 
@@ -882,9 +943,6 @@ plot_resolution_comparison <- function(res_comp) {
   rg <- bind_rows(rg, rg5)
 
   rg <- rg |> 
-    # Change order of corners for drawing with a single path
-    group_by(centre_id) |> 
-    mutate(corner_idx = corner_idx |> as.character() |> factor(levels = c("1", "2", "4", "3", "5"))) |>
     arrange(centre_id, corner_idx)
 
   res_comp |> 
@@ -897,17 +955,16 @@ plot_resolution_comparison <- function(res_comp) {
     scale_colour_manual(values = c("grey70", "black"))
 }
 
-get_resolution_grid <- function(res_comp, res = "2um") {
-  df <- res_comp |> 
-    filter(resolution == res)
 
-  # This part was written by ChatGPT o4-mini-high:
+
+get_resolution_grid <- function(res_comp) {
+  df <- res_comp |> 
+    mutate(centre_id = cell_id |> as.factor() |> as.integer()) |> 
+    distinct(cell_id, centre_id, x, y)
+
+  # This part was written by ChatGPT o4-mini-high and improved by MG:
 
   knn_res <- FNN::get.knn(df[, c("x","y")], k = 2)
-  # knn_res$nn.index is an n×2 matrix: 1st column = index (always itself, distance=0),
-  #                                     2nd column = index of the actual nearest neighbour
-  # knn_res$nn.dist is the corresponding distances.
-
   nearest_idx <- knn_res$nn.index[1, 2]   # the second‐closest to row 1
   nearest_dist <- knn_res$nn.dist[1, 2]   # the distance to that neighbour
 
@@ -931,32 +988,20 @@ get_resolution_grid <- function(res_comp, res = "2um") {
   corner_offsets <- rbind(
     half1 + half2,
     half1 - half2,
-    -half1 + half2,
-    -half1 - half2
+    -half1 - half2,
+    -half1 + half2
   )
   # corner_offsets is a 4×2 matrix; row 1 = +half1 +half2, etc.
 
-  # (5) Now, for *every* centre in df, we add those four offsets:
-  n_pts <- nrow(df)
-
-  # We’ll build a data.frame with (centre_id, corner_x, corner_y, corner_number).
-  # corner_number = 1..4 to label which of the four corners it is.
-  out_list <- vector("list", length = n_pts * 4)
-  ctr <- 1
-  for (i in seq_len(n_pts)) {
-    cx <- df$x[i]
-    cy <- df$y[i]
-    for (k in 1:4) {
-      out_list[[ctr]] <- tibble(
-        centre_id   = i,
-        corner_idx  = k,
-        x_corner    = cx + corner_offsets[k, 1],
-        y_corner    = cy + corner_offsets[k, 2]
+  map(1:4, function(k) {
+    df |> 
+      mutate(
+        corner_idx = k,
+        x_corner = x +  corner_offsets[k, 1],
+        y_corner = y + corner_offsets[k, 2]
       )
-      ctr <- ctr + 1
-    }
-  }
-
-  out_list |> 
-    list_rbind()
+  }) |> 
+    list_rbind() |> 
+    group_by(centre_id) |>     
+    arrange(cell_id, corner_idx)
 }

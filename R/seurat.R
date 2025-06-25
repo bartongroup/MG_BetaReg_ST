@@ -112,6 +112,16 @@ get_average_expression <- function(seu, assay = "Spatial.008um", layer = "data",
     pivot_longer(-gene_symbol, names_to = group_var, values_to = layer)
 }
 
+get_total_count <- function(seu) {
+  cnt <- rowSums(GetAssayData(seu, layer = "counts"))
+  tibble(
+    gene_symbol = names(cnt),
+    count = cnt,
+    rank = rank(-count)
+  ) |> 
+    arrange(rank)
+}
+
 get_gene_expression <- function(seu, genes, norm_per_gene = FALSE, layer = "data") {
   d <- GetAssayData(seu, layer = layer)[genes, , drop = FALSE] |> 
     t() |> 
@@ -365,6 +375,29 @@ get_expression_percentage <- function(seu, gns, meta_column = "cell_type") {
     select(gene_symbol = features.plot, avg_exp = avg.exp, pct_exp = pct.exp, group = id)
 }
 
+get_expression_percentage_2 <- function(seu, gns, meta_column = "cell_type", expr_limit = 0) {
+  ex <- FetchData(seu, vars = gns, layer = "counts") |> 
+    as_tibble(rownames = "cell_id") |> 
+    pivot_longer(-cell_id, names_to = "gene_symbol", values_to = "count")
+  grp <- FetchData(seu, vars = meta_column) |> 
+    as_tibble(rownames = "cell_id") |> 
+    set_names(c("cell_id", "group"))
+  
+  ex |> 
+    left_join(grp, by = "cell_id") |> 
+    group_by(group, gene_symbol) |> 
+    summarise(
+      avg_exp = mean(count),
+      pct_exp = 100 * length(which(count > expr_limit)) / n()
+    )  |> 
+    ungroup() |> 
+    select(gene_symbol, avg_exp, pct_exp, group) |> 
+    mutate(
+      gene_symbol = factor(gene_symbol, levels = gns)
+    ) |> 
+    arrange(group, gene_symbol)
+}
+
 unique_hormone_expressors <- function(seu) {
   gnt <- tribble(
     ~gene_symbol, ~cell_type,
@@ -409,4 +442,16 @@ combine_resolution_area <- function(seu_8um, seu_2um, genes, x_cen, y_cen, size,
   d2 <- inner_join(sp2, ex2, by = "cell_id") |> 
     add_column(resolution = "2um")
   bind_rows(d8, d2)
+}
+
+
+get_count_distribution <- function(seu, gene) {
+  seu |> 
+    get_gene_expression(gene, layer = "counts") |>
+    filter(expression > 0) |>
+    count(expression) |>
+    mutate(
+      pct_spots = 100 * n / sum(n),
+      pct_cumul = cumsum(pct_spots)
+    )
 }
