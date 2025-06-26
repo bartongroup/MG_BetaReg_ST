@@ -12,6 +12,13 @@ EXPERIMENTS_ALL <- tibble::tibble(
     c(0.01, 0.025, 0.05)
   ),
   RESOLUTION = c(0.4, 0.3, 0.05,  0.05),
+  RESOLUTIONS_UNKNOWN = list(
+    c(0.025, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4),
+    c(0.025, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4),
+    c(0.01, 0.025, 0.05),
+    c(0.01, 0.025, 0.05)
+  ),
+  RESOLUTION_UNKNOWN = c(0.4, 0.2, 0.05,  0.05),
   N_VARIABLE_FEATURES = c(3000, 3000, 3000, 3000),
   MIN_DETECTED_GENES_PER_CELL = c(10, 10, 10, 10),
   MIN_COUNTS_PER_CELL = c(10, 10, 10, 10),

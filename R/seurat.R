@@ -455,3 +455,22 @@ get_count_distribution <- function(seu, gene) {
       pct_cumul = cumsum(pct_spots)
     )
 }
+
+cluster_cell_type_overlap <- function(seu) {
+  m <- seu@meta.data |> 
+    as_tibble() |> 
+    select(cell_type, cluster)
+  tot_ct <- m |> count(cell_type, name = "n_cell_type")
+  tot_cl <- m |> count(cluster, name = "n_cluster")
+
+  cts <- m$cell_type |> unique()
+  map(cts, function(ct) {
+    m |> 
+      filter(cell_type == ct) |> 
+      count(cluster, name = "n_overlap") |> 
+      left_join(tot_cl, by = "cluster") |> 
+      mutate(prop = n_overlap / n_cluster) |> 
+      add_column(cell_type = ct)
+  }) |> 
+    list_rbind()
+}

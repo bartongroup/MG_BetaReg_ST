@@ -64,6 +64,21 @@ targets_8um <- function() {
       png_gene_gene_ins_gcg = plot_gene_vs_gene(seu_mark, "INS", "GCG", group_var = "cell_type", group_sel = c("Beta", "Alpha")) |> gs("gene_gene_ins_gcg", NAME, width = 6, height = 5),
       png_gene_gene_ins_ghrl = plot_gene_vs_gene(seu_mark, "INS", "GHRL", group_var = "cell_type", group_sel = c("Beta", "Epsilon")) |> gs("gene_gene_ins_ghrl", NAME, width = 6, height = 5),
 
+      # Unknown
+      fig_cell_type_cluster_overlap = plot_cluster_cell_type_overlap(seu_mark),
+      seu_unknown = seu_mark |> subset(cell_type == "Unknown") |>
+        NormalizeData() |>
+        cluster_seurat(ident_res = RESOLUTION_UNKNOWN, resolutions = RESOLUTIONS_UNKNOWN, nfeatures = 2000),
+      cluster_markers_unknown = find_group_markers(seu_unknown, group_by = "cluster"),
+      top_cluster_markers_unknown = get_top_cluster_markers(cluster_markers_unknown, n_top = 12),
+      top_cluster_genes_unknown = top_cluster_markers_unknown$gene_symbol |> unique(),
+      tbl_cluster_enrichment_unknown = group_enrichment(top_cluster_markers_unknown, fterms, group_var = "cluster"),
+      png_resolutions_unknown = plot_resolutions(seu_unknown, RESOLUTIONS_UNKNOWN) |> gs("resolutions_unknown", NAME, 8, 32),
+      png_top_cluster_unknown = plot_top_cluster_umap_spatial(seu_unknown, top_cluster_markers_unknown, file_prefix = paste0("top_clust_unknown_", NAME)),
+      png_top_cluster_expr_unknown = plot_gene_expression(seu_unknown, top_cluster_genes_unknown) |> gs("top_genes_unknown", NAME, 8, 12),
+      fig_dots_top_cluster_unknown = plot_gene_dots(seu_unknown, top_cluster_genes_unknown),
+
+
       # Insulin pathway
       png_ins_path = plot_expression(seu, goi$insulin_signalling_pathway, umap_point_size = 0.5, spatial_point_size = 0.5) |> gs("insulin_path", NAME, 7, 48),
       png_ins_path_expr = plot_gene_expression(seu, goi$insulin_signalling_pathway, meta_column = "cell_type") |> gs("insulin_path_expr", NAME, 8, 12),
@@ -192,6 +207,9 @@ targets_8um <- function() {
     png_section_ins_sst = plot_spatial_section(seu_1, "INS", "SST", sct_1) |> gs("spatial_section_ins_sst", width = 8, height = 8),
     png_section_ins_gcg = plot_spatial_section(seu_1, "INS", "GCG", sct_1) |> gs("spatial_section_ins_gcg", width = 8, height = 8),
     png_section_ins_ghrl = plot_spatial_section(seu_1, "INS", "GHRL", sct_1) |> gs("spatial_section_ins_ghrl", width = 8, height = 8),
+
+    png_spatial_selection_genes = plot_spatial_selection_genes(seu_1, c("INS", "SST", "GCG", "GHRL"), 4700, 5500, -5000, -3800) |> gs("spatial_selection_hormones", width = 8, height = 8),
+    png_spatial_selection_meta = plot_spatial_selection_meta(seu_mark_1, "cell_type", 4700, 5500, -5000, -3800) |> gs("spatial_selection_cell_type", width = 5, height = 4),
 
     seu_2um = load_visium_data(EXPERIMENTS$DATA_PATH[1], mito_genes, bin_size = 2),
     box_coords = list(x = 5154, y = -4196, size = 28),

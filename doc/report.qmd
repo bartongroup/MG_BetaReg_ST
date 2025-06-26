@@ -189,7 +189,7 @@ They even apply this to STseq from the mouse embryo to identify a gene module re
 
 ```{r}
 #| label: fig-counts
-#| fig-cap: Total numbers of cells (left) and reads (middle) and the median number of genes per cell (right) in each sample.
+#| fig-cap: Total numbers of spots (left) and reads (middle) and the median number of genes per spot (right) in each sample.
 #| fig-width: 8
 #| fig-height: 3
 tar_read(fig_counts)
@@ -198,13 +198,13 @@ tar_read(fig_counts)
 
 ```{r, out.width="100%"}
 #| label: fig-marginals
-#| fig-cap: "Distribution of: Left - total count (number of UMIs) per cell. Middle -  Number of genes detected per cell. Right -  Fraction of counts coming from mitochondrial genes. Labels 1-4 indicate sample numbers."
+#| fig-cap: "Distribution of: Left - total count (number of UMIs) per spot. Middle -  Number of genes detected per spot. Right -  Fraction of counts coming from mitochondrial genes. Labels 1-4 indicate sample numbers."
 knitr::include_graphics("images/marginals_all.png") 
 ```
 
 ```{r, out.width="100%"}
 #| label: fig-detections
-#| fig-cap: "Number of genes detected per cell as a function of the total count in a cell. One point corresponds to one cell. Colour indicates mitochondrial contamination. Labels 1-4 indicate sample numbers."
+#| fig-cap: "Number of genes detected per spot as a function of the total count in a spot. One point corresponds to one spot. Colour indicates mitochondrial contamination. Labels 1-4 indicate sample numbers."
 knitr::include_graphics("images/detections_all.png") 
 ```
 
@@ -215,15 +215,15 @@ knitr::include_graphics("images/detections_all.png")
 Clustering in *Seurat* is done using the following approach:
 
 1. Constructing the Shared Nearest Neighbour (SNN) graph:
-  - Seurat constructs a graph based on PCA-reduced dimensions by identifying the nearest neighbors for each cell.
-  - Cells are linked based on their number of shared nearest neighbors (SNN), creating a weighted graph that captures cell-cell similarity.
+  - Seurat constructs a graph based on PCA-reduced dimensions by identifying the nearest neighbors for each spot.
+  - spots are linked based on their number of shared nearest neighbors (SNN), creating a weighted graph that captures spot-spot similarity.
 2. Clustering with the Leiden algorithm:
   - The Leiden algorithm identifies communities (clusters) by optimizing the modularity or a similar objective function on the SNN graph.
   - It iteratively refines clusters to ensure connectivity and consistency, often leading to more biologically interpretable clusters than the default Louvain algorithm.
 
 The resolution parameter in the Leiden algorithm controls the granularity of identified clusters: Higher resolution creates more numerous, smaller clusters (more granular). Lower resolution results in fewer, larger clusters (less granular).
 
-@fig-umap-clusters compares several resolution levels, showing both UMAP and spatial distributions of cells. For this data set, resolution of 0.4 was selected as optimal.
+@fig-umap-clusters compares several resolution levels, showing both UMAP and spatial distributions of spots. For this data set, resolution of 0.4 was selected as optimal.
 
 ```{r, out.width="100%"}
 #| label: fig-umap-clusters
@@ -288,7 +288,7 @@ tar_read(tbl_cluster_enrichment_1) |>
 
 ### Dot plot
 
-The dot plot in @fig-cluster-dot-plot shows the expression and expressed cell percentage of the top cluster markers, for each cluster.
+The dot plot in @fig-cluster-dot-plot shows the expression and expressed spot percentage of the top cluster markers, for each cluster.
 
 ```{r}
 #| label: fig-cluster-dot-plot
@@ -357,7 +357,7 @@ dynamic_png_panels("^key_markers_1_\\w+\\.png$", "(?<=1_)\\w+(?=\\.)")
 
 ```{r, out.width="100%"}
 #| label: fig-key-markers-expr
-#| fig-cap: Expression (top) and percentage of expresses cells (bottom) for each of the key markers across clusters. 
+#| fig-cap: Expression (top) and percentage of expressed spots (bottom) for each of the key markers across clusters. 
 knitr::include_graphics("images/key_marker_expr_1.png")
 ```
 
@@ -375,9 +375,9 @@ tar_read(fig_dots_key_markers_1)
 
 Finding correlation between genes in a scRNA-seq experiment is tricky. A simple Pearson or Spearman correlation is not adequate due to large number of zeroes in data, which can lead to many false negatives. I have found a tool called [CS-SCORE](https://www.nature.com/articles/s41467-023-40503-7), which models the unobserved true gene expression levels as latent variables, linked to the observed UMI counts through a measurement model that accounts for both sequencing depth variations and measurement errors. The authors show improvement over alternative methods.
 
-This method requires a lot of memory, beyond the 36 GB of my laptop. Therefore, the correlation calculation was performed on a cluster node with larger memory and imported into my pipeline. The slight reduction in the number of genes for the correlation was achieved by selecting only genes which were co-expressed in at least 10 cells together with at least one key marker gene. Thus, we avoid genes that are expressed entirely elsewhere.
+This method requires a lot of memory, beyond the 36 GB of my laptop. Therefore, the correlation calculation was performed on a cluster node with larger memory and imported into my pipeline. The slight reduction in the number of genes for the correlation was achieved by selecting only genes which were co-expressed in at least 10 spots together with at least one key marker gene. Thus, we avoid genes that are expressed entirely elsewhere.
 
-@fig-only-markers-heat shows the correlation between the key markers (only endocrine genes). It is interesting to see that MAFB, which is expressed only in a handful of cells, correlates with MAFA and other EP/Beta cells. Using just a Pearson's correlation coefficient does not bring any reasonable results for MAFB and other lowly-expressed genes.
+@fig-only-markers-heat shows the correlation between the key markers (only endocrine genes). It is interesting to see that MAFB, which is expressed only in a handful of spots, correlates with MAFA and other EP/Beta cells. Using just a Pearson's correlation coefficient does not bring any reasonable results for MAFB and other lowly-expressed genes.
 
 ```{r}
 #| label: fig-only-markers-heat
@@ -505,11 +505,11 @@ For an alternative view, a one-dimensional section across the slide was selected
 knitr::include_graphics("images/spatial_section_ins_sst.png") 
 ```
 
-Another view is show in @fig-gene-gene-ins-sst, where expression of SST and INS is shown for individual cells in a scatter plot. While, ideally, we would like Delta and Beta cells expressing SST and INS exclusively, there is a large overlap where both genes are expressed. The division line between the annotated cell types is certainly arbitrary. The cells in the middle of the plot are probably not fully committed to either cell type.
+Another view is show in @fig-gene-gene-ins-sst, where expression of SST and INS is shown for individual spots in a scatter plot. While, ideally, we would like Delta and Beta cells expressing SST and INS exclusively, there is a large overlap where both genes are expressed. The division line between the annotated cell types is certainly arbitrary. The spots in the middle of the plot are probably not fully committed to either cell type.
 
 ```{r, out.width="100%"}
 #| label: fig-gene-gene-ins-sst
-#| fig-cap: Expression of SST vs INS in all cells. Cell types annotated as Beta and Delta are marked by colours.
+#| fig-cap: Expression of SST vs INS in all spots. Cell types annotated as Beta and Delta are marked by colours.
 #| out-width: "60%"
 knitr::include_graphics("images/gene_gene_ins_sst_1.png")
 ```
@@ -525,11 +525,11 @@ The combined results of the cell annotation procedure are shown in @fig-cell-typ
 knitr::include_graphics("images/cell_type_1.png") 
 ```
 
-@tbl-cell-type-count shows the number of cells identified in each cell type.
+@tbl-cell-type-count shows the number of spots identified in each cell type.
 
 ```{r}
 #| label: tbl-cell-type-count
-#| tbl-cap: Count of cells identified in each cell type.
+#| tbl-cap: Count of spots identified in each cell type.
 tar_read(tbl_cell_type_count_1) |> 
   mutate(percentage = 100 * n / sum(n)) |> 
   gt() |> 
@@ -553,7 +553,7 @@ tar_read(fig_dots_cell_type_1)
 
 ```{r}
 #| label: tbl-cell-type-perc
-#| tbl-cap: Percentage of cells expressing marker genes for each annotated cell types.
+#| tbl-cap: Percentage of spots expressing marker genes for each annotated cell types.
 tar_read(tbl_expr_pct_1) |> 
   pivot_wider(id_cols = gene_symbol, names_from = group, values_from = pct_exp, values_fill = 0) |> 
   rename(Gene = gene_symbol) |> 
@@ -571,11 +571,11 @@ tar_read(tbl_expr_pct_1) |>
 
 ### Hormone expression overlap
 
-It is obvious that there are plenty of cells (spots) expressing more than one endocrine hormone gene, suggesting some of the Alpha, Beta, Delta, Epsilon and PP cells are not fully developed, as we expect exclusive expression of the corresponding hormones (GCG, INS, SST, GHRL, PPY) in matured cell types. The overlap between expression of all four genes is shown in @fig-hormone-overlap.
+It is obvious that there are plenty of spots expressing more than one endocrine hormone gene, suggesting some of the Alpha, Beta, Delta, Epsilon and PP cells are not fully developed, as we expect exclusive expression of the corresponding hormones (GCG, INS, SST, GHRL, PPY) in matured cell types. The overlap between expression of all four genes is shown in @fig-hormone-overlap.
 
 ```{r}
 #| label: fig-hormone-overlap
-#| fig-cap: Overlap of the spots expressing five pancreatic endocrine hormones. Each column shows the overlap between spots expressing a given gene. 48%, 27%, 16%, 40% and 44% of INS, SST, GCG, GHRL and PPY expressing cells, respectively, express their gene uniquely.
+#| fig-cap: Overlap of the spots expressing five pancreatic endocrine hormones. Each column shows the overlap between spots expressing a given gene. 48%, 27%, 16%, 40% and 44% of INS, SST, GCG, GHRL and PPY expressing spots, respectively, express their gene uniquely.
 #| fig-width: 8
 #| fig-height: 4
 tar_read(fig_hormone_overlap_1) 
@@ -585,7 +585,7 @@ The numbers and percentages of spots expressing one, two, three, four and five d
 
 ```{r}
 #| label: tbl-hormone-count
-#| tbl-cap: Number and percentage of endocrine cells (spots) expressing one, two, three, four and five different hormones simultaneously.
+#| tbl-cap: Number and percentage of endocrine spots expressing one, two, three, four and five different hormones simultaneously.
 tar_read(hormone_count_1) |> 
   rename(`Hormones expressed` = n_hormones_expressed, `N of spots` = n, `Percentage` = perc) |> 
   gt() |> 
@@ -593,6 +593,23 @@ tar_read(hormone_count_1) |>
     columns = Percentage,
     n_sigfig = 3
   )
+```
+
+
+### Hormone gradients
+
+It would be nice to know how important marker genes, in particular pancreatic hormones, change spatially. We tried some approaches above. Here we select a small rectangle in the original image to have a better look at the expression of four genes.
+
+```{r, out.width="100%"}
+#| label: fig-spatial-selection-hormones
+#| fig-cap: Normalised expression of four hormones in the central region of the slide. Clumps of expressing cells are visible.
+knitr::include_graphics("images/spatial_selection_hormones.png")
+```
+
+```{r, out.width="60%"}
+#| label: fig-spatial-selection-cell-type
+#| fig-cap: Cell type identification for the same region as above.
+knitr::include_graphics("images/spatial_selection_cell_type.png")
 ```
 
 ### Cell type DE genes
@@ -622,7 +639,7 @@ tar_read(cell_type_enrichment_1) |>
 
 ### Comparison with clustering
 
-@fig-clust-cell-type shows the comparison between clustering and cell type detection. For each pair cluster-cell type a Jaccard index has been calculated to show the level of agreement between the two partition methods. Jaccard index is the size of the intersection divided by the size of the union of the cells belonging to the cluster and the cell type.
+@fig-clust-cell-type shows the comparison between clustering and cell type detection. For each pair cluster-cell type a Jaccard index has been calculated to show the level of agreement between the two partition methods. Jaccard index is the size of the intersection divided by the size of the union of the spots belonging to the cluster and the cell type.
 
 ```{r}
 #| label: fig-clust-cell-type
@@ -644,6 +661,103 @@ Based on [this paper](https://www.nature.com/articles/s41592-019-0529-1), uses B
 
 This package works, but I don't trust the results. Cell type assignment is based on the standardised count matrix. As we have plenty of zeroes for each gene, the mean and standard deviation are meaningless, and the standardised scores differ from gene to gene depending on the proportion of zeroes. I'm surprised no reviewer raised this point in the [paper](https://www.nature.com/articles/s41467-022-28803-w). The other issue is that with multiple markers per cell type, the Z-scores are summed up. This means that when a cell type has 4 marker genes, it will always be more significant than a cell type with just one marker gene. As a result, there are far fewer spots annotated as Beta, by comparison to our standard method - because it is based on only one gene, INS. I think this method is flawed and no more sophisticated or statistically grounded that the method we use.
 
+## Unknown spots
+
+A large proportion of spots has not been identified with any given cell type, as shown in @tbl-cell-type-count. We select only these spots and then perform unsupervised clustering to see what's there.
+
+### Cluster markers
+
+The figures below show the top 12 marker genes in each cluster, with the highest fold change with respect to other clusters.
+
+::: {.panel-tabset}
+
+```{r}
+#| label: cluster-panels-unknown
+#| results: asis
+
+dynamic_png_panels("^top_clust_unknown_1_cl\\d+\\.png$", "(?<=1_)cl\\d+(?=\\.)")
+```
+
+:::
+
+
+### Cluster enrichment
+
+Functional enrichment was found for each set of top cluster markers and the results are shown in @tbl-cluster-enrichment-unknown.
+
+::: {style="height: 600px; width: fit-content; overflow-y: scroll; margin-left: auto; margin-right: auto; font-size: 10pt"}
+
+```{r}
+#| label: tbl-cluster-enrichment-unknown
+#| tbl-cap: Functional enrichment from top cluster genes among unknown spots. The table is grouped per cluster. `n_with_sel` is the number of genes with the given term in the selection (correlated subset).
+tar_read(tbl_cluster_enrichment_unknown_1) |> 
+  enrichment_table() 
+```
+
+:::
+
+### Dot plot
+
+The dot plot in @fig-cluster-dot-plot-unknown shows the expression and expressed spot percentage of the top cluster markers, for each cluster.
+
+```{r}
+#| label: fig-cluster-dot-plot-unknown
+#| fig-cap: Dot plot for top genes in each cluster for unknown spots.
+#| fig-width: 8
+#| fig-height: 11
+tar_read(fig_dots_top_cluster_unknown_1)
+```
+
+
+
+## Unknown spots for sample 2
+
+Unknown spots for sample 2 look quite different, so we show the results here.
+
+### Cluster markers
+
+::: {.panel-tabset}
+
+```{r}
+#| label: cluster-panels-unknown-2
+#| results: asis
+
+dynamic_png_panels("^top_clust_unknown_2_cl\\d+\\.png$", "(?<=2_)cl\\d+(?=\\.)") 
+```
+
+:::
+
+
+### Cluster enrichment
+
+
+::: {style="height: 600px; width: fit-content; overflow-y: scroll; margin-left: auto; margin-right: auto; font-size: 10pt"}
+
+```{r}
+#| label: tbl-cluster-enrichment-unknown-2
+#| tbl-cap: Functional enrichment from top cluster genes among unknown spots. The table is grouped per cluster. `n_with_sel` is the number of genes with the given term in the selection (correlated subset).
+tar_read(tbl_cluster_enrichment_unknown_2) |> 
+  enrichment_table() 
+```
+
+:::
+
+### Dot plot
+
+
+```{r}
+#| label: fig-cluster-dot-plot-unknown-2
+#| fig-cap: Dot plot for top genes in each cluster for unknown spots.
+#| fig-width: 8
+#| fig-height: 11
+tar_read(fig_dots_top_cluster_unknown_2)
+```
+
+
+
+
+
+
 ## Spatial WGCNA
 
 Here we use *hdWGCNA* R package to perform co-expression network analysis on Visium HD data. Specifically, the package uses the variable genes identified by *Seurat* routine analysis (2000 top variable genes) and merges spatially proximal spots to create *metacells*. @fig-metacells shows the how the metacells are created.
@@ -657,7 +771,7 @@ Here we use *hdWGCNA* R package to perform co-expression network analysis on Vis
 tar_read(fig_metacells_spatial_1)  
 ```
 
-Co-expression analysis is done similarly to widely-used *WGCNA* package. The pipeline selects 2000 most variable genes, aggregates cells into metacells (for each cluster sparately) to reduce noise, and normalizes the data. It then constructs a weighted gene co-expression network (WGCNA), testing different soft-thresholding powers to identify scale-free topology. A final network is built using the optimal power, and modules of co-expressed genes are identified. The pipeline calculates module eigengenes (summary profiles for each module) and evaluates intramodular connectivity (hub genes) to prioritize biologically relevant networks. This approach helps uncover coordinated gene programs across cell states or spatial domains.
+Co-expression analysis is done similarly to widely-used *WGCNA* package. The pipeline selects 2000 most variable genes, aggregates spots into metacells (for each cluster sparately) to reduce noise, and normalizes the data. It then constructs a weighted gene co-expression network (WGCNA), testing different soft-thresholding powers to identify scale-free topology. A final network is built using the optimal power, and modules of co-expressed genes are identified. The pipeline calculates module eigengenes (summary profiles for each module) and evaluates intramodular connectivity (hub genes) to prioritize biologically relevant networks. This approach helps uncover coordinated gene programs across cell states or spatial domains.
 
 ### Results
 
@@ -717,13 +831,13 @@ Functional enrichment for several ontologies (GO, KEGG, Reactome and WikiPathway
 
 In single-cell RNA sequencing, pseudo-time refers to a computational method used to reconstruct the temporal ordering of cells along a dynamic biological process (e.g., cell differentiation) when actual time information is not available.
 
-Here a *slingshot* R package is used to infer pseudo-time. Only cells annotated as MPC, EP or Beta/Delta were selected. @fig-slingshot-trajectory-pca shows the trajectories for MPC->Beta and MPC->Delta. EP cells were removed as they are few and scattered around. @fig-slingshot-spatial shows the distribution of the pseudo-time across the slide.
+Here a *slingshot* R package is used to infer pseudo-time. Only spots annotated as MPC, EP or Beta/Delta were selected. @fig-slingshot-trajectory-pca shows the trajectories for MPC->Beta and MPC->Delta. EP spots were removed as they are few and scattered around. @fig-slingshot-spatial shows the distribution of the pseudo-time across the slide.
 
-I'm not sure if pseudo-time is telling us anything useful, or even correct. The way the trajectories meander through the PCA plots (I tried this with UMAP and it looked even more random) does not fill me with confidence. Textbook examples of pseudo-time typically have long narrow strips of cells in a PCA plot, which this is not the case here.
+I'm not sure if pseudo-time is telling us anything useful, or even correct. The way the trajectories meander through the PCA plots (I tried this with UMAP and it looked even more random) does not fill me with confidence. Textbook examples of pseudo-time typically have long narrow strips of spots in a PCA plot, which this is not the case here.
 
 ```{r}
 #| label: fig-slingshot-trajectory-pca
-#| fig-cap: Pseudo-time trajectory between MPC and Beta/Delta cells in the PCA space. EP cells were removed because they are few and scattered around.
+#| fig-cap: Pseudo-time trajectory between MPC and Beta/Delta spots in the PCA space. EP spots were removed because they are few and scattered around.
 #| fig-width: 8
 #| fig-height: 4
 pl1 <- tar_read(fig_lineage_beta_1)
@@ -821,7 +935,7 @@ Therefore, not all calculations are possible of feasible. I have skipped cluster
 
 ```{r, out.width="100%"}
 #| label: fig-counts-2um
-#| fig-cap: Total number cells, reads and the median number of genes per cell from 2 μm resolution data. Compare this to @fig-counts.
+#| fig-cap: Total number spots, reads and the median number of genes per spot from 2 μm resolution data. Compare this to @fig-counts.
 #| fig-width: 8
 #| fig-height: 4
 readr::read_rds("images/counts_2um_all.rds")
@@ -829,13 +943,13 @@ readr::read_rds("images/counts_2um_all.rds")
 
 ```{r, out.width="100%"}
 #| label: fig-marginals-2um
-#| fig-cap: "Distribution of: Left - total count (number of UMIs) per cell. Middle -  Number of genes detected per cell. Right -  Fraction of counts coming from mitochondrial genes, from 2 μm resolution data. Labels 1-2 indicate sample numbers. Compare to @fig-marginals"
+#| fig-cap: "Distribution of: Left - total count (number of UMIs) per spot. Middle -  Number of genes detected per spot. Right -  Fraction of counts coming from mitochondrial genes, from 2 μm resolution data. Labels 1-2 indicate sample numbers. Compare to @fig-marginals"
 knitr::include_graphics("images/marginals_2um_all.png") 
 ```
 
 ```{r, out.width="100%"}
 #| label: fig-detections-2um
-#| fig-cap: "Number of genes detected per cell as a function of the total count in a cell. One point corresponds to one cell. Colour indicates mitochondrial contamination from 2 μm resolution data. Labels 1-4 indicate sample numbers."
+#| fig-cap: "Number of genes detected per spot as a function of the total count in a spot. One point corresponds to one spot. Colour indicates mitochondrial contamination from 2 μm resolution data. Labels 1-4 indicate sample numbers."
 knitr::include_graphics("images/detections_2um_all.png") 
 ```
 
@@ -867,7 +981,7 @@ The combined results of the cell annotation procedure are shown in @fig-cell-typ
 knitr::include_graphics("images/cell_type_2um_1.png")
 ```
 
-@tbl-cell-type-count-2um shows the number of cells identified in each cell type.
+@tbl-cell-type-count-2um shows the number of spots identified in each cell type.
 
 ```{r}
 #| label: tbl-cell-type-count-2um
@@ -894,7 +1008,7 @@ knitr::include_graphics("images/dots_cell_type_2um_1.png")
 
 ```{r}
 #| label: tbl-cell-type-perc-2um
-#| tbl-cap: Percentage of cells expressing marker genes for each annotated cell types. Compare with @tbl-cell-type-perc.
+#| tbl-cap: Percentage of spots expressing marker genes for each annotated cell types. Compare with @tbl-cell-type-perc.
 readr::read_tsv("tables/expr_pct_2um_1.txt") |> 
   pivot_wider(id_cols = gene_symbol, names_from = group, values_from = pct_exp, values_fill = 0) |> 
   rename(Gene = gene_symbol) |> 
@@ -912,7 +1026,7 @@ readr::read_tsv("tables/expr_pct_2um_1.txt") |>
 
 ### Hormone expression overlap
 
-It is obvious that there are plenty of cells (spots) expressing more than one endocrine hormone gene, suggesting some of the Alpha, Beta, Delta, Epsilon and PP cells are not fully developed, as we expect exclusive expression of the corresponding hormones (GCG, INS, SST, GHRL, PPY) in matured cell types. The overlap between expression of all four genes is shown in @fig-hormone-overlap-2um.
+It is obvious that there are plenty of spots expressing more than one endocrine hormone gene, suggesting some of the Alpha, Beta, Delta, Epsilon and PP cells are not fully developed, as we expect exclusive expression of the corresponding hormones (GCG, INS, SST, GHRL, PPY) in matured cell types. The overlap between expression of all four genes is shown in @fig-hormone-overlap-2um.
 
 ```{r}
 #| label: fig-hormone-overlap-2um
@@ -932,7 +1046,7 @@ The numbers and percentages of spots expressing one, two, three, four and five d
 
 ```{r}
 #| label: tbl-hormone-count-2um
-#| tbl-cap: Number and percentage of endocrine cells (spots) expressing one, two, three, four and five different hormones simultaneously. See @tbl-hormone-count for comparison.
+#| tbl-cap: Number and percentage of endocrine spots expressing one, two, three, four and five different hormones simultaneously. See @tbl-hormone-count for comparison.
 readr::read_tsv("tables/hormone_count_2um_1.txt") |> 
   rename(`Hormones expressed` = n_hormones_expressed, `N of spots` = n, `Percentage` = perc) |> 
   gt() |> 
@@ -964,7 +1078,7 @@ tar_read(fig_res_comp)
 
 ### How many counts per spot in 2 μm?
 
-@fig-resolution-comparison shows that many 2 μm spots have very low read counts of 1 or 2. How common is it? Below, we look at the distribution of counts (and percentage of cells) for two genes, INS (@tbl-count-dist-2um-ins) and SST (@tbl-count-dist-2um-sst). We see, in particular in the case of SST, that the expression levels are low everywhere, for example, 96% of 2 μm spots have SST read count of 3 or less. The 2 μm resolution data are very noisy.
+@fig-resolution-comparison shows that many 2 μm spots have very low read counts of 1 or 2. How common is it? Below, we look at the distribution of counts (and percentage of spots) for two genes, INS (@tbl-count-dist-2um-ins) and SST (@tbl-count-dist-2um-sst). We see, in particular in the case of SST, that the expression levels are low everywhere, for example, 96% of 2 μm spots have SST read count of 3 or less. The 2 μm resolution data are very noisy.
 
 ```{r}
 #| label: tbl-count-dist-2um-ins

@@ -168,6 +168,41 @@ plot_spatial_meta <- function(seu, meta_column = "pseudotime", point_size = 0.6,
   pl
 }
 
+plot_spatial_selection_genes <- function(seu, genes, x1, x2, y1, y2) {
+  ex <- get_gene_expression(seu, genes)
+  xy <- get_spatial_coordinates(seu) |> 
+    filter(x >= x1 & x <= x2 & y >= y1 & y <= y2)
+  corners <- get_resolution_grid(xy)
+  d <- inner_join(corners, ex, by = "cell_id", relationship = "many-to-many") 
+
+  d |> 
+    ggplot(aes(x = x_corner, y = y_corner, group = cell_id, fill = expression)) +
+    thm +
+    geom_polygon(colour = NA, linewidth = 0) +
+    labs(x = NULL, y = NULL, fill = "Expression") +
+    facet_wrap(~gene_symbol) +
+    scale_fill_viridis_c(option = "cividis")
+}
+
+plot_spatial_selection_meta <- function(seu, meta_column = "cell_type", x1, x2, y1, y2) {
+  mt <- get_cell_data(seu) |> 
+    mutate(val = seu@meta.data[[meta_column]]) |> 
+    select(cell_id, val)
+  xy <- get_spatial_coordinates(seu) |> 
+    filter(x >= x1 & x <= x2 & y >= y1 & y <= y2)
+  corners <- get_resolution_grid(xy)
+  d <- inner_join(corners, mt, by = "cell_id", relationship = "many-to-many") 
+
+  pal <- c(okabe_ito_palette[c(4, 1, 8, 5, 2, 3, 7, 9)], "darkgreen", "lightgreen", "red", "brown", "magenta", grey(0.95))
+  d |> 
+    ggplot(aes(x = x_corner, y = y_corner, group = cell_id, fill = val)) +
+    thm +
+    geom_polygon(colour = NA, linewidth = 0) +
+    labs(x = NULL, y = NULL, fill = "Expression") +
+    scale_fill_manual(values = pal)
+}
+
+
 plot_reduction_meta <- function(seu, reduction = "pca", meta_column = "pseudotime", point_size = 0.6) {
   Embeddings(seu, reduction = reduction) |>
     as_tibble(rownames = "cell_id") |>
@@ -1004,4 +1039,17 @@ get_resolution_grid <- function(res_comp) {
     list_rbind() |> 
     group_by(centre_id) |>     
     arrange(cell_id, corner_idx)
+}
+
+
+plot_cluster_cell_type_overlap <- function(seu, ct = "Unknown") {
+  ov <- cluster_cell_type_overlap(seu)
+
+  ov |> 
+    filter(cell_type == ct) |> 
+    ggplot(aes(x = cluster, y = prop)) +
+    th +
+    geom_col() +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.03))) +
+    labs(x = "Cluster", y = "Proporion of spots in cluster", title = ct)
 }
