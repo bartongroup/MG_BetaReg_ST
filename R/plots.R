@@ -1147,6 +1147,9 @@ plot_cluster_cell_type_overlap <- function(seu, ct = "Unknown") {
 }
 
 plot_binned_xy_expression <- function(seu, gene_x, genes_y, bins = 6, exclude_zeroes = FALSE) {
+  env <- new.env(parent = globalenv())
+  env$gene_x <- gene_x
+
   gx <- get_gene_expression(seu, gene_x)
   g1 <- gx |> 
     filter(expression > 0) |> 
@@ -1163,21 +1166,25 @@ plot_binned_xy_expression <- function(seu, gene_x, genes_y, bins = 6, exclude_ze
   gb <- gb |> 
     select(cell_id, bin)
 
-  get_gene_expression(seu, genes_y) |> 
+  env$d <- get_gene_expression(seu, genes_y) |> 
     mutate(gene_symbol = factor(gene_symbol, levels = genes_y)) |> 
     inner_join(gb, by = "cell_id")  |> 
     group_by(gene_symbol, bin) |> 
     summarise(
       m = mean(expression),
-      se = sd(expression) / sqrt(n()),
-      n = n()
-    ) |> 
-    ggplot(aes(x = bin, y = m, ymin = m - se, ymax = m + se)) +
-    th +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.6)) +
-    geom_errorbar(width = 0, colour = "grey70") +
-    geom_point() +
-    facet_wrap(~gene_symbol) +
-    scale_y_continuous(expand = expansion(mult = c(0, 0.04))) +
-    labs(x = str_glue("{gene_x} expression bin"), y = "Mean expression")
+      se = sd(expression) / sqrt(n())
+    )
+  
+  with(env, {
+    d |> 
+      ggplot(aes(x = bin, y = m, ymin = m - se, ymax = m + se)) +
+      th +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.6)) +
+      geom_errorbar(width = 0, colour = "grey70") +
+      geom_point() +
+      facet_wrap(~gene_symbol) +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.04))) +
+      labs(x = str_glue("{gene_x} expression bin"), y = "Mean expression")
+  })
+    
 }
