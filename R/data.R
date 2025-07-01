@@ -421,3 +421,12 @@ annotate_cells_page <- function(seu, tissue_markers, n_boot = 1000, p_val_limit 
   seu
 }
 
+read_sx_sy <- function(fname, seu) {
+  xy <- get_spatial_coordinates(seu) |> 
+    mutate(s = str_remove(cell_id, "-1")) |>
+    separate_wider_delim(s, delim = "_", names = c("ss", "um", "ix", "iy")) |>
+    mutate(sx = as.numeric(ix), sy = as.numeric(iy)) |> 
+    select(sx, sy, x, y)
+ read_csv(fname, show_col_types = FALSE) |> 
+  left_join(xy, by = c("sx", "sy"))
+}

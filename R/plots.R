@@ -168,32 +168,123 @@ plot_spatial_meta <- function(seu, meta_column = "pseudotime", point_size = 0.6,
   pl
 }
 
-plot_spatial_selection_genes <- function(seu, genes, x1, x2, y1, y2) {
-  ex <- get_gene_expression(seu, genes)
-  xy <- get_spatial_coordinates(seu) |> 
-    filter(x >= x1 & x <= x2 & y >= y1 & y <= y2)
-  corners <- get_resolution_grid(xy)
-  d <- inner_join(corners, ex, by = "cell_id", relationship = "many-to-many") 
+percentiles_no_zeroes <- function(df, percentile) {
+  df |> 
+    mutate(
+      prc = if_else(expression == 0, NA, expression),
+      prc = rank(prc, na.last = "keep") / length(na.omit(prc)),
+      prc = replace_na(prc, 0), 
+      val = case_when(
+        prc == 0 ~ 0,
+        prc < percentile ~ 1,
+        prc >= percentile ~ 2
+      ) |> as.factor()
+    )
+}
 
-  d |> 
-    ggplot(aes(x = x_corner, y = y_corner, group = cell_id, fill = expression)) +
+plot_spatial_selection_genes <- function(seu, genes, box = list(x1 = -Inf, x2 = Inf, y1 = -Inf, y2 = Inf), percentile = NULL, spots = NULL, ncol = 2) {
+  ex <- get_gene_expression(seu, genes) |> 
+    mutate(val = expression)
+  if(!is.null(percentile)) {
+    # percentiles, but ignore zeroes
+    ex <- ex |> 
+      group_by(gene_symbol) |>
+      percentiles_no_zeroes(percentile) |> 
+      ungroup()
+  }
+
+  xy <- get_spatial_coordinates(seu) |> 
+    filter(x >= box$x1 & x <= box$x2 & y >= box$y1 & y <= box$y2)
+  corners <- get_resolution_grid(xy)
+  d <- inner_join(corners, ex, by = "cell_id", relationship = "many-to-many")
+
+  pl <- d |> 
+    ggplot() +
+    thm +
+    geom_polygon(aes(x = x_corner, y = y_corner, group = cell_id, fill = val), colour = NA, linewidth = 0) +
+    labs(x = NULL, y = NULL, fill = "Expression") +
+    facet_wrap(~gene_symbol, ncol = ncol)
+
+  if(is.null(percentile)) {
+    pl <- pl + scale_fill_viridis_c(option = "cividis")
+  } else {
+    pl <- pl + scale_fill_manual(values = c("beige", "darkseagreen", "black")) +
+      theme(legend.position = "none")
+  }
+
+  r <- 20
+  a <- 2 * pi * seq(1, 30) / 29
+  if(!is.null(spots)) {
+    sp <- spots |> 
+      mutate(idx = row_number()) |> 
+      group_split(idx) |> 
+      map(function(w) {
+        tibble(
+          idx = w$idx,
+          fx = w$x + r * cos(a),
+          fy = w$y + r * sin(a)
+        )
+      }) |> 
+      list_rbind()
+    pl <- pl +
+      geom_path(data = sp, aes(x = fx, y = fy, group = idx), colour = "red", linewidth = 0.5, alpha = 0.7)
+  }
+  pl
+}
+
+animate_spatial_genes <- function(seu, genes, box = list(x1 = -Inf, x2 = Inf, y1 = -Inf, y2 = Inf), percentile = NULL,
+                                      transition_length = 1) {
+  ex <- get_gene_expression(seu, genes) |> 
+    mutate(val = expression)
+  if(!is.null(percentile)) {
+    # percentiles, but ignore zeroes
+    ex <- ex |> 
+      group_by(gene_symbol) |>
+      percentiles_no_zeroes(percentile) |> 
+      ungroup()
+  }
+
+  xy <- get_spatial_coordinates(seu) |> 
+    filter(x >= box$x1 & x <= box$x2 & y >= box$y1 & y <= box$y2)
+  corners <- get_resolution_grid(xy)
+  d <- inner_join(corners, ex, by = "cell_id", relationship = "many-to-many") |> 
+    mutate(gene_symbol = factor(gene_symbol, levels = genes))
+
+  pl <- d |> 
+    ggplot(aes(x = x_corner, y = y_corner, group = cell_id, fill = val)) +
     thm +
     geom_polygon(colour = NA, linewidth = 0) +
     labs(x = NULL, y = NULL, fill = "Expression") +
-    facet_wrap(~gene_symbol) +
-    scale_fill_viridis_c(option = "cividis")
+    theme(legend.position = "none") +
+    labs(title = "{closest_state}") +
+    gganimate::transition_states(gene_symbol, transition_length = transition_length)
+
+    if(is.null(percentile)) {
+    pl <- pl + scale_fill_viridis_c(option = "cividis")
+  } else {
+    pl <- pl + scale_fill_manual(values = c("beige", "darkseagreen", "black")) +
+      theme(legend.position = "none")
+  }
+
+  sgenes <- str_c(genes, collapse = "_")
+  fname <- str_glue("spatial_{sgenes}.gif")
+  gganimate::anim_save(fname, pl, path = file.path("doc", "images"))
 }
 
-plot_spatial_selection_meta <- function(seu, meta_column = "cell_type", x1, x2, y1, y2) {
+  
+
+
+
+plot_spatial_selection_meta <- function(seu, meta_column = "cell_type", box = list(x1 = -Inf, x2 = Inf, y1 = -Inf, y2 = Inf)) {
   mt <- get_cell_data(seu) |> 
     mutate(val = seu@meta.data[[meta_column]]) |> 
     select(cell_id, val)
   xy <- get_spatial_coordinates(seu) |> 
-    filter(x >= x1 & x <= x2 & y >= y1 & y <= y2)
+    filter(x >= box$x1 & x <= box$x2 & y >= box$y1 & y <= box$y2)
   corners <- get_resolution_grid(xy)
   d <- inner_join(corners, mt, by = "cell_id", relationship = "many-to-many") 
 
-  pal <- c(okabe_ito_palette[c(4, 1, 8, 5, 2, 3, 7, 9)], "darkgreen", "lightgreen", "red", "brown", "magenta", grey(0.95))
+  pal <- c(okabe_ito_palette[c(4, 1, 8, 5, 2, 3, 6, 7, 9)], "darkgreen", "lightgreen", "red", "brown", "magenta", grey(0.95))
   d |> 
     ggplot(aes(x = x_corner, y = y_corner, group = cell_id, fill = val)) +
     thm +
@@ -1038,7 +1129,8 @@ get_resolution_grid <- function(res_comp) {
   }) |> 
     list_rbind() |> 
     group_by(centre_id) |>     
-    arrange(cell_id, corner_idx)
+    arrange(cell_id, corner_idx) |> 
+    ungroup()
 }
 
 
@@ -1052,4 +1144,40 @@ plot_cluster_cell_type_overlap <- function(seu, ct = "Unknown") {
     geom_col() +
     scale_y_continuous(expand = expansion(mult = c(0, 0.03))) +
     labs(x = "Cluster", y = "Proporion of spots in cluster", title = ct)
+}
+
+plot_binned_xy_expression <- function(seu, gene_x, genes_y, bins = 6, exclude_zeroes = FALSE) {
+  gx <- get_gene_expression(seu, gene_x)
+  g1 <- gx |> 
+    filter(expression > 0) |> 
+    mutate(bin = cut_interval(expression, n = bins) |> fct_expand("0", after = 0))
+  g0 <- gx |> 
+    filter(expression == 0) |> 
+    mutate(bin = factor("0", levels = levels(g1$bin)))
+  if(exclude_zeroes) {
+    gb <- g1
+  } else {
+    gb <- bind_rows(g0, g1)
+  }
+
+  gb <- gb |> 
+    select(cell_id, bin)
+
+  get_gene_expression(seu, genes_y) |> 
+    mutate(gene_symbol = factor(gene_symbol, levels = genes_y)) |> 
+    inner_join(gb, by = "cell_id")  |> 
+    group_by(gene_symbol, bin) |> 
+    summarise(
+      m = mean(expression),
+      se = sd(expression) / sqrt(n()),
+      n = n()
+    ) |> 
+    ggplot(aes(x = bin, y = m, ymin = m - se, ymax = m + se)) +
+    th +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.6)) +
+    geom_errorbar(width = 0, colour = "grey70") +
+    geom_point() +
+    facet_wrap(~gene_symbol) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.04))) +
+    labs(x = str_glue("{gene_x} expression bin"), y = "Mean expression")
 }

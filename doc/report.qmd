@@ -602,7 +602,7 @@ It would be nice to know how important marker genes, in particular pancreatic ho
 
 ```{r, out.width="100%"}
 #| label: fig-spatial-selection-hormones
-#| fig-cap: Normalised expression of four hormones in the central region of the slide. Clumps of expressing cells are visible.
+#| fig-cap: Normalised expression of four hormones in the central region of the slide. Red circles indicate spots with insulin expression peaks.
 knitr::include_graphics("images/spatial_selection_hormones.png")
 ```
 
@@ -611,6 +611,34 @@ knitr::include_graphics("images/spatial_selection_hormones.png")
 #| fig-cap: Cell type identification for the same region as above.
 knitr::include_graphics("images/spatial_selection_cell_type.png")
 ```
+
+
+
+
+```{r, out.width="60%"}
+#| label: fig-spatial-ins-gcg
+#| fig-cap: Morphing between INS and GCG expression.
+knitr::include_graphics("images/spatial_INS_GCG.gif")
+```
+
+```{r, out.width="60%"}
+#| label: fig-spatial-ins-sst
+#| fig-cap: Morphing between INS and SST expression.
+knitr::include_graphics("images/spatial_INS_SST.gif")
+```
+
+```{r, out.width="60%"}
+#| label: fig-spatial-ins-ghrl
+#| fig-cap: Morphing between INS and GHRL expression.
+knitr::include_graphics("images/spatial_INS_GHRL.gif")
+```
+
+```{r, out.width="60%"}
+#| label: fig-spatial-sox9-neurog3-ins
+#| fig-cap: Morphing between MPC genes, EP genes and insulin. The transition between NEUROG3 and INS preserves shape.
+knitr::include_graphics("images/spatial_PTF1A_PDX1_SOX9_PAX4_NEUROD1_NEUROG3_INS.gif")
+```
+
 
 ### Cell type DE genes
 

@@ -208,8 +208,16 @@ targets_8um <- function() {
     png_section_ins_gcg = plot_spatial_section(seu_1, "INS", "GCG", sct_1) |> gs("spatial_section_ins_gcg", width = 8, height = 8),
     png_section_ins_ghrl = plot_spatial_section(seu_1, "INS", "GHRL", sct_1) |> gs("spatial_section_ins_ghrl", width = 8, height = 8),
 
-    png_spatial_selection_genes = plot_spatial_selection_genes(seu_1, c("INS", "SST", "GCG", "GHRL"), 4700, 5500, -5000, -3800) |> gs("spatial_selection_hormones", width = 8, height = 8),
-    png_spatial_selection_meta = plot_spatial_selection_meta(seu_mark_1, "cell_type", 4700, 5500, -5000, -3800) |> gs("spatial_selection_cell_type", width = 5, height = 4),
+    box_1 = list(x1 = 4300, x2 = 5600, y1 = -5300, y2 = -3600),
+    ins_spots = read_sx_sy("info/insulin_spots.csv", seu_1),
+    png_spatial_selection_genes = plot_spatial_selection_genes(seu_1, c("SOX9", "NEUROG3", "INS", "SST", "GCG", "GHRL"), box_1, spots = ins_spots) |> gs("spatial_selection_hormones", width = 8, height = 12),
+    png_spatial_selection_meta = plot_spatial_selection_meta(seu_mark_1, "cell_type", box_1) |> gs("spatial_selection_cell_type", width = 5, height = 4),
+
+    gif_spatial_ins_gcg = animate_spatial_genes(seu_1, c("INS", "GCG"), box_1),
+    gif_spatial_ins_sst = animate_spatial_genes(seu_1, c("INS", "SST"), box_1),
+    gif_spatial_ins_ghrl = animate_spatial_genes(seu_1, c("INS", "GHRL"), box_1),
+    gif_spatial_sox9_neurog3_ins = animate_spatial_genes(seu_1, c("SOX9", "NEUROG3", "INS"), box_1),
+    gif_spatial_full = animate_spatial_genes(seu_1, c("PTF1A", "PDX1", "SOX9", "PAX4", "NEUROD1", "NEUROG3", "INS"), box_1),
 
     seu_2um = load_visium_data(EXPERIMENTS$DATA_PATH[1], mito_genes, bin_size = 2),
     box_coords = list(x = 5154, y = -4196, size = 28),
