@@ -1146,7 +1146,7 @@ plot_cluster_cell_type_overlap <- function(seu, ct = "Unknown") {
     labs(x = "Cluster", y = "Proporion of spots in cluster", title = ct)
 }
 
-plot_binned_xy_expression <- function(seu, gene_x, genes_y, bins = 6, exclude_zeroes = FALSE) {
+plot_binned_xy_expression <- function(seu, gene_x, genes_y, what = "expression", bins = 6, exclude_zeroes = FALSE) {
   env <- new.env(parent = globalenv())
   env$gene_x <- gene_x
 
@@ -1166,25 +1166,44 @@ plot_binned_xy_expression <- function(seu, gene_x, genes_y, bins = 6, exclude_ze
   gb <- gb |> 
     select(cell_id, bin)
 
-  env$d <- get_gene_expression(seu, genes_y) |> 
+  d <- get_gene_expression(seu, genes_y) |> 
     mutate(gene_symbol = factor(gene_symbol, levels = genes_y)) |> 
     inner_join(gb, by = "cell_id")  |> 
     group_by(gene_symbol, bin) |> 
     summarise(
+      n_tot = n(),
       m = mean(expression),
-      se = sd(expression) / sqrt(n())
-    )
+      se = sd(expression) / sqrt(n()),
+      ci = se * qt(0.975, n_tot - 1),
+      n_expr = length(which(expression > 0)),
+      prop = n_expr / n_tot
+    ) |> 
+    ungroup() |> 
+    nest(data = c(n_expr, n_tot)) |>
+    mutate(res = purrr::map(data, ~PropCIs::exactci(.x$n_expr, .x$n_tot, conf.level = 0.95) |> broom::glance())) |>
+    unnest(c(data, res))
+
+  if(what == "expression") {
+    env$d <- d |> 
+      mutate(ymin = m - ci, ymax = m + ci) |> 
+      select(gene_symbol, bin, y = m, ymin, ymax)
+    env$ylab <- "Mean expression"
+  } else {
+    env$d <- d |> 
+      select(gene_symbol, bin, y = prop, ymin = conf.low, ymax = conf.high)
+    env$ylab <- "Proportion expressed"
+  }
   
   with(env, {
     d |> 
-      ggplot(aes(x = bin, y = m, ymin = m - se, ymax = m + se)) +
+      ggplot(aes(x = bin, y = y, ymin = ymin, ymax = ymax)) +
       th +
       theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.6)) +
       geom_errorbar(width = 0, colour = "grey70") +
       geom_point() +
-      facet_wrap(~gene_symbol) +
-      scale_y_continuous(expand = expansion(mult = c(0, 0.04))) +
-      labs(x = str_glue("{gene_x} expression bin"), y = "Mean expression")
+      facet_wrap(~gene_symbol, scales = "free_y") +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.04)), limits = c(0, NA)) +
+      labs(x = str_glue("{gene_x} expression bin"), y = ylab)
   })
     
 }
