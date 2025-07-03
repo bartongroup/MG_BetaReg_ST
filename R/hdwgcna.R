@@ -40,21 +40,26 @@ hd_wgcna_analysis <- function(seu, sample, wgcna_name = "wgcna", group_var = "cl
 
 plot_modules_expr_score <- function(seu, n_genes = "all", point_size = 0.4, ncol = 2) {
   library(UCell)
-  # Spatial coordinates of individual cells
-  spat <- seu@reductions$spatial@cell.embeddings |> 
-    as_tibble(rownames = "cell_id")
-  seu |> 
+
+  xy <- get_spatial_coordinates(seu)
+  corners <- get_resolution_grid(xy)
+  
+  ex <-  seu |> 
     hdWGCNA::ModuleExprScore(n_genes = n_genes, method = "UCell", ncores = 8) |>    # this is a bit slow
     hdWGCNA::GetModuleScores() |>
-    as_tibble(rownames = "cell_id") |> 
-    inner_join(spat, by = "cell_id") |> 
-    pivot_longer(-c(cell_id, spatial_1, spatial_2), names_to = "module") |> 
-    ggplot(aes(x = spatial_2, y = -spatial_1, colour = value)) +
+    as_tibble(rownames = "cell_id")
+
+  d <- inner_join(corners, ex, by = "cell_id") |> 
+    select(-c(centre_id, x, y, corner_idx)) |>
+    pivot_longer(-c(cell_id, x_corner, y_corner), names_to = "module") 
+
+  d |> 
+    ggplot() +
     thm +
-    geom_point(size = point_size, stroke = 0.1, shape = 15) +
-    scale_colour_distiller(palette = "Blues", direction = 1) +
+    geom_polygon(aes(x = x_corner, y = y_corner, group = cell_id, fill = value), colour = NA, linewidth = 0) +
     facet_wrap(~ module, ncol = ncol) +
-    labs(x = NULL, y = NULL, colour = "Expr score")
+    labs(x = NULL, y = NULL, fill = "Expr score") +
+    scale_fill_distiller(palette = "Purples", direction = 1)
 }
 
 plot_modules_spatial <- function(seu, features = "hMEs", point_size = 0.4, ncol = 2) {

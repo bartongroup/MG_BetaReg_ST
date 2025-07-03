@@ -49,8 +49,8 @@ targets_8um <- function() {
       png_xy_marker_mpc_beta = plot_gene_vs_gene(seu, goi$tissue_markers_positive$MPC, goi$tissue_markers_positive$Beta, group_sel = c(2, 6)) |> gs("xy_marker_mpc_beta", NAME, 6, 5),
 
       genes_for_binned = c("PTF1A", "PDX1", "NKX6-1", "SOX9", "PAX4", "PAX6", "NKX2-2", "NEUROD1", "NEUROG3", "GCG", "SST", "GHRL"),
-      fig_binned_ins_expression_exp = plot_binned_xy_expression(seu, "INS", genes_for_binned, bins = 10, exclude_zeroes = TRUE, what = "expression"),
-      fig_binned_ins_expression_prop = plot_binned_xy_expression(seu, "INS", genes_for_binned, bins = 10, exclude_zeroes = TRUE, what = "proportion"),
+      fig_binned_ins_expression_exp = plot_binned_xy_expression(seu, "INS", genes_for_binned, bins = 6, what = "expression"),
+      fig_binned_ins_expression_prop = plot_binned_xy_expression(seu, "INS", genes_for_binned, bins = 6, what = "proportion"),
 
       # Cell types
       png_cell_type_scores = plot_cell_type_scores(seu_mark, tissue_markers) |> gs("cell_type_scores", NAME, 8, 22),
@@ -59,7 +59,7 @@ targets_8um <- function() {
       fig_dots_cell_type = plot_gene_dots(seu_mark, unique(tissue_markers$gene_symbol), meta_column = "cell_type"),
       tbl_cell_type_count = cell_type_count(seu_mark),
       tbl_expr_pct = get_expression_percentage(seu_mark, unique(tissue_markers$gene_symbol), meta_column = "cell_type"),
-      png_dif_spatial = plot_spatial_differences(seu_mark, pairs = list(c("EP", "MPC"), c("Beta", "MPC"), c("Beta", "Alpha"), c("Beta", "Delta"), c("Beta", "Epsilon")), point_size = 0.85) |> gs("dif_spatial", NAME, 8, 30),
+      png_dif_spatial = plot_spatial_differences(seu_mark, pairs = list(c("EP", "MPC"), c("Beta", "MPC"), c("Beta", "EP"), c("Beta", "Alpha"), c("Beta", "Delta"), c("Beta", "Epsilon"))) |> gs("dif_spatial", NAME, 8, 36),
       cell_type_markers = find_group_markers(seu_mark, group_by = "cell_type"),
       png_cell_type_marker_dots = plot_cell_type_marker_dots(seu_mark, cell_type_markers) |> gs("cell_type_marker_dots", NAME, 8, 35),
       cell_type_markers_sel = cell_type_markers |> dplyr::filter(p_val_adj < 0.01 & avg_log2FC > 1),
@@ -84,7 +84,7 @@ targets_8um <- function() {
 
 
       # Insulin pathway
-      png_ins_path = plot_expression(seu, goi$insulin_signalling_pathway, umap_point_size = 0.5, spatial_point_size = 0.5) |> gs("insulin_path", NAME, 7, 48),
+      png_ins_path = plot_expression(seu, goi$insulin_signalling_pathway, umap_point_size = 0.5) |> gs("insulin_path", NAME, 7, 48),
       png_ins_path_expr = plot_gene_expression(seu, goi$insulin_signalling_pathway, meta_column = "cell_type") |> gs("insulin_path_expr", NAME, 8, 12),
       fig_dots_ins_path = plot_gene_dots(seu, goi$insulin_signalling_pathway, meta_column = "cell_type"),
 
@@ -127,7 +127,7 @@ targets_8um <- function() {
       png_module_dendro = plot_hdwgcna_dendrogram(seu_hdwgcna, NAME),
       fig_metacells_spatial = plot_metacells_spatial(seu_hdwgcna),
       png_modules_spatial = plot_modules_spatial(seu_hdwgcna) |> gs("modules_spatial", NAME, 8, 13),
-      png_modules_expr_score = plot_modules_expr_score(seu_hdwgcna, n_genes = "all") |> gs("modules_score", NAME, 8, 13),
+      png_modules_expr_score = plot_modules_expr_score(seu_hdwgcna, n_genes = "all") |> gs("modules_score", NAME, 8, 20),
       igr_hub_gene_network = plot_hub_gene_network(seu_hdwgcna, n_hubs = 12),
       tbl_modules = get_modules(seu_hdwgcna),
       tbl_hub_genes = get_hub_genes(seu_hdwgcna),
@@ -166,8 +166,8 @@ targets_8um <- function() {
         add_pseudotime(pseudo_time_delta, colname = "pseudotime_delta") |> 
         add_pseudotime(pseudo_time_cl26, colname = "pseudotime_cl26"),
       png_spatial_pt = cowplot::plot_grid(
-        plot_spatial_meta(seu_mark_pt, meta_column = "pseudotime_beta", point_size = 0.8),
-        plot_spatial_meta(seu_mark_pt, meta_column = "pseudotime_delta", point_size = 0.8),
+        plot_spatial_meta(seu_mark_pt, meta_column = "pseudotime_beta"),
+        plot_spatial_meta(seu_mark_pt, meta_column = "pseudotime_delta"),
         ncol = 1, labels = c("Beta", "Delta")
       ) |> gs("spatial_pt", NAME, 8, 12),
 
@@ -220,7 +220,8 @@ targets_8um <- function() {
     gif_spatial_ins_gcg = animate_spatial_genes(seu_1, c("INS", "GCG"), box_1),
     gif_spatial_ins_sst = animate_spatial_genes(seu_1, c("INS", "SST"), box_1),
     gif_spatial_ins_ghrl = animate_spatial_genes(seu_1, c("INS", "GHRL"), box_1),
-    gif_spatial_sox9_neurog3_ins = animate_spatial_genes(seu_1, c("SOX9", "NEUROG3", "INS"), box_1),
+    gif_spatial_hormones = animate_spatial_genes(seu_1, c("INS", "GCG", "SST", "GHRL", "PPY"), box_1),
+    gif_spatial_neurog3_ins = animate_spatial_genes(seu_1, c("NEUROG3", "INS"), box_1),
     gif_spatial_full = animate_spatial_genes(seu_1, c("PTF1A", "PDX1", "SOX9", "PAX4", "NEUROD1", "NEUROG3", "INS"), box_1),
 
     seu_2um = load_visium_data(EXPERIMENTS$DATA_PATH[1], mito_genes, bin_size = 2),

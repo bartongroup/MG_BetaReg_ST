@@ -5,11 +5,13 @@ th <- ggplot2::theme_bw() +
     panel.grid = ggplot2::element_blank()
   )
 
+
 thm <- th +
   ggplot2::theme(
     axis.text = ggplot2::element_blank(),
     axis.ticks = ggplot2::element_blank()
   )
+
 
 gs <- function(gg, name, sample = NULL, width, height, dpi = 240) {
   if(is.null(sample)) {
@@ -21,6 +23,7 @@ gs <- function(gg, name, sample = NULL, width, height, dpi = 240) {
   ggsave(filename = fname, plot = gg, device = "png", limitsize = FALSE,
          width = width, height = height, dpi = dpi)
 }
+
 
 rs <- function(gg, name, sample = NULL) {
   if(is.null(sample)) {
@@ -41,6 +44,7 @@ scientific_10 <- function(x) {
   )
 }
 
+
 make_table_cuts <- function(params) {
   tribble(
     ~Group, ~Quantity, ~Limit,
@@ -50,6 +54,7 @@ make_table_cuts <- function(params) {
     "Per gene", "Number of cells a gene is detected in", str_c(">", params$min_detections_per_gene)
   )
 }
+
 
 plot_cell_marginals <- function(cell_data, params = NULL, with_vlines = TRUE) {
   pl_ <- function(what, xlab, log_scale = TRUE) {
@@ -100,9 +105,9 @@ plot_gene_detections <- function(gene_detection, max_det = 8) {
     facet_wrap(~group) +
     scale_fill_manual(values = okabe_ito_palette) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
-    labs(x = "Number of detections", y = "Number of genes")
-  
+    labs(x = "Number of detections", y = "Number of genes") 
 }
+
 
 plot_count_det <- function(cell_data, params = NULL, with_lines = TRUE) {
   pl <- cell_data |> 
@@ -118,9 +123,9 @@ plot_count_det <- function(cell_data, params = NULL, with_lines = TRUE) {
       geom_hline(yintercept = params$min_detected_genes_per_cell, linetype = "dotted") +
       geom_vline(xintercept = params$min_counts_per_cell, linetype = "dotted")
   }
-    
   return(pl)
 }
+
 
 plot_all_counts <- function(cell_data_all, gene_detection_all) {
   env <- new.env(parent = globalenv())
@@ -151,22 +156,30 @@ plot_all_counts <- function(cell_data_all, gene_detection_all) {
   })
 }
 
-plot_spatial_meta <- function(seu, meta_column = "pseudotime", point_size = 0.6, palette = "viridis") {
-  d <- get_spatial_coordinates(seu) |> 
+
+plot_spatial_meta <- function(seu, meta_column = "pseudotime", palette = "viridis") {
+  xy <- get_spatial_coordinates(seu) |> 
     mutate(val = seu@meta.data[[meta_column]])
+  corners <- get_resolution_grid(xy)
+  ex <- seu@meta.data |> 
+    as_tibble(rownames = "cell_id") |> 
+    mutate(val = get(meta_column)) |> 
+    select(cell_id, val)
+  d <- inner_join(ex, corners, by = "cell_id")
   mx <- max(abs(d$val))
   pl <-  d |> 
-  ggplot(aes(x = x, y = y, colour = val)) +
+  ggplot(aes(x = x_corner, y = y_corner, fill = val)) +
     thm +
-    geom_point(size = point_size, shape = 15, stroke = 0.1) +
-    labs(x = NULL, y = NULL, colour = meta_column)
+    geom_polygon(aes(x = x_corner, y = y_corner, group = cell_id, fill = val), colour = NA, linewidth = 0) +
+    labs(x = NULL, y = NULL, fill = meta_column)
   if(palette == "viridis") {
-    pl <- pl + scale_colour_viridis_c(option = "cividis")
+    pl <- pl + scale_fill_viridis_c(option = "cividis")
   } else if(palette == "divergent") {
-    pl <- pl + scale_colour_distiller(type = "div", palette = "RdBu", limits = c(-mx, mx))
+    pl <- pl + scale_fill_distiller(type = "div", palette = "RdBu", limits = c(-mx, mx))
   }
   pl
 }
+
 
 percentiles_no_zeroes <- function(df, percentile) {
   df |> 
@@ -181,6 +194,7 @@ percentiles_no_zeroes <- function(df, percentile) {
       ) |> as.factor()
     )
 }
+
 
 plot_spatial_selection_genes <- function(seu, genes, box = list(x1 = -Inf, x2 = Inf, y1 = -Inf, y2 = Inf), percentile = NULL, spots = NULL, ncol = 2) {
   ex <- get_gene_expression(seu, genes) |> 
@@ -232,6 +246,7 @@ plot_spatial_selection_genes <- function(seu, genes, box = list(x1 = -Inf, x2 = 
   pl
 }
 
+
 animate_spatial_genes <- function(seu, genes, box = list(x1 = -Inf, x2 = Inf, y1 = -Inf, y2 = Inf), percentile = NULL,
                                       transition_length = 1) {
   ex <- get_gene_expression(seu, genes) |> 
@@ -272,9 +287,6 @@ animate_spatial_genes <- function(seu, genes, box = list(x1 = -Inf, x2 = Inf, y1
 }
 
   
-
-
-
 plot_spatial_selection_meta <- function(seu, meta_column = "cell_type", box = list(x1 = -Inf, x2 = Inf, y1 = -Inf, y2 = Inf)) {
   mt <- get_cell_data(seu) |> 
     mutate(val = seu@meta.data[[meta_column]]) |> 
@@ -425,8 +437,6 @@ plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap
         }
   
     }
-
-
   }
 
   if(!with_legend)
@@ -436,12 +446,12 @@ plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap
 }
 
 
-plot_resolutions <- function(seu, resolutions, umap_point_size = 0.2, spatial_point_size = 0.4, label_size = 5) {
+plot_resolutions <- function(seu, resolutions, umap_point_size = 0.2, label_size = 5) {
 
   pl <- map(resolutions, function(res) {
 
     pl1 <- plot_one_xy(seu, resolution = res, point_size = umap_point_size, what = "umap")
-    pl2 <- plot_one_xy(seu, resolution = res, point_size = spatial_point_size, what = "spatial")
+    pl2 <- plot_one_xy(seu, resolution = res, what = "spatial")
     plot_grid(pl1, pl2, nrow = 1, rel_widths = c(1, 1))
   })
 
@@ -450,21 +460,21 @@ plot_resolutions <- function(seu, resolutions, umap_point_size = 0.2, spatial_po
 }
 
 
-plot_cell_type <- function(seu, umap_point_size = 0.3, spatial_point_size = 0.6, label_size = 3) {
+plot_cell_type <- function(seu, umap_point_size = 0.3, label_size = 3) {
 
   pal <- c(okabe_ito_palette[c(4, 1, 8, 5, 2, 3, 6, 7, 9)], "darkgreen", "lightgreen", "red", "brown", "magenta", grey(0.95))
   pl1 <- plot_one_xy(seu, point_size = umap_point_size, label_size = label_size, what = "umap", meta_column = "cell_type", discrete_palette = pal, with_legend = FALSE)
-  pl2 <- plot_one_xy(seu, point_size = spatial_point_size, label_size = label_size, what = "spatial", meta_column = "cell_type", discrete_palette = pal, with_legend = TRUE) + guides(colour = guide_legend(override.aes = list(size = 3)))
+  pl2 <- plot_one_xy(seu, label_size = label_size, what = "spatial", meta_column = "cell_type", discrete_palette = pal, with_legend = TRUE) + guides(colour = guide_legend(override.aes = list(size = 3)))
   plot_grid(pl1, pl2, nrow = 1, rel_widths = c(1, 1.4))
 
 }
 
 
-plot_expression <- function(seu, genes, umap_point_size = 0.1, spatial_point_size = 0.2, label_size = 5, grid_label_size = 10, combine_genes = FALSE) {
+plot_expression <- function(seu, genes, umap_point_size = 0.1, label_size = 5, grid_label_size = 10, combine_genes = FALSE) {
 
   plot_side_by_side <- function(gn) {
     pl1 <- plot_one_xy(seu, genes = gn, point_size = umap_point_size, what = "umap", combine_genes = combine_genes, label_size = label_size)
-    pl2 <- plot_one_xy(seu, genes = gn, point_size = spatial_point_size, what = "spatial", combine_genes = combine_genes, label_size = label_size)
+    pl2 <- plot_one_xy(seu, genes = gn, what = "spatial", combine_genes = combine_genes, label_size = label_size)
     plot_grid(pl1, pl2, nrow = 1, rel_widths = c(1, 1))
   }
 
@@ -519,8 +529,6 @@ plot_gene_expression <- function(seu, gids, layer = "data", meta_column = "clust
   
   env$d <- env$d |> 
     filter(value > 0)
-  
-  
   
   env$wid <- 0.3
   with(env, {
@@ -578,9 +586,7 @@ plot_gene_dots <- function(seu, gns, meta_column = "cluster", with_legend = TRUE
   env$meta_column <- meta_column
   env$with_legend <- with_legend
   env$title <- title
-
   Idents(seu) <- meta_column
-  
   dp <- DotPlot(seu, features = gns)
   env$d <- dp$data |> 
     as_tibble(rownames = "gene_symbol")
@@ -601,6 +607,7 @@ plot_gene_dots <- function(seu, gns, meta_column = "cluster", with_legend = TRUE
   })
 }
 
+
 plot_cell_type_marker_dots <- function(seu, cell_type_markers, n_top = 30) {
   cell_types <- cell_type_markers$cluster |> unique() |> as.character()
   pl <- map(cell_types, function(ct) {
@@ -617,7 +624,7 @@ plot_cell_type_marker_dots <- function(seu, cell_type_markers, n_top = 30) {
 
 
 plot_png_expression_genes <- function(seu, genes, file_name, width = 8) {
-  plot_expression(seu, genes, spatial_point_size = 0.4, umap_point_size = 0.4, grid_label_size = 10) |> 
+  plot_expression(seu, genes, umap_point_size = 0.4, grid_label_size = 10) |> 
     gs(file_name, width = width, height = 4 * length(genes))
 }
 
@@ -639,6 +646,7 @@ plot_key_markers_umap_spatial <- function(seu, key_markers, file_prefix, width =
     plot_png_expression_genes(seu, gns, gname, width)
   }) 
 }
+
 
 plot_top_cluster_umap_spatial <- function(seu, top_cluster_markers, file_prefix = "top_clust_gene") {
   
@@ -682,6 +690,7 @@ plot_cor_heat <- function(tbl_cor, fdr_limit = 0.01, min_cor = NULL, n_top = NUL
   })
   #ggheatmap(tab, palette = "distiller", with.y.text = TRUE, legend.name = "Correlation")
 }
+
 
 plot_gene_vs_gene <- function(seu, genes1, genes2, group_var = "cluster", group_sel = NULL, point_size = 0.5) {
 
@@ -761,6 +770,7 @@ make_list_for_upset <- function(mex) {
     set_names(groups)
 }
 
+
 make_combmat_for_upset <- function(mex, ...) {
   mex |> 
     make_list_for_upset() |> 
@@ -800,8 +810,6 @@ plot_expression_pseudotime <- function(seu, gids, pt_column = "pseudotime_beta",
 }
 
 
-
-
 plot_volma <- function(res, group_var, point_size, point_alpha) {
   r <- res |>
     mutate(
@@ -830,6 +838,7 @@ plot_volma <- function(res, group_var, point_size, point_alpha) {
   g
 }
 
+
 plot_ma <- function(res, a = "AveExpr", fc = "logFC", p = "PValue", fdr = "FDR", group_var = "contrast",
                     fdr_limit = 0.05, point_size = 0.5, point_alpha = 0.5) {
   res |>
@@ -842,6 +851,7 @@ plot_ma <- function(res, a = "AveExpr", fc = "logFC", p = "PValue", fdr = "FDR",
     geom_hline(yintercept = 0, linewidth = 0.1, alpha = 0.5) +
     labs(x = expression(log[10]~Intensity), y = expression(log[2]~FC))
 }
+
 
 plot_volcano <- function(res, fc = "avg_log2FC", p = "p_val", fdr = "p_val_adj", group_var = "contrast",
                          fdr_limit = 0.05, point_size = 0.5, point_alpha = 0.5) {
@@ -859,6 +869,7 @@ plot_volcano <- function(res, fc = "avg_log2FC", p = "p_val", fdr = "p_val_adj",
     scale_y_continuous(expand = expansion(mult = c(0, 0.03)))
 }
 
+
 plot_pdist <- function(res, p = "PValue", group_var = "contrast", n_bins = 50) {
   brks <- seq(0, 1, length.out = n_bins)
   r <- res |>
@@ -873,6 +884,7 @@ plot_pdist <- function(res, p = "PValue", group_var = "contrast", n_bins = 50) {
     facet_wrap(~grp)
 }
 
+
 plot_vmp <- function(res, a = "AveExpr", fc = "logFC", p = "PValue", fdr = "FDR", group = "contrast",
                      fdr_limit = 0.05, point_size = 0.5, point_alpha = 0.5, n_bins = 50){
   list(
@@ -881,6 +893,7 @@ plot_vmp <- function(res, a = "AveExpr", fc = "logFC", p = "PValue", fdr = "FDR"
     pdist = plot_pdist(res, p, group, n_bins)
   )
 }
+
 
 plot_cell_type_scores <- function(seu, tissue_markers, point_size = 0.4) {
   cell_types <- tissue_markers$cell_type |> unique()
@@ -892,11 +905,12 @@ plot_cell_type_scores <- function(seu, tissue_markers, point_size = 0.4) {
 }
 
 
-plot_gene_overlap <- function(seu, gene_1, gene_2, section = NULL, point_size = 0.6) {
+plot_gene_overlap <- function(seu, gene_1, gene_2, section = NULL) {
   only_1 <- str_glue("{gene_1} only")
   only_2 <- str_glue("{gene_2} only")
 
   xy <- get_spatial_coordinates(seu)
+  corners <- get_resolution_grid(xy)
   ex <- get_gene_expression(seu, c(gene_1, gene_2), layer = "count") |> 
     pivot_wider(id_cols = cell_id, names_from = gene_symbol, values_from = expression) |> 
     rename(g1 := !!gene_1, g2 := !!gene_2) |> 
@@ -909,12 +923,12 @@ plot_gene_overlap <- function(seu, gene_1, gene_2, section = NULL, point_size = 
       ) |> 
         factor(levels = c(only_1, only_2, "Both", "None"))
     )
-  
-  pl <- inner_join(xy, ex, by = "cell_id") |> 
-    ggplot(aes(x = x, y = y, colour = state)) +
+    
+  pl <- inner_join(corners, ex, by = "cell_id") |> 
+    ggplot(aes(x = x_corner, y = y_corner)) +
     thm +
-    geom_point(size = point_size, shape = 15, stroke = 0.1) +
-    scale_colour_manual(values = c(okabe_ito_palette[c(2, 3, 1)], "grey90")) +
+    geom_polygon(aes(group = cell_id, fill = state), colour = NA, linewidth = 0) +
+    scale_fill_manual(values = c(okabe_ito_palette[c(2, 3, 1)], "grey90")) +
     guides(color = guide_legend(override.aes = list(size = 3))) +
     labs(x = NULL, y = NULL, colour = "Gene expression")
 
@@ -973,17 +987,19 @@ plot_expression_section <- function(seu, gene_1, gene_2, section, layer = "data"
   pl
 }
 
-plot_spatial_section <- function(seu, gene_1, gene_2, section, point_size = 0.8, layer = "count", slice = "slice1.008um") {
-  pl1 <- plot_gene_overlap(seu, gene_1, gene_2, section, point_size)
+
+plot_spatial_section <- function(seu, gene_1, gene_2, section, layer = "count", slice = "slice1.008um") {
+  pl1 <- plot_gene_overlap(seu, gene_1, gene_2, section)
   pl2 <- plot_expression_section(seu, gene_1, gene_2, section, layer = layer, slice = slice)
 
   plot_grid(pl1, pl2, ncol = 1, rel_heights = c(2, 1), align = "v")
 }
 
-plot_spatial_difference <- function(seu, type_1, type_2, point_size = 0.6) {
+
+plot_spatial_difference <- function(seu, type_1, type_2) {
   newcol <- str_glue("{type_1} - {type_2}")
   seu[[newcol]] <- seu[[type_1]] - seu[[type_2]]
-  plot_spatial_meta(seu, meta_column = newcol, point_size = point_size, palette = "divergent") +
+  plot_spatial_meta(seu, meta_column = newcol, palette = "divergent") +
     theme(
       legend.text = element_text(size = 7),
       legend.title = element_text(size = 7),
@@ -992,11 +1008,11 @@ plot_spatial_difference <- function(seu, type_1, type_2, point_size = 0.6) {
 }
 
 # pairs is a list of vectors
-plot_spatial_differences <- function(seu, pairs, point_size = 0.6) {
+plot_spatial_differences <- function(seu, pairs) {
   pl <- map(pairs, function(pair) {
     ct1 <- paste0("ES_", pair[1])
     ct2 <- paste0("ES_", pair[2])
-    plot_spatial_difference(seu, ct1, ct2, point_size)
+    plot_spatial_difference(seu, ct1, ct2)
   })
 
   plot_grid(plotlist = pl, ncol = 1)
@@ -1146,7 +1162,8 @@ plot_cluster_cell_type_overlap <- function(seu, ct = "Unknown") {
     labs(x = "Cluster", y = "Proporion of spots in cluster", title = ct)
 }
 
-plot_binned_xy_expression <- function(seu, gene_x, genes_y, what = "expression", bins = 6, exclude_zeroes = FALSE) {
+plot_binned_xy_expression <- function(seu, gene_x, genes_y, what = "expression", bins = 6,
+                                      include_x_zeroes = FALSE, include_y_zeroes = FALSE) {
   env <- new.env(parent = globalenv())
   env$gene_x <- gene_x
 
@@ -1157,18 +1174,23 @@ plot_binned_xy_expression <- function(seu, gene_x, genes_y, what = "expression",
   g0 <- gx |> 
     filter(expression == 0) |> 
     mutate(bin = factor("0", levels = levels(g1$bin)))
-  if(exclude_zeroes) {
-    gb <- g1
+  if(include_x_zeroes) {
+    gx <- bind_rows(g0, g1)
   } else {
-    gb <- bind_rows(g0, g1)
+    gx <- g1
   }
-
-  gb <- gb |> 
+  gx <- gx |> 
     select(cell_id, bin)
 
-  d <- get_gene_expression(seu, genes_y) |> 
+  gy <- get_gene_expression(seu, genes_y)
+  if(!include_y_zeroes & what == "expression") {
+    gy <- gy |> 
+      filter(expression > 0)
+  }
+
+  d <- gy |> 
     mutate(gene_symbol = factor(gene_symbol, levels = genes_y)) |> 
-    inner_join(gb, by = "cell_id")  |> 
+    inner_join(gx, by = "cell_id")  |> 
     group_by(gene_symbol, bin) |> 
     summarise(
       n_tot = n(),
@@ -1188,10 +1210,12 @@ plot_binned_xy_expression <- function(seu, gene_x, genes_y, what = "expression",
       mutate(ymin = m - ci, ymax = m + ci) |> 
       select(gene_symbol, bin, y = m, ymin, ymax)
     env$ylab <- "Mean expression"
-  } else {
+  } else if(what == "proportion") {
     env$d <- d |> 
       select(gene_symbol, bin, y = prop, ymin = conf.low, ymax = conf.high)
     env$ylab <- "Proportion expressed"
+  } else {
+    stop("Huh?")
   }
   
   with(env, {
@@ -1206,4 +1230,20 @@ plot_binned_xy_expression <- function(seu, gene_x, genes_y, what = "expression",
       labs(x = str_glue("{gene_x} expression bin"), y = ylab)
   })
     
+}
+
+
+
+plot_module_enrichment_heatmap <- function(me, mdl = "red", ont = "re", max_name_length = 50) {
+  M <- me |>
+    filter(module == mdl & ontology == ont) |> 
+    mutate(name = str_sub(term_name, start = 1, end = max_name_length)) |>
+    separate_longer_delim(ids, delim = ", ") |> 
+    pivot_wider(id_cols = name, names_from = ids, values_from = enrichment) |>
+    column_to_rownames("name") |>
+    as.matrix()
+  M[is.infinite(M)] <- 0
+  M[is.na(M)] <- 0
+
+  ggheatmap(M, with.y.text = TRUE, palette = "Purples", legend.name = "Enrichment ratio")
 }

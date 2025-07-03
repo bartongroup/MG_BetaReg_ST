@@ -1,7 +1,7 @@
 ggheatmap <- function(tab, order.col = TRUE, order.row = TRUE, dendro.line.size = 0.5,
                       text.size = 12, legend.text.size = 12, legend.name = "value",
                       dist.method = "euclidean", clust.method = "complete", title = NULL,
-                      with.y.text = FALSE, with.x.text = TRUE, palette = "distiller",
+                      with.y.text = FALSE, with.x.text = TRUE, palette = "div",
                       max.fc = NULL) {
   
   d <- tab |>
@@ -50,9 +50,12 @@ ggheatmap <- function(tab, order.col = TRUE, order.row = TRUE, dendro.line.size 
   if (palette == "viridis") {
     heat_plot <- heat_plot +
       scale_fill_viridis_c(option = "cividis", name = legend.name)
-  } else {
+  } else if(palette == "div") {
     heat_plot <- heat_plot +
       scale_fill_distiller(type = "div", palette = "RdBu", limits = c(-mx, mx), name = legend.name)
+  } else if(palette == "Purples") {
+    heat_plot <- heat_plot + 
+      scale_fill_distiller(palette = "Purples", direction = 1, trans = "sqrt", name = legend.name)
   }
   
   if (with.x.text) {

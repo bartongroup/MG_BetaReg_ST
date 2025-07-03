@@ -47,13 +47,13 @@ targets_2um <- function() {
       #png_xy_marker_mpc_beta = plot_gene_vs_gene(seu, goi$tissue_markers_positive$MPC, goi$tissue_markers_positive$Beta, group_sel = c(2, 6)) |> gs("xy_marker_mpc_beta", NAME2, 6, 5),
   
       # Cell types
-      png_cell_type_scores = plot_cell_type_scores(seu_mark, tissue_markers) |> gs("cell_type_scores", NAME2, 32, 88),
-      png_cell_type = plot_cell_type(seu_mark) |> gs("cell_type", NAME2, 32, 16),
+      png_cell_type_scores = plot_cell_type_scores(seu_mark, tissue_markers) |> gs("cell_type_scores", NAME2, 8, 22),
+      png_cell_type = plot_cell_type(seu_mark) |> gs("cell_type", NAME2, 8, 4),
       #fig_cluster_cell_type = plot_cluster_cell_type_jaccard(seu_mark),
       png_dots_cell_type = plot_gene_dots(seu_mark, unique(tissue_markers$gene_symbol), meta_column = "cell_type") |> gs("dots_cell_type", NAME2, 6, 6),
       tbl_cell_type_count = cell_type_count(seu_mark) |> tb("cell_type_count", NAME2),
       tbl_expr_pct = get_expression_percentage(seu_mark, unique(tissue_markers$gene_symbol), meta_column = "cell_type") |> tb("expr_pct", NAME2),
-      png_dif_spatial = plot_spatial_differences(seu_mark, pairs = list(c("EP", "MPC"), c("Beta", "MPC"), c("Beta", "Alpha"), c("Beta", "Delta"), c("Beta", "Epsilon")), point_size = 0.85) |> gs("dif_spatial", NAME2, 8, 30),
+      png_dif_spatial = plot_spatial_differences(seu_mark, pairs = list(c("EP", "MPC"), c("Beta", "MPC"), c("Beta", "Alpha"), c("Beta", "Delta"), c("Beta", "Epsilon"))) |> gs("dif_spatial", NAME2, 8, 30),
       cell_type_markers = find_group_markers(seu_mark, group_by = "cell_type"),
       png_cell_type_marker_dots = plot_cell_type_marker_dots(seu_mark, cell_type_markers) |> gs("cell_type_marker_dots", NAME2, 8, 35),
       cell_type_markers_sel = cell_type_markers |> dplyr::filter(p_val_adj < 0.01 & avg_log2FC > 1),
@@ -63,7 +63,7 @@ targets_2um <- function() {
       png_gene_gene_ins_ghrl = plot_gene_vs_gene(seu_mark, "INS", "GHRL", group_var = "cell_type", group_sel = c("Beta", "Epsilon")) |> gs("gene_gene_ins_ghrl", NAME2, width = 6, height = 5),
   
       # Insulin pathway
-      png_ins_path = plot_expression(seu, goi$insulin_signalling_pathway, umap_point_size = 0.5, spatial_point_size = 0.5) |> gs("insulin_path", NAME2, 7, 48),
+      png_ins_path = plot_expression(seu, goi$insulin_signalling_pathway, umap_point_size = 0.5) |> gs("insulin_path", NAME2, 7, 48),
       png_ins_path_expr = plot_gene_expression(seu, goi$insulin_signalling_pathway, meta_column = "cell_type") |> gs("insulin_path_expr", NAME2, 8, 12),
       fig_dots_ins_path = plot_gene_dots(seu, goi$insulin_signalling_pathway, meta_column = "cell_type"),
   
@@ -82,7 +82,7 @@ targets_2um <- function() {
     png_detections_2um = plot_grid(fig_count_det_2um_1, fig_count_det_2um_2, labels = 1:2) |> gs("detections_2um", "all", 8, 3),
 
     sct_2um_1 = tibble::tibble(x = c(5120, 5230), y = c(-3400, -5400)),
-    png_section_ins_sst_2um = plot_spatial_section(seu_2um_1, "INS", "SST", sct_2um_1, slice = "slice1.002um") |> gs("spatial_section_ins_sst_2um", width = 32, height = 32)
+    png_section_ins_sst_2um = plot_spatial_section(seu_2um_1, "INS", "SST", sct_2um_1, slice = "slice1.002um") |> gs("spatial_section_ins_sst_2um", width = 8, height = 8)
     #png_section_ins_gcg = plot_spatial_section(seu_1, "INS", "GCG", sct_1) |> gs("spatial_section_ins_gcg", width = 8, height = 8),
     #png_section_ins_ghrl = plot_spatial_section(seu_1, "INS", "GHRL", sct_1) |> gs("spatial_section_ins_ghrl", width = 8, height = 8)
     

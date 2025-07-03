@@ -45,5 +45,6 @@ c(
   sessinfo,
   targets_main(),
   targets_8um()
+  #targets_2um()  # this requires ~200 GB memory, not on a laptop!
 )
 

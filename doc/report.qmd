@@ -514,6 +514,79 @@ Another view is show in @fig-gene-gene-ins-sst, where expression of SST and INS 
 knitr::include_graphics("images/gene_gene_ins_sst_1.png")
 ```
 
+### Marker spatial expression comparison
+
+It would be nice to know how important marker genes, in particular pancreatic hormones, change spatially. We tried some approaches above. Here we select a small rectangle in the original image to have a better look at the expression of four genes.
+
+```{r, out.width="100%"}
+#| label: fig-spatial-selection-hormones
+#| fig-cap: Normalised expression of four hormones in the central region of the slide. Red circles indicate spots with insulin expression peaks.
+knitr::include_graphics("images/spatial_selection_hormones.png")
+```
+
+```{r, out.width="60%"}
+#| label: fig-spatial-selection-cell-type
+#| fig-cap: Cell type identification for the same region as above.
+knitr::include_graphics("images/spatial_selection_cell_type.png")
+```
+
+
+
+
+```{r, out.width="60%"}
+#| label: fig-spatial-ins-gcg
+#| fig-cap: Morphing between INS and GCG expression.
+knitr::include_graphics("images/spatial_INS_GCG.gif")
+```
+
+```{r, out.width="60%"}
+#| label: fig-spatial-ins-sst
+#| fig-cap: Morphing between INS and SST expression.
+knitr::include_graphics("images/spatial_INS_SST.gif")
+```
+
+```{r, out.width="60%"}
+#| label: fig-spatial-ins-ghrl
+#| fig-cap: Morphing between INS and GHRL expression.
+knitr::include_graphics("images/spatial_INS_GHRL.gif")
+```
+
+```{r, out.width="60%"}
+#| label: fig-spatial-hormones
+#| fig-cap: Morphing between all hormone expression.
+knitr::include_graphics("images/spatial_INS_GCG_SST_GHRL_PPY.gif")
+```
+
+
+```{r, out.width="60%"}
+#| label: fig-spatial-full
+#| fig-cap: Morphing between MPC genes, EP genes and insulin. The transition between NEUROG3 and INS preserves shape.
+knitr::include_graphics("images/spatial_PTF1A_PDX1_SOX9_PAX4_NEUROD1_NEUROG3_INS.gif")
+```
+
+```{r, out.width="60%"}
+#| label: fig-spatial-neurog3-ins
+#| fig-cap: Morphing between NEUROG3 and INS. The transition between NEUROG3 and INS preserves shape.
+knitr::include_graphics("images/spatial_NEUROG3_INS.gif")
+```
+
+
+```{r}
+#| label: fig-binned-ins-exp
+#| fig-cap: Insulin expressing spots were divided into 10 bins, according to insulin expression in each spot. For each bin (group of spots with similar insulin expression), mean expression (only expressing spots) and its 95% confidence interval was calculated for other genes. Horizontal axis (insulin expression level) can be interpreted as a pseudo-time, or the level of Beta cells maturity. Please note that the mean expression of the genes presented excludes spots with zero expression. See @fig-binned-ins-prop.
+#| fig-width: 8
+#| fig-height: 6
+tar_read(fig_binned_ins_expression_exp_1) 
+```
+
+```{r}
+#| label: fig-binned-ins-prop
+#| fig-cap: As in @fig-binned-ins-exp, but showing proportion of expressing cells in each bin.
+#| fig-width: 8
+#| fig-height: 6
+tar_read(fig_binned_ins_expression_prop_1)
+```
+
 
 ### Cell annotation results
 
@@ -595,49 +668,6 @@ tar_read(hormone_count_1) |>
   )
 ```
 
-
-### Hormone gradients
-
-It would be nice to know how important marker genes, in particular pancreatic hormones, change spatially. We tried some approaches above. Here we select a small rectangle in the original image to have a better look at the expression of four genes.
-
-```{r, out.width="100%"}
-#| label: fig-spatial-selection-hormones
-#| fig-cap: Normalised expression of four hormones in the central region of the slide. Red circles indicate spots with insulin expression peaks.
-knitr::include_graphics("images/spatial_selection_hormones.png")
-```
-
-```{r, out.width="60%"}
-#| label: fig-spatial-selection-cell-type
-#| fig-cap: Cell type identification for the same region as above.
-knitr::include_graphics("images/spatial_selection_cell_type.png")
-```
-
-
-
-
-```{r, out.width="60%"}
-#| label: fig-spatial-ins-gcg
-#| fig-cap: Morphing between INS and GCG expression.
-knitr::include_graphics("images/spatial_INS_GCG.gif")
-```
-
-```{r, out.width="60%"}
-#| label: fig-spatial-ins-sst
-#| fig-cap: Morphing between INS and SST expression.
-knitr::include_graphics("images/spatial_INS_SST.gif")
-```
-
-```{r, out.width="60%"}
-#| label: fig-spatial-ins-ghrl
-#| fig-cap: Morphing between INS and GHRL expression.
-knitr::include_graphics("images/spatial_INS_GHRL.gif")
-```
-
-```{r, out.width="60%"}
-#| label: fig-spatial-sox9-neurog3-ins
-#| fig-cap: Morphing between MPC genes, EP genes and insulin. The transition between NEUROG3 and INS preserves shape.
-knitr::include_graphics("images/spatial_PTF1A_PDX1_SOX9_PAX4_NEUROD1_NEUROG3_INS.gif")
-```
 
 
 ### Cell type DE genes
@@ -990,13 +1020,13 @@ The spatial distribution of normalised scores $ES_{Mi}$ for each cell type are i
 ```{r, out.width="100%"}
 #| label: fig-cell-type-scores-2um
 #| fig-cap: Normalised scores for each cell type from 2 μm resolution data.
-knitr::include_graphics("images/cell_type_scores_2um_1.png") 
+knitr::include_graphics("images/cell_type_scores_2um_1.png")
 ```
 
 ```{r, out.width="100%"}
 #| label: fig-cell-type-section-2um
 #| fig-cap: Expression of INS and SST along a section through the slide. The parameter $t$ along the section runs from 0 (top of the black line in the upper panel) to 1 (bottom of the line).
-knitr::include_graphics("images/spatial_section_ins_sst_2um.png") 
+knitr::include_graphics("images/spatial_section_ins_sst_2um.png")
 ```
 
 ### Cell annotation results
@@ -1006,7 +1036,7 @@ The combined results of the cell annotation procedure are shown in @fig-cell-typ
 ```{r, out.width="100%"}
 #| label: fig-cell-types-2um
 #| fig-cap: Cell types detected.
-knitr::include_graphics("images/cell_type_2um_1.png")
+knitr::include_graphics("images/cell_type_2um_1.png") 
 ```
 
 @tbl-cell-type-count-2um shows the number of spots identified in each cell type.
