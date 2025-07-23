@@ -1255,6 +1255,11 @@ plot_module_enrichment_heatmap <- function(me, mdl = "red", ont = "re", max_name
 
 
 plot_sankey_cell_type <- function(seu) {
+  cell_col <- tibble(
+    cell_type = c("Epsilon", "Delta", "Beta", "Alpha", "Nervous", "Ductal", "Acinar", "Blood", "Immune", "VSM"),
+    colour = c(rep("lightblue", 4), "lightgreen", rep("bisque", 2), rep("lightgoldenrod1", 3))
+  )
+
   d <- seu@meta.data |> 
     as_tibble(rownames = "cell_id") |> 
     select(cell_id, starts_with("ES")) |> 
@@ -1263,16 +1268,17 @@ plot_sankey_cell_type <- function(seu) {
       EP = if_else(EP > 0, "EP", "non-EP"),
       MPC = if_else(MPC > 0, "MPC", "non-MPC"),
     ) |> 
-    pivot_longer(c(Alpha, Beta, Delta, Epsilon, Acinar, Ductal, Nervous, Blood, Immune, VSM)) |> 
+    pivot_longer(all_of(cell_col$cell_type)) |> 
     group_by(cell_id, EP, MPC) |> 
     summarise(mx = max(value), Final = if_else(mx > 0, name[which.max(value)], "none")) |> 
     ungroup() |> 
     filter(Final != "none") |> 
     make_long(MPC, Final, EP) |> 
-    mutate(node = fct_relevel(node, c("MPC", "non-MPC", "EP", "non-EP", "Nervous", "Epsilon", "Delta", "Beta", "Alpha", "Ductal", "Acinar", "Blood"))) 
+    mutate(node = fct_relevel(node, c("MPC", "non-MPC", "EP", "non-EP", cell_col$cell_type))) 
 
   env <- new.env(parent = globalenv())
   env$d <- d
+  env$cell_col <- cell_col
 
   with(env, {
     ggplot(d, aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = node, label = node)) +
@@ -1283,7 +1289,7 @@ plot_sankey_cell_type <- function(seu) {
     ) +
     geom_sankey(flow.alpha = 0.6, flow.colour = "grey70", flow.fill = "grey80", node.alpha = 0.6) +
     geom_sankey_label() +
-    scale_fill_manual(values = c(okabe_ito_palette[1:4], rep("grey80", 20)),drop = FALSE) +
+    scale_fill_manual(values = c(okabe_ito_palette[1:4], cell_col$colour),drop = FALSE) +
     labs(x = NULL)
   })
 }
