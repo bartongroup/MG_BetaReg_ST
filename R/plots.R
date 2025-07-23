@@ -1,4 +1,4 @@
-okabe_ito_palette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#AAAAAA", "#000000")
+okabe_ito_palette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#AAAAAA", "#666666")
 
 th <- ggplot2::theme_bw() +
   ggplot2::theme(
@@ -1222,9 +1222,13 @@ plot_binned_xy_expression <- function(seu, gene_x, genes_y, what = "expression",
     d |> 
       ggplot(aes(x = bin, y = y, ymin = ymin, ymax = ymax)) +
       th +
-      theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.6)) +
+      theme(
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.6),
+        legend.position = "none"
+      ) +
       geom_errorbar(width = 0, colour = "grey70") +
-      geom_point() +
+      geom_point(aes(colour = bin == "0")) +
+      scale_colour_manual(values = c("black", "orange")) +
       facet_wrap(~gene_symbol, scales = "free_y") +
       scale_y_continuous(expand = expansion(mult = c(0, 0.04)), limits = c(0, NA)) +
       labs(x = str_glue("{gene_x} expression bin"), y = ylab)
@@ -1246,4 +1250,40 @@ plot_module_enrichment_heatmap <- function(me, mdl = "red", ont = "re", max_name
   M[is.na(M)] <- 0
 
   ggheatmap(M, with.y.text = TRUE, palette = "Purples", legend.name = "Enrichment ratio")
+}
+
+
+
+plot_sankey_cell_type <- function(seu) {
+  d <- seu@meta.data |> 
+    as_tibble(rownames = "cell_id") |> 
+    select(cell_id, starts_with("ES")) |> 
+    rename_with(~ str_remove(., "ES_")) |> 
+    mutate(
+      EP = if_else(EP > 0, "EP", "non-EP"),
+      MPC = if_else(MPC > 0, "MPC", "non-MPC"),
+    ) |> 
+    pivot_longer(c(Alpha, Beta, Delta, Epsilon, Acinar, Ductal, Nervous, Blood, Immune, VSM)) |> 
+    group_by(cell_id, EP, MPC) |> 
+    summarise(mx = max(value), Final = if_else(mx > 0, name[which.max(value)], "none")) |> 
+    ungroup() |> 
+    filter(Final != "none") |> 
+    make_long(MPC, Final, EP) |> 
+    mutate(node = fct_relevel(node, c("MPC", "non-MPC", "EP", "non-EP", "Nervous", "Epsilon", "Delta", "Beta", "Alpha", "Ductal", "Acinar", "Blood"))) 
+
+  env <- new.env(parent = globalenv())
+  env$d <- d
+
+  with(env, {
+    ggplot(d, aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = node, label = node)) +
+    theme_sankey() +
+    theme(
+      legend.position = "none",
+      axis.text.x = element_blank()
+    ) +
+    geom_sankey(flow.alpha = 0.6, flow.colour = "grey70", flow.fill = "grey80", node.alpha = 0.6) +
+    geom_sankey_label() +
+    scale_fill_manual(values = c(okabe_ito_palette[1:4], rep("grey80", 20)),drop = FALSE) +
+    labs(x = NULL)
+  })
 }

@@ -49,8 +49,8 @@ targets_8um <- function() {
       png_xy_marker_mpc_beta = plot_gene_vs_gene(seu, goi$tissue_markers_positive$MPC, goi$tissue_markers_positive$Beta, group_sel = c(2, 6)) |> gs("xy_marker_mpc_beta", NAME, 6, 5),
 
       genes_for_binned = c("PTF1A", "PDX1", "NKX6-1", "SOX9", "PAX4", "PAX6", "NKX2-2", "NEUROD1", "NEUROG3", "GCG", "SST", "GHRL"),
-      fig_binned_ins_expression_exp = plot_binned_xy_expression(seu, "INS", genes_for_binned, bins = 6, what = "expression"),
-      fig_binned_ins_expression_prop = plot_binned_xy_expression(seu, "INS", genes_for_binned, bins = 6, what = "proportion"),
+      fig_binned_ins_expression_exp = plot_binned_xy_expression(seu, "INS", genes_for_binned, bins = 6, what = "expression", include_x_zeroes = TRUE),
+      fig_binned_ins_expression_prop = plot_binned_xy_expression(seu, "INS", genes_for_binned, bins = 6, what = "proportion", include_x_zeroes = TRUE),
 
       # Cell types
       png_cell_type_scores = plot_cell_type_scores(seu_mark, tissue_markers) |> gs("cell_type_scores", NAME, 8, 22),
@@ -67,6 +67,7 @@ targets_8um <- function() {
       png_gene_gene_ins_sst = plot_gene_vs_gene(seu_mark, "INS", "SST", group_var = "cell_type", group_sel = c("Beta", "Delta")) |> gs("gene_gene_ins_sst", NAME, width = 6, height = 5),
       png_gene_gene_ins_gcg = plot_gene_vs_gene(seu_mark, "INS", "GCG", group_var = "cell_type", group_sel = c("Beta", "Alpha")) |> gs("gene_gene_ins_gcg", NAME, width = 6, height = 5),
       png_gene_gene_ins_ghrl = plot_gene_vs_gene(seu_mark, "INS", "GHRL", group_var = "cell_type", group_sel = c("Beta", "Epsilon")) |> gs("gene_gene_ins_ghrl", NAME, width = 6, height = 5),
+      fig_sankey_cell_type = plot_sankey_cell_type(seu_mark),
 
       # Unknown
       fig_cell_type_cluster_overlap = plot_cluster_cell_type_overlap(seu_mark),

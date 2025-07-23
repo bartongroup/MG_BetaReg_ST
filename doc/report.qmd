@@ -479,7 +479,7 @@ tar_read(tissue_markers) |>
   gt()
 ```
 
-### Enrichment score
+### Enrichment score {#sec-enrichment-score}
 
 The spatial distribution of normalised scores $ES_{Mi}$ for each cell type are illustrated in @fig-cell-type-scores.
 
@@ -573,7 +573,7 @@ knitr::include_graphics("images/spatial_NEUROG3_INS.gif")
 
 ```{r}
 #| label: fig-binned-ins-exp
-#| fig-cap: Insulin expressing spots were divided into 10 bins, according to insulin expression in each spot. For each bin (group of spots with similar insulin expression), mean expression (only expressing spots) and its 95% confidence interval was calculated for other genes. Horizontal axis (insulin expression level) can be interpreted as a pseudo-time, or the level of Beta cells maturity. Please note that the mean expression of the genes presented excludes spots with zero expression. See @fig-binned-ins-prop.
+#| fig-cap: Insulin expressing spots were divided into 6 bins, according to normalised insulin expression in each spot plus a bin containing all spots where insulin is not expressed (marked as orange dots). For each bin (group of spots with similar insulin expression), mean expression (only expressing spots) and its 95% confidence interval was calculated for other genes. Horizontal axis (insulin expression level) can be perhaps interpreted as a pseudo-time, or the level of Beta cells maturity. Please note that the mean expression of the genes presented excludes spots with zero expression. See @fig-binned-ins-prop.
 #| fig-width: 8
 #| fig-height: 6
 tar_read(fig_binned_ins_expression_exp_1) 
@@ -581,10 +581,22 @@ tar_read(fig_binned_ins_expression_exp_1)
 
 ```{r}
 #| label: fig-binned-ins-prop
-#| fig-cap: As in @fig-binned-ins-exp, but showing proportion of expressing cells in each bin.
+#| fig-cap: As in @fig-binned-ins-exp, but showing proportion of expressing cells in each bin. Error bars show the 95% confidence interval of a proportion.
 #| fig-width: 8
 #| fig-height: 6
 tar_read(fig_binned_ins_expression_prop_1)
+```
+
+### Sankey plot
+
+Here we annotate spots with three levels at the same time: MPC/non-MPC, EP/non-EP and the "final" type, all based on the enrichment scores, as defined in @sec-enrichment-score. These are shown as a Sankey plot in @fig-sankey-cell-type.
+
+```{r}
+#| label: fig-sankey-cell-type
+#| fig-cap: "Sankey plot showing multiple cell type identification. Spots included in this plot have three-level identification, based on the enrichment score (see @sec-enrichment-score). Each spot carries three annotations: MPC if ES_MPC > 0, EP if ES_EP > 0 and the 'final' cell type based on the highest enrichment score across scores listed in the middle. Spots where all final scores are less than zero, that is not identified with any of the cell types shown here, are excluded."
+#| fig-width: 8
+#| fig-height: 6
+tar_read(fig_sankey_cell_type_1)
 ```
 
 

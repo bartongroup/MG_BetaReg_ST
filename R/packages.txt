@@ -11,6 +11,7 @@ biomaRt
 cowplot
 ggridges
 ggbeeswarm
+ggsankey
 readxl
 janitor
 jsonlite
