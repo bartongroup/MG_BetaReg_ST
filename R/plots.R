@@ -1162,6 +1162,24 @@ plot_cluster_cell_type_overlap <- function(seu, ct = "Unknown") {
     labs(x = "Cluster", y = "Proporion of spots in cluster", title = ct)
 }
 
+plot_binned_spatial <- function(seu, gene_x, bins = 6) {
+  gx <- get_gene_expression(seu, gene_x)
+  g1 <- gx |> 
+    filter(expression > 0) |> 
+    mutate(bin = cut_interval(expression, n = bins) |> fct_expand("0", after = 0))
+  g0 <- gx |> 
+    filter(expression == 0) |> 
+    mutate(bin = factor("0", levels = levels(g1$bin)))
+  gx <- bind_rows(g0, g1)
+  # reorder before inserting into meta
+  m <- tibble(cell_id = colnames(seu)) |> 
+    left_join(gx, by = "cell_id")
+  seu$bin <- m$bin
+
+  plot_one_xy(seu, what = "spatial", meta_column = "bin") + theme(legend.position = "right")
+}
+
+
 plot_binned_xy_expression <- function(seu, gene_x, genes_y, what = "expression", bins = 6,
                                       include_x_zeroes = FALSE, include_y_zeroes = FALSE) {
   env <- new.env(parent = globalenv())
@@ -1253,26 +1271,41 @@ plot_module_enrichment_heatmap <- function(me, mdl = "red", ont = "re", max_name
 }
 
 
+get_any_expressed <- function(seu, genes) {
+  get_gene_expression(seu, genes, layer = "counts") |> 
+    group_by(cell_id) |> 
+    summarise(any_expressed = any(expression > 0))
+}
 
-plot_sankey_cell_type <- function(seu) {
+plot_sankey_cell_type <- function(seu, p_val_limit = 0.05, EP_markers = c("NEUROD1", "NEUROG3", "PAX4", "PAX6"),
+                                  MPC_markers = c("PTF1A", "SOX9", "NKX6-1", "PDX1")) {
   cell_col <- tibble(
-    cell_type = c("Epsilon", "Delta", "Beta", "Alpha", "Nervous", "Ductal", "Acinar", "Blood", "Immune", "VSM"),
-    colour = c(rep("lightblue", 4), "lightgreen", rep("bisque", 2), rep("lightgoldenrod1", 3))
-  )
+    cell_type = c("Epsilon", "Delta", "Beta", "Alpha", "Ductal", "Acinar", "Blood", "Immune", "VSM", "Nervous"),
+    colour = c(rep("lightblue", 4), rep("bisque", 2), rep("lightgoldenrod1", 3), "lightgreen")
+  ) |> 
+    mutate(
+      es_name = str_glue("ES_{cell_type}"),
+      pval_name = str_glue("p_val_{cell_type}")
+    )
+
+  EP <- get_any_expressed(seu, EP_markers) |> 
+    mutate(EP = if_else(any_expressed, "EP", "non-EP")) |> 
+    select(-any_expressed)
+  MPC <- get_any_expressed(seu, MPC_markers) |> 
+    mutate(MPC = if_else(any_expressed, "MPC", "non-MPC")) |> 
+    select(-any_expressed)
+  epmpc <- full_join(EP, MPC, by = "cell_id")
 
   d <- seu@meta.data |> 
     as_tibble(rownames = "cell_id") |> 
-    select(cell_id, starts_with("ES")) |> 
-    rename_with(~ str_remove(., "ES_")) |> 
-    mutate(
-      EP = if_else(EP > 0, "EP", "non-EP"),
-      MPC = if_else(MPC > 0, "MPC", "non-MPC"),
-    ) |> 
-    pivot_longer(all_of(cell_col$cell_type)) |> 
-    group_by(cell_id, EP, MPC) |> 
-    summarise(mx = max(value), Final = if_else(mx > 0, name[which.max(value)], "none")) |> 
-    ungroup() |> 
-    filter(Final != "none") |> 
+    select(cell_id, all_of(c(cell_col$es_name, cell_col$pval_name))) |> 
+    rename_with(~ str_replace(., "p_val", "pval"))  |> 
+    pivot_longer(-cell_id, names_sep = "_", names_to = c("quantity", "cell_type")) |> 
+    pivot_wider(id_cols = c(cell_id, cell_type), names_from = quantity, values_from = value) |> 
+    filter(pval < p_val_limit) |> 
+    group_by(cell_id) |> 
+    summarise(Final = cell_type[which.max(ES)]) |> 
+    inner_join(epmpc, by = "cell_id") |> 
     make_long(MPC, Final, EP) |> 
     mutate(node = fct_relevel(node, c("MPC", "non-MPC", "EP", "non-EP", cell_col$cell_type))) 
 

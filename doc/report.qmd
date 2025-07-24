@@ -208,6 +208,15 @@ knitr::include_graphics("images/marginals_all.png")
 knitr::include_graphics("images/detections_all.png") 
 ```
 
+## Sex of the donor
+
+```{r}
+#| label: sry
+tar_load(c(sry_expression_count_1, sry_expression_count_2))
+```
+
+Samples 1 and 2 come from male and female donors. We confirm this by looking at expression of the sex-determining gene SRY. This gene is expressed in `r sry_expression_count_1` and `r sry_expression_count_2` spots in samples 1 and 2, respectively.
+
 # Sample 1
 
 ## Clustering
@@ -420,9 +429,76 @@ tar_read(tbl_keycorr_enrichment_1) |>
 
 :::
 
+## Insulin gradient
+
+Here we attempt to build a bigger picture of transcriptional changes following the insulin gradient. We selected groups of spots with increasing insulin expression. Specifically, we divided the normalised logarithmic insulin expression range (excluding zeroes) into 6 bins of equal width and grouped spots into these bins. The no insulin expression spots were added as an extra bin.
+
+@fig-binned-ins-spatial demonstrates spatial location of the insulin gradient bins.
+
+```{r, out.width="100%"}
+#| label: fig-binned-ins-spatial
+#| fig-cap: Spatial distribution of insulin expression bins used in @fig-binned-ins-prop.
+knitr::include_graphics("images/binned_ins_spatial_1.png")
+```
+
+Next, we looked at the genes expressed in individual bins. For each bin, we found marker genes, using *Seurat's* `FindAllMarkers()` function with Wilcoxon test, just like for cluster markers (@sec-cluster-markers). Top markers were identified in each bin using the following criteria: p < 0.05, logFC > 1 and the fraction of spots expressed in the bin > 0.1. Some of them are shown in @tbl-ins-gradient-markers. Functional enrichment with GO, KEGG and Reactome databases has been carried out in each bin using the selection of top marker genes. The results are shown in @tbl-ins-gradient-enrichment.
+
+
+```{r}
+#| label: binned-marker-enrichment
+tar_load(tbls_binned_enrichment_1)
+```
+
+```{r}
+#| label: tbl-ins-gradient-markers
+#| tbl-cap: Top 50 marker genes for each insulin gradient bin.
+tbls_binned_enrichment_1$markers |> 
+  filter(p_val_adj < 0.01 & avg_log2FC > 1 & pct.1 > 0.1) |> 
+  arrange(desc(avg_log2FC)) |> 
+  group_by(cluster) |> 
+  summarise(Genes = str_c(head(gene_symbol, 50), collapse = ", ")) |> 
+  rename(Bin = cluster) |> 
+  gt()
+```
+
+
+::: {style="height: 600px; width: fit-content; overflow-y: scroll; margin-left: auto; margin-right: auto; font-size: 10pt"}
+
+```{r}
+#| label: tbl-ins-gradient-enrichment
+#| tbl-cap: Functional enrichment from insulin gradient bins. The table is grouped per bin. `n_with_sel` is the number of genes with the given term in the selection (correlated subset).
+tbls_binned_enrichment_1$enrichment |> 
+  rename(group = bin) |> 
+  enrichment_table() 
+```
+
+:::
+
+
+@fig-binned-ins-exp attempts to follow insulin gradient and correlate it with selected marker genes. However, mean expression of a gene does not change very much with insulin gradient. The percentage of expressed cells, illustrated in @fig-binned-ins-prop, does, in particular for other hormones and EP marker genes.
+
+```{r}
+#| label: fig-binned-ins-exp
+#| fig-cap: Insulin expressing spots were divided into 6 bins, according to normalised insulin expression in each spot plus a bin containing all spots where insulin is not expressed (marked as orange dots). For each bin (group of spots with similar insulin expression), mean expression (only expressing spots) and its 95% confidence interval was calculated for other genes. Horizontal axis (insulin expression level) can be perhaps interpreted as a pseudo-time, or the level of Beta cells maturity. Please note that the mean expression of the genes presented excludes spots with zero expression. See @fig-binned-ins-prop.
+#| fig-width: 8
+#| fig-height: 6
+tar_read(fig_binned_ins_expression_exp_1) 
+```
+
+```{r}
+#| label: fig-binned-ins-prop
+#| fig-cap: As in @fig-binned-ins-exp, but showing proportion of expressing cells in each bin. Error bars show the 95% confidence interval of a proportion.
+#| fig-width: 8
+#| fig-height: 6
+tar_read(fig_binned_ins_expression_prop_1)
+```
+
+
+
+
 ## Cell types
 
-### The method
+### The method {#sec-page-method}
 
 To identify cell types we adapt the PAGE method from the R package [*Giotto*](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-021-02286-2), which, in turn, is based on the PAGE set enrichment method described in [Kim and Volsky paper](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-6-144). The advantage of this method is the bootstrap employed to assess statistical significance of cell identification.
 
@@ -518,6 +594,8 @@ knitr::include_graphics("images/gene_gene_ins_sst_1.png")
 
 It would be nice to know how important marker genes, in particular pancreatic hormones, change spatially. We tried some approaches above. Here we select a small rectangle in the original image to have a better look at the expression of four genes.
 
+@fig-spatial-selection-hormones shows spatial distribution of hormone expression with red circles indicating high insulin expression spots, for guidance.
+
 ```{r, out.width="100%"}
 #| label: fig-spatial-selection-hormones
 #| fig-cap: Normalised expression of four hormones in the central region of the slide. Red circles indicate spots with insulin expression peaks.
@@ -531,7 +609,7 @@ knitr::include_graphics("images/spatial_selection_cell_type.png")
 ```
 
 
-
+@fig-spatial-ins-gcg, @fig-spatial-ins-sst, @fig-spatial-ins-ghrl, @fig-spatial-hormones help with comparing spatial distribution of hormones but animating and morphing one distribution into another in the same picture.
 
 ```{r, out.width="60%"}
 #| label: fig-spatial-ins-gcg
@@ -557,6 +635,7 @@ knitr::include_graphics("images/spatial_INS_GHRL.gif")
 knitr::include_graphics("images/spatial_INS_GCG_SST_GHRL_PPY.gif")
 ```
 
+@fig-spatial-full shows the progression from MPC, through EP genes into insulin. @fig-spatial-neurog3-ins focuses on comparison between NEUROG3 and INS, showing their remarkable spatial coincidence.
 
 ```{r, out.width="60%"}
 #| label: fig-spatial-full
@@ -571,29 +650,14 @@ knitr::include_graphics("images/spatial_NEUROG3_INS.gif")
 ```
 
 
-```{r}
-#| label: fig-binned-ins-exp
-#| fig-cap: Insulin expressing spots were divided into 6 bins, according to normalised insulin expression in each spot plus a bin containing all spots where insulin is not expressed (marked as orange dots). For each bin (group of spots with similar insulin expression), mean expression (only expressing spots) and its 95% confidence interval was calculated for other genes. Horizontal axis (insulin expression level) can be perhaps interpreted as a pseudo-time, or the level of Beta cells maturity. Please note that the mean expression of the genes presented excludes spots with zero expression. See @fig-binned-ins-prop.
-#| fig-width: 8
-#| fig-height: 6
-tar_read(fig_binned_ins_expression_exp_1) 
-```
-
-```{r}
-#| label: fig-binned-ins-prop
-#| fig-cap: As in @fig-binned-ins-exp, but showing proportion of expressing cells in each bin. Error bars show the 95% confidence interval of a proportion.
-#| fig-width: 8
-#| fig-height: 6
-tar_read(fig_binned_ins_expression_prop_1)
-```
 
 ### Sankey plot
 
-Here we annotate spots with three levels at the same time: MPC/non-MPC, EP/non-EP and the "final" type, all based on the enrichment scores, as defined in @sec-enrichment-score. These are shown as a Sankey plot in @fig-sankey-cell-type.
+Here we are looking at spots were EP and/or MPC markers are expressed simultaneously with other cell type markers. To do this, we marked each spot with three annotations at the same time: EP/non-EP, MPC/non-MPC and the "final" cell type. The final cell type (one of the shown in the middle of @fig-sankey-cell-type) was determined using the PAGE method, as described in @sec-page-method, but EP and MPC were excluded from the marker list. This way, some of the cells, marked as EP or MPC in the standard annotation approach, were allowed to be annotated with other cell types. The underlying EP and MPC detection was based purely on marker expression: for a given spot, it was marked EP, if any of the EP markers (@tbl-cell-markers) was expressed. The same was done for MPC. Hence, each spot has been annotated with the final cell type, as well as EP/non-EP and MPC/non-MPC at the same time. The results are shown as a Sankey plot in @fig-sankey-cell-type.
 
 ```{r}
 #| label: fig-sankey-cell-type
-#| fig-cap: "Sankey plot showing multiple cell type identification. Spots included in this plot have three-level identification, based on the enrichment score (see @sec-enrichment-score). Each spot carries three annotations: MPC if ES_MPC > 0, EP if ES_EP > 0 and the 'final' cell type based on the highest enrichment score across scores listed in the middle. Spots where all final scores are less than zero, that is not identified with any of the cell types shown here, are excluded."
+#| fig-cap: "Sankey plot showing multiple cell type identification. Each spot carries three annotations: MPC if any of the MPC markers is expressed, EP if any of the EP markers is expressed and the 'final' cell type based on the highest statistically significant enrichment score across cell types listed in the middle."
 #| fig-width: 8
 #| fig-height: 6
 tar_read(fig_sankey_cell_type_1)

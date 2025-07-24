@@ -430,3 +430,43 @@ read_sx_sy <- function(fname, seu) {
  read_csv(fname, show_col_types = FALSE) |> 
   left_join(xy, by = c("sx", "sy"))
 }
+
+
+enrichment_gradient <- function(seu, fterms, gene_x = "INS", bins = 6, fdr_limit = 0.01, logfc_limit = 1, pct_limit = 0.1) {
+  all_genes <- rownames(seu)
+  
+  gx <- get_gene_expression(seu, gene_x)
+  g1 <- gx |> 
+    filter(expression > 0) |> 
+    mutate(bin = cut_interval(expression, n = bins) |> fct_expand("0", after = 0))
+  g0 <- gx |> 
+    filter(expression == 0) |> 
+    mutate(bin = factor("0", levels = levels(g1$bin)))
+  gx <- bind_rows(g0, g1)
+  # reorder before inserting into meta
+  m <- tibble(cell_id = colnames(seu)) |> 
+    left_join(gx, by = "cell_id")
+  seu$bin <- m$bin
+
+  mrk <- find_group_markers(seu, group_by = "bin")
+
+  enr <- mrk |> 
+    filter(p_val_adj < fdr_limit & avg_log2FC > logfc_limit & pct.1 > pct_limit) |> 
+    group_split(cluster) |> 
+    map(function(w) {
+      onts <- names(fterms)
+      map(onts, function(ont) {
+        enr <- fenr::functional_enrichment(all_genes, w$gene_symbol, fterms[[ont]])
+        if(!is.null(enr))
+          enr <- enr |> filter(p_adjust < 0.01)
+        enr
+      }) |> 
+        bind_rows() |> 
+        add_column(bin = w$cluster[1])
+    }) |> 
+      list_rbind()
+  list(
+    markers = mrk,
+    enrichment = enr
+  )
+}

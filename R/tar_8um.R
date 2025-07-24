@@ -30,6 +30,7 @@ targets_8um <- function() {
       hormone_count = get_hormone_count(seu),
       fig_mpc_overlap = plot_upset_expressed_cells(seu, c("SOX9", "PTF1A", "NKX6-1", "PDX1")),
       fig_ep_overlap = plot_upset_expressed_cells(seu, c("PAX4", "PAX6", "NEUROD1", "NEUROG3")),
+      sry_expression_count = get_gene_expression(seu, "SRY") |> summarise(n = length(which(expression > 0))),
 
       # Clustering
       cluster_markers = find_group_markers(seu, group_by = "cluster"),
@@ -51,6 +52,8 @@ targets_8um <- function() {
       genes_for_binned = c("PTF1A", "PDX1", "NKX6-1", "SOX9", "PAX4", "PAX6", "NKX2-2", "NEUROD1", "NEUROG3", "GCG", "SST", "GHRL"),
       fig_binned_ins_expression_exp = plot_binned_xy_expression(seu, "INS", genes_for_binned, bins = 6, what = "expression", include_x_zeroes = TRUE),
       fig_binned_ins_expression_prop = plot_binned_xy_expression(seu, "INS", genes_for_binned, bins = 6, what = "proportion", include_x_zeroes = TRUE),
+      fig_binned_ins_spatial = plot_binned_spatial(seu, "INS") |> gs("binned_ins_spatial", NAME, 8, 6),
+      tbls_binned_enrichment = enrichment_gradient(seu, fterms, "INS"),
 
       # Cell types
       png_cell_type_scores = plot_cell_type_scores(seu_mark, tissue_markers) |> gs("cell_type_scores", NAME, 8, 22),
@@ -223,6 +226,7 @@ targets_8um <- function() {
     gif_spatial_ins_ghrl = animate_spatial_genes(seu_1, c("INS", "GHRL"), box_1),
     gif_spatial_hormones = animate_spatial_genes(seu_1, c("INS", "GCG", "SST", "GHRL", "PPY"), box_1),
     gif_spatial_neurog3_ins = animate_spatial_genes(seu_1, c("NEUROG3", "INS"), box_1),
+    gif_spatial_neurog3_dbh = animate_spatial_genes(seu_1, c("NEUROG3", "DBH"), box_1),
     gif_spatial_full = animate_spatial_genes(seu_1, c("PTF1A", "PDX1", "SOX9", "PAX4", "NEUROD1", "NEUROG3", "INS"), box_1),
 
     seu_2um = load_visium_data(EXPERIMENTS$DATA_PATH[1], mito_genes, bin_size = 2),
