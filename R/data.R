@@ -432,21 +432,33 @@ read_sx_sy <- function(fname, seu) {
 }
 
 
-enrichment_gradient <- function(seu, fterms, gene_x = "INS", bins = 6, fdr_limit = 0.01, logfc_limit = 1, pct_limit = 0.1) {
-  all_genes <- rownames(seu)
-  
-  gx <- get_gene_expression(seu, gene_x)
+gene_binned_gradient <- function(seu, gene, bins, include_zeroes = TRUE) {
+  gx <- get_gene_expression(seu, gene)
   g1 <- gx |> 
     filter(expression > 0) |> 
     mutate(bin = cut_interval(expression, n = bins) |> fct_expand("0", after = 0))
   g0 <- gx |> 
     filter(expression == 0) |> 
     mutate(bin = factor("0", levels = levels(g1$bin)))
-  gx <- bind_rows(g0, g1)
-  # reorder before inserting into meta
-  m <- tibble(cell_id = colnames(seu)) |> 
-    left_join(gx, by = "cell_id")
-  seu$bin <- m$bin
+  
+  if(include_zeroes) {
+    gx <- bind_rows(g0, g1)
+  } else {
+    gx <- g1
+  }
+
+  # reorder to match metadata
+  tibble(cell_id = colnames(seu)) |> 
+    left_join(gx, by = "cell_id") |> 
+    select(cell_id, bin)
+}
+
+
+enrichment_gradient <- function(seu, fterms, gene = "INS", bins = 6, fdr_limit = 0.01, logfc_limit = 1, pct_limit = 0.1) {
+  all_genes <- rownames(seu)
+  
+  gx <- gene_binned_gradient(seu, gene, bins, include_zeroes = TRUE)
+  seu$bin <- gx$bin
 
   mrk <- find_group_markers(seu, group_by = "bin")
 

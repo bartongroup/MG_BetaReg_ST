@@ -437,7 +437,7 @@ Here we attempt to build a bigger picture of transcriptional changes following t
 
 ```{r, out.width="100%"}
 #| label: fig-binned-ins-spatial
-#| fig-cap: Spatial distribution of insulin expression bins used in @fig-binned-ins-prop.
+#| fig-cap: Spatial distribution of insulin expression bins.
 knitr::include_graphics("images/binned_ins_spatial_1.png")
 ```
 
@@ -475,23 +475,18 @@ tbls_binned_enrichment_1$enrichment |>
 :::
 
 
-@fig-binned-ins-exp attempts to follow insulin gradient and correlate it with selected marker genes. However, mean expression of a gene does not change very much with insulin gradient. The percentage of expressed cells, illustrated in @fig-binned-ins-prop, does, in particular for other hormones and EP marker genes.
+@fig-binned-ins-exp attempts to follow insulin gradient and correlate it with selected marker genes. The percentage of expressed cells, shown in bottom panels, shows a correlation with insulin levels.
+
+We can, perhaps, see the drop in the proportion of the expressed spots for NEUROG3 in the highest insulin expression bin, though error bars are large. This is further supported by the drop in the expression, in particular there is a lack of high-expression spots, present at lower insulin levels. This is a hint (not a proof) that NEUROG3 starts to shut down when insulin levels are high.
 
 ```{r}
 #| label: fig-binned-ins-exp
-#| fig-cap: Insulin expressing spots were divided into 6 bins, according to normalised insulin expression in each spot plus a bin containing all spots where insulin is not expressed (marked as orange dots). For each bin (group of spots with similar insulin expression), mean expression (only expressing spots) and its 95% confidence interval was calculated for other genes. Horizontal axis (insulin expression level) can be perhaps interpreted as a pseudo-time, or the level of Beta cells maturity. Please note that the mean expression of the genes presented excludes spots with zero expression. See @fig-binned-ins-prop.
+#| fig-cap: Insulin expressing spots were divided into 6 bins, according to normalised insulin expression in each spot plus a bin containing all spots where insulin is not expressed  For each bin (group of spots with similar insulin expression), the expression  is shown in the top panels, with one grey dot indicating one spot, together with the mean (only expressing spots are included, zeroes are omitted). The bottom panels show the percentage of cells expressing a given gene, together with 95% confidence intervals of a proportion.
 #| fig-width: 8
-#| fig-height: 6
-tar_read(fig_binned_ins_expression_exp_1) 
+#| fig-height: 8
+tar_read(fig_binned_expression_1) 
 ```
 
-```{r}
-#| label: fig-binned-ins-prop
-#| fig-cap: As in @fig-binned-ins-exp, but showing proportion of expressing cells in each bin. Error bars show the 95% confidence interval of a proportion.
-#| fig-width: 8
-#| fig-height: 6
-tar_read(fig_binned_ins_expression_prop_1)
-```
 
 
 

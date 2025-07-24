@@ -490,7 +490,8 @@ plot_expression <- function(seu, genes, umap_point_size = 0.1, label_size = 5, g
 }
 
 
-plot_gene_expression <- function(seu, gids, layer = "data", meta_column = "cluster", width = 0.3, ncol = NULL) {
+plot_gene_expression <- function(seu, gids, layer = "data", meta_column = "cluster", width = 0.3, ncol = NULL,
+                                 div = 0.3, col_width = 0.4) {
   
   # Necessary to avoid keeping large (~1 GB) environment within ggplot object
   env <- new.env(parent = globalenv())
@@ -500,14 +501,10 @@ plot_gene_expression <- function(seu, gids, layer = "data", meta_column = "clust
   mt <- seu@meta.data |> 
     as_tibble(rownames = "cell_id")
   
-  env$d <- GetAssayData(seu, layer = layer)[gids, , drop = FALSE] |> 
-    t() |> 
-    as.data.frame() |> 
-    rownames_to_column("cell_id") |> 
-    as_tibble() |> 
-    pivot_longer(-cell_id, names_to = "gene_symbol") |>
+  env$d <- get_gene_expression(seu, gids, layer = layer) |> 
     left_join(mt, by = "cell_id") |> 
     mutate(
+      gene_symbol = factor(gene_symbol, levels = gids),
       grp = get(meta_column),
       igrp = as.integer(grp)
     )
@@ -515,33 +512,44 @@ plot_gene_expression <- function(seu, gids, layer = "data", meta_column = "clust
   env$m <- env$d |> 
     group_by(gene_symbol, igrp) |> 
     summarise(
-      mn = mean(value[value > 0], na.rm = TRUE),
-      md = median(value[value > 0], na.rm = TRUE),
-      p = length(which(value > 0)) / n()
-    )
+      n_tot = n(),
+      mn = mean(expression[expression > 0], na.rm = TRUE),
+      md = median(expression[expression > 0], na.rm = TRUE),
+      n_expr = length(which(expression > 0)),
+      prop = n_expr / n_tot
+    ) |> 
+    ungroup() |> 
+    nest(data = c(n_expr, n_tot)) |>
+    mutate(res = purrr::map(data, ~PropCIs::exactci(.x$n_expr, .x$n_tot, conf.level = 0.95) |> broom::glance())) |>
+    unnest(c(data, res)) |> 
+    mutate(gene_symbol = factor(gene_symbol, levels = gids))
   
-  mrg <- 0.2
-  env$max_y <- max(env$d$value)
-  env$min_y <- -mrg * env$max_y
+  env$max_y <- max(env$d$expression)
+  env$min_y <- -div * env$max_y
 
   env$m <- env$m |>
-    mutate(y = (1 - p) * env$min_y)
+    mutate(
+      y = (1 - prop) * env$min_y,
+      y_lo = (1 - conf.low) * env$min_y,
+      y_up = (1 - conf.high) * env$min_y
+    )
   
   env$d <- env$d |> 
-    filter(value > 0)
+    filter(expression > 0)
   
-  env$wid <- 0.3
+  env$wid <- col_width
   with(env, {
-    ggplot(d, aes(x = igrp, y = value)) +
+    ggplot(d, aes(x = igrp)) +
       theme_bw() +
       theme(
         panel.grid = element_blank(),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)
       ) +
-      geom_quasirandom(size = 0.5, colour = "grey60", width = width) +
+      geom_quasirandom(aes(y = expression), size = 0.5, colour = "grey60", width = width) +
       geom_segment(data = m, aes(x = igrp - wid, xend = igrp + wid, y = md, yend = md), linewidth = 1) +
-      geom_col(data = m, aes(y = min_y), fill = "brown", width = wid) +
+      geom_col(data = m, aes(y = min_y), fill = "brown", width = wid, alpha = 0.6) +
       geom_col(data = m, aes(y = y), fill = "grey80", width = wid) +
+      geom_errorbar(data = m, aes(ymin = y_lo, ymax = y_up), width = wid / 2) +
       facet_wrap( ~ gene_symbol, ncol = ncol) +
       geom_hline(yintercept = 0, colour = "grey70") +
       scale_x_continuous(breaks = seq_along(groups), labels = groups) +
@@ -1179,26 +1187,20 @@ plot_binned_spatial <- function(seu, gene_x, bins = 6) {
   plot_one_xy(seu, what = "spatial", meta_column = "bin") + theme(legend.position = "right")
 }
 
+plot_binned_expression <- function(seu, gene_x, genes_y, bins = 6) {
+  b <- gene_binned_gradient(seu, gene_x, bins)
+  seu$bin <- b$bin
+
+  plot_gene_expression(seu, genes_y, meta_column = "bin")
+}
+
 
 plot_binned_xy_expression <- function(seu, gene_x, genes_y, what = "expression", bins = 6,
                                       include_x_zeroes = FALSE, include_y_zeroes = FALSE) {
   env <- new.env(parent = globalenv())
   env$gene_x <- gene_x
 
-  gx <- get_gene_expression(seu, gene_x)
-  g1 <- gx |> 
-    filter(expression > 0) |> 
-    mutate(bin = cut_interval(expression, n = bins) |> fct_expand("0", after = 0))
-  g0 <- gx |> 
-    filter(expression == 0) |> 
-    mutate(bin = factor("0", levels = levels(g1$bin)))
-  if(include_x_zeroes) {
-    gx <- bind_rows(g0, g1)
-  } else {
-    gx <- g1
-  }
-  gx <- gx |> 
-    select(cell_id, bin)
+  gx <- gene_binned_gradient(seu, gene_x, bins, include_x_zeroes)
 
   gy <- get_gene_expression(seu, genes_y)
   if(!include_y_zeroes & what == "expression") {

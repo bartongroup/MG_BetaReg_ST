@@ -49,11 +49,13 @@ targets_8um <- function() {
       png_xy_marker_mpc_ep = plot_gene_vs_gene(seu, goi$tissue_markers_positive$MPC, goi$tissue_markers_positive$EP, group_sel = c(2, 6)) |> gs("xy_marker_mpc_ep", NAME, 6, 5),
       png_xy_marker_mpc_beta = plot_gene_vs_gene(seu, goi$tissue_markers_positive$MPC, goi$tissue_markers_positive$Beta, group_sel = c(2, 6)) |> gs("xy_marker_mpc_beta", NAME, 6, 5),
 
+      # Insulin gradient
+      n_insulin_bins = 6,
+      tbls_binned_enrichment = enrichment_gradient(seu, fterms, "INS", bins = n_insulin_bins),
       genes_for_binned = c("PTF1A", "PDX1", "NKX6-1", "SOX9", "PAX4", "PAX6", "NKX2-2", "NEUROD1", "NEUROG3", "GCG", "SST", "GHRL"),
-      fig_binned_ins_expression_exp = plot_binned_xy_expression(seu, "INS", genes_for_binned, bins = 6, what = "expression", include_x_zeroes = TRUE),
-      fig_binned_ins_expression_prop = plot_binned_xy_expression(seu, "INS", genes_for_binned, bins = 6, what = "proportion", include_x_zeroes = TRUE),
-      fig_binned_ins_spatial = plot_binned_spatial(seu, "INS") |> gs("binned_ins_spatial", NAME, 8, 6),
-      tbls_binned_enrichment = enrichment_gradient(seu, fterms, "INS"),
+      fig_binned_expression = plot_binned_expression(seu, "INS", genes_for_binned, bins = n_insulin_bins),
+      fig_binned_ins_prop = plot_binned_xy_expression(seu, "INS", genes_for_binned, bins = n_insulin_bins, what = "proportion", include_x_zeroes = TRUE),
+      fig_binned_ins_spatial = plot_binned_spatial(seu, "INS", bins = n_insulin_bins) |> gs("binned_ins_spatial", NAME, 8, 6),
 
       # Cell types
       png_cell_type_scores = plot_cell_type_scores(seu_mark, tissue_markers) |> gs("cell_type_scores", NAME, 8, 22),
