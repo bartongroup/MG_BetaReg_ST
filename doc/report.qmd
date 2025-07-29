@@ -431,7 +431,7 @@ tar_read(tbl_keycorr_enrichment_1) |>
 
 ## Insulin gradient
 
-Here we attempt to build a bigger picture of transcriptional changes following the insulin gradient. We selected groups of spots with increasing insulin expression. Specifically, we divided the normalised logarithmic insulin expression range (excluding zeroes) into 6 bins of equal width and grouped spots into these bins. The no insulin expression spots were added as an extra bin.
+Here we attempt to build a bigger picture of transcriptional changes following the insulin gradient. We selected groups of spots with increasing insulin expression. Specifically, we divided the normalised logarithmic insulin expression range (excluding zeroes) into 6 bins of equal width and grouped spots into these bins. The spots with no insulin expression were added a separate bin.
 
 @fig-binned-ins-spatial demonstrates spatial location of the insulin gradient bins.
 
@@ -441,7 +441,9 @@ Here we attempt to build a bigger picture of transcriptional changes following t
 knitr::include_graphics("images/binned_ins_spatial_1.png")
 ```
 
-Next, we looked at the genes expressed in individual bins. For each bin, we found marker genes, using *Seurat's* `FindAllMarkers()` function with Wilcoxon test, just like for cluster markers (@sec-cluster-markers). Top markers were identified in each bin using the following criteria: p < 0.05, logFC > 1 and the fraction of spots expressed in the bin > 0.1. Some of them are shown in @tbl-ins-gradient-markers. Functional enrichment with GO, KEGG and Reactome databases has been carried out in each bin using the selection of top marker genes. The results are shown in @tbl-ins-gradient-enrichment.
+Next, we looked at the genes expressed in individual bins. For each bin, we found marker genes, using *Seurat's* `FindAllMarkers()` function with Wilcoxon test, just like for cluster markers (@sec-cluster-markers). These are the genes that are differentially expressed between the given bin and all other bins combined.
+
+Top markers were identified in each bin using the following criteria: adjusted p-value < 0.05, logFC > 1 and the fraction of spots expressed in the bin > 0.1. Some of them are shown in @tbl-ins-gradient-markers. Functional enrichment with GO, KEGG and Reactome databases has been carried out in each bin using the selection of top marker genes. The results are shown in @tbl-ins-gradient-enrichment.
 
 
 ```{r}
@@ -475,13 +477,13 @@ tbls_binned_enrichment_1$enrichment |>
 :::
 
 
-@fig-binned-ins-exp attempts to follow insulin gradient and correlate it with selected marker genes. The percentage of expressed cells, shown in bottom panels, shows a correlation with insulin levels.
+@fig-binned-ins-exp shows the expression and percentage of cells expressed in each insulin intensity bin, for a selection of MPC, EP and hormone genes.
 
-We can, perhaps, see the drop in the proportion of the expressed spots for NEUROG3 in the highest insulin expression bin, though error bars are large. This is further supported by the drop in the expression, in particular there is a lack of high-expression spots, present at lower insulin levels. This is a hint (not a proof) that NEUROG3 starts to shut down when insulin levels are high.
+We can, perhaps, see the drop in the proportion of the expressed spots for NEUROG3 in the highest insulin expression bin, though error bars are large. This is further supported by the drop in the expression, in particular there is a lack of high-expression spots, present at lower insulin levels. This is a hint (not a proof) that NEUROG3 starts to shut down when insulin levels are high. I can see a similar pattern in SOX9.
 
 ```{r}
 #| label: fig-binned-ins-exp
-#| fig-cap: Insulin expressing spots were divided into 6 bins, according to normalised insulin expression in each spot plus a bin containing all spots where insulin is not expressed  For each bin (group of spots with similar insulin expression), the expression  is shown in the top panels, with one grey dot indicating one spot, together with the mean (only expressing spots are included, zeroes are omitted). The bottom panels show the percentage of cells expressing a given gene, together with 95% confidence intervals of a proportion.
+#| fig-cap: Insulin expressing spots were divided into 6 bins, according to normalised insulin expression in each spot plus a bin containing all spots where insulin is not expressed  For each bin (group of spots with similar insulin expression), the expression  is shown in the top panels, with one grey dot indicating one spot, together with the median (only expressing spots are included, zeroes are omitted). The bottom panels show the percentage of cells expressing a given gene, together with 95% confidence intervals of a proportion.
 #| fig-width: 8
 #| fig-height: 8
 tar_read(fig_binned_expression_1) 

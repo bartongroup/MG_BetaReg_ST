@@ -801,6 +801,37 @@ plot_cluster_cell_type_jaccard <- function(seu) {
   })
 }
 
+plot_cluster_cell_type_sankey <- function(seu, resolution = "0.4") {
+  env <- new.env(parent = globalenv())
+
+  res <- get_resolution_columns(resolution)
+
+  d <- seu@meta.data |> 
+    as_tibble(rownames = "cell_id") |> 
+    select(cell_id, cell_type, cluster := !!res) |> 
+    mutate(across(where(is.factor), as.character)) |> 
+    make_long(cell_type, cluster) |> 
+    mutate(
+      node = factor(node, levels = c("PP", "Epsilon", "Delta", "Beta", "Alpha", "Ductal", "Acinar", "MPC", "Ventral MP", "Dorsal MP",
+      "EP", "Immune", "Blood", "VSM", "Nervous", "Matrix", "Unknown", "1", "2", "6", "5", "3", "10", "9", "8", "4", "7"))
+    )
+
+  env <- new.env(parent = globalenv())
+  env$d <- d
+
+  with(env, {
+    ggplot(d, aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = node, label = node)) +
+    theme_sankey() +
+    theme(
+      legend.position = "none"
+    ) +
+    geom_sankey(flow.alpha = 0.6, flow.colour = "grey70", flow.fill = "grey80", node.alpha = 0.6) +
+    geom_sankey_label() +
+    #scale_fill_manual(values = c(okabe_ito_palette[1:4], cell_col$colour),drop = FALSE) +
+    labs(x = NULL)
+  })
+}
+
 
 plot_expression_pseudotime <- function(seu, gids, pt_column = "pseudotime_beta", point_size = 0.8) {
   ex <- get_gene_expression(seu, gids) |> 
