@@ -1359,3 +1359,26 @@ plot_sankey_cell_type <- function(seu, p_val_limit = 0.05, EP_markers = c("NEURO
     labs(x = NULL)
   })
 }
+
+
+plot_enrichment_gradient <- function(enr) {
+  mx <- enr |> 
+    filter(!is.infinite(odds_ratio)) |> 
+    pull(odds_ratio) |> 
+    max()
+  d <- enr |> 
+    filter(bin != 0) |>
+    mutate(
+      odds_ratio = if_else(is.infinite(odds_ratio), mx * 1.1, odds_ratio) |> log(10),
+      ibin = as.integer(bin)
+    ) |>
+    group_by(term_name) |> 
+    mutate(cm = sum(ibin * odds_ratio) /  sum(odds_ratio)) |> 
+    ungroup() |> 
+    mutate(term_name = fct_reorder(term_name, cm)) |> 
+    pivot_wider(id_cols = term_name, names_from = bin, values_from = odds_ratio, values_fill = 0) |>
+    arrange(term_name) |> 
+    column_to_rownames("term_name")
+
+  ggheatmap(d, order.col = FALSE, order.row = FALSE, with.y.text = TRUE, palette = "viridis", legend.name = expression(log[10]~OR))
+}

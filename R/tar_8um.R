@@ -52,6 +52,7 @@ targets_8um <- function() {
       # Insulin gradient
       n_insulin_bins = 6,
       tbls_binned_enrichment = enrichment_gradient(seu, fterms, "INS", bins = n_insulin_bins),
+      fig_enrichment_gradient = plot_enrichment_gradient(tbls_binned_enrichment$enrichment),
       genes_for_binned = c("PTF1A", "PDX1", "NKX6-1", "SOX9", "PAX4", "PAX6", "NKX2-2", "NEUROD1", "NEUROG3", "GCG", "SST", "GHRL"),
       fig_binned_expression = plot_binned_expression(seu, "INS", genes_for_binned, bins = n_insulin_bins),
       fig_binned_ins_prop = plot_binned_xy_expression(seu, "INS", genes_for_binned, bins = n_insulin_bins, what = "proportion", include_x_zeroes = TRUE),
@@ -143,7 +144,7 @@ targets_8um <- function() {
       # CellChat
       cellchat = create_cellchat(seu_mark) |> preprocess_cellchat(),
       cellchat_comp = compute_cellchat(cellchat, n_boot = 100, scale_distance = CELLCHAT_SCALE_DISTANCE, raw_use = TRUE, population_size = FALSE),
-      cellchat_prob = CellChat::subsetCommunication(cellchat_comp_1) |> tibble::as_tibble() |> dplyr::arrange(desc(prob)),
+      cellchat_prob = CellChat::subsetCommunication(cellchat_comp) |> tibble::as_tibble() |> dplyr::arrange(desc(prob)),
       # This gives huge amount of interactions with very low probabilities:
       # cellchat_comp_smth = compute_cellchat(cellchat, n_boot = 100, scale_distance = CELLCHAT_SCALE_DISTANCE, raw_use = FALSE),
       # This gives exactly the same interactions as the main one, but probabilities are very low

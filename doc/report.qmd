@@ -476,6 +476,16 @@ tbls_binned_enrichment_1$enrichment |>
 
 :::
 
+@fig-ins-gradient-enrichment shows the log-odds-ratio of statistically significant enrichment terms as a function of the insulin gradient bin. "Early" terms include cell morphogenesis, tight junctions and early pancreatic precursor cells. "Mid" terms include cell junctions and adhesion. "Late" terms include insulin processing and secretion, GLP-1, glucose homeostasis and cAMP signalling.
+
+```{r}
+#| label: fig-ins-gradient-enrichment
+#| fig-cap: Significant enrichment terms for insulin gradient. The terms are ordered according to the insulin intensity "centre of mass", to group terms enriched at similar insulin levels, from "early" to "late". The colour intensity scale shows the log odds ratio.
+#| fig-width: 8
+#| fig-height: 12
+tar_read(fig_enrichment_gradient_1)
+```
+
 
 @fig-binned-ins-exp shows the expression and percentage of cells expressed in each insulin intensity bin, for a selection of MPC, EP and hormone genes.
 
