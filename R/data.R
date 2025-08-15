@@ -482,3 +482,34 @@ enrichment_gradient <- function(seu, fterms, gene = "INS", bins = 6, fdr_limit =
     enrichment = enr
   )
 }
+
+
+find_best_markers <- function(markers, pct_limit = 0.1, fdr_limit = 0.01, max_per_cluster = 200) {
+  markers |>
+    filter(cluster != "0" & p_val_adj < 0.01 & pct.1 > pct_limit) |> 
+    group_by(cluster) |> 
+    mutate(rank = min_rank(-avg_log2FC)) |> 
+    ungroup() |> 
+    filter(rank <= max_per_cluster) |>
+    group_by(gene_symbol) |> 
+    summarise(
+      best_rank = min(rank),
+      best_cluster = cluster[which.min(rank)],
+      best_pct = pct.1[which.min(rank)]
+    ) |>
+    arrange(best_rank)
+}
+
+merge_best_markers <- function(best_markers_1, best_markers_2) {
+  m <- best_markers_1 |>
+    full_join(best_markers_2, by = "gene_symbol", suffix = c(".1", ".2"))
+  m |> 
+    select(gene_symbol, starts_with("best_rank")) |> 
+    pivot_longer(-gene_symbol) |>
+    group_by(gene_symbol) |>
+    mutate(mean_rank = mean(value, na.rm = TRUE)) |> 
+    ungroup() |>
+    pivot_wider(id_cols = c(gene_symbol, mean_rank)) |> 
+    arrange(mean_rank) |> 
+    left_join(m |> select(-starts_with("best_rank")), by = join_by(gene_symbol))
+}

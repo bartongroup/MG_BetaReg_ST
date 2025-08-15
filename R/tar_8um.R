@@ -34,6 +34,7 @@ targets_8um <- function() {
 
       # Clustering
       cluster_markers = find_group_markers(seu, group_by = "cluster"),
+      tbl_best_cluster_markers = find_best_markers(cluster_markers, max_per_cluster = 50),
       top_cluster_markers = get_top_cluster_markers(cluster_markers, n_top = 12),
       top_cluster_genes = top_cluster_markers$gene_symbol |> unique(),
       tbl_cluster_enrichment = group_enrichment(top_cluster_markers, fterms, group_var = "cluster"),
@@ -52,6 +53,7 @@ targets_8um <- function() {
       # Insulin gradient
       n_insulin_bins = 6,
       tbls_binned_enrichment = enrichment_gradient(seu, fterms, "INS", bins = n_insulin_bins),
+      tbl_best_insulin_gradient_markers = find_best_markers(tbls_binned_enrichment$markers, max_per_cluster = 160),
       fig_enrichment_gradient = plot_enrichment_gradient(tbls_binned_enrichment$enrichment),
       genes_for_binned = c("PTF1A", "PDX1", "NKX6-1", "SOX9", "PAX4", "PAX6", "NKX2-2", "NEUROD1", "NEUROG3", "GCG", "SST", "GHRL"),
       fig_binned_expression = plot_binned_expression(seu, "INS", genes_for_binned, bins = n_insulin_bins),
@@ -238,7 +240,10 @@ targets_8um <- function() {
     res_comp = combine_resolution_area(seu_1, seu_2um, c("INS", "SST", "GCG", "GHRL"), x_cen = box_coords$x, y_cen = box_coords$y, size = box_coords$size),
     fig_res_comp = plot_resolution_comparison(res_comp),
 
-    tbl_key_markers_count = get_total_count(seu_1) |> dplyr::filter(gene_symbol %in% key_markers$gene_symbol)
+    tbl_key_markers_count = get_total_count(seu_1) |> dplyr::filter(gene_symbol %in% key_markers$gene_symbol),
+
+    tbl_best_cluster_markers = merge_best_markers(tbl_best_cluster_markers_1, tbl_best_cluster_markers_2),
+    tbl_best_insulin_gradient_markers = merge_best_markers(tbl_best_insulin_gradient_markers_1, tbl_best_insulin_gradient_markers_2)
   )
 
   for_shiny <- tar_plan(
