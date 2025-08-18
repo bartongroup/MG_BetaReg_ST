@@ -243,7 +243,9 @@ targets_8um <- function() {
     tbl_key_markers_count = get_total_count(seu_1) |> dplyr::filter(gene_symbol %in% key_markers$gene_symbol),
 
     tbl_best_cluster_markers = merge_best_markers(tbl_best_cluster_markers_1, tbl_best_cluster_markers_2),
-    tbl_best_insulin_gradient_markers = merge_best_markers(tbl_best_insulin_gradient_markers_1, tbl_best_insulin_gradient_markers_2)
+    tbl_best_insulin_gradient_markers = merge_best_markers(tbl_best_insulin_gradient_markers_1, tbl_best_insulin_gradient_markers_2),
+    tbl_all_markers = merge_all_markers(tbl_best_cluster_markers, tbl_best_insulin_gradient_markers, key_markers, gns),
+    sav_all_markers = readr::write_csv(tbl_all_markers, "tab/markers_for_xenium.csv")
   )
 
   for_shiny <- tar_plan(

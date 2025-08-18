@@ -219,7 +219,7 @@ Samples 1 and 2 come from male and female donors. We confirm this by looking at 
 
 # Sample 1
 
-## Clustering
+## Clustering {#sec-clustering}
 
 Clustering in *Seurat* is done using the following approach:
 
@@ -307,14 +307,23 @@ The dot plot in @fig-cluster-dot-plot shows the expression and expressed spot pe
 tar_read(fig_dots_top_cluster_1)
 ```
 
-## Key markers
+## Key markers {#sec-key-markers}
 
 Key cell type markers used in the analysis are shown in @tbl-markers. Apart from the endocrine cells, a few other identifiable cell types are included.
 
+
+
+```{r}
+#| label: key-markers
+tar_load(key_markers)
+n_key_markers <- key_markers |> 
+  distinct(gene_symbol) |> 
+  nrow()
+```
 ```{r}
 #| label: tbl-markers
 #| tbl-cap: Key marker genes. MPC stands for Multipotent Progenitor Cells, EP - Endocrine Progenitors, PP - Pancreatic Polypeptide, VSM - Vascular Smooth Muscle, Matrix - Extracellular Matrix.
-tar_read(key_markers) |> 
+key_markers |> 
   mutate(value = "x") |> 
   arrange(cell_type) |> 
   pivot_wider(id_cols = gene_symbol, names_from = cell_type, values_fill = "") |> 
@@ -429,7 +438,7 @@ tar_read(tbl_keycorr_enrichment_1) |>
 
 :::
 
-## Insulin gradient
+## Insulin gradient {#sec-insulin-gradient}
 
 Here we attempt to build a bigger picture of transcriptional changes following the insulin gradient. We selected groups of spots with increasing insulin expression. Specifically, we divided the normalised logarithmic insulin expression range (excluding zeroes) into 6 bins of equal width and grouped spots into these bins. The spots with no insulin expression were added a separate bin.
 
@@ -1256,6 +1265,46 @@ Differentially expressed markers were found for each cell type, versus all other
 knitr::include_graphics("images/cell_type_marker_dots_2um_1.png")
 ```
 
+
+# Best marker genes for Xenium experiment
+
+In the next phase, we will run a focused Xenium experiment that can target up to 480 genes, offering high sensitivity and excellent spatial resolution.
+
+First a longlist of ~1,200 genes was generated from three sources: (i) cluster markers, (ii) insulin-gradient markers, and (iii) a manually curated set of key markers. This list can be manually down-selected to the ~480 genes required for the Xenium panel.
+
+## Data sources
+
+ - Unsupervised clustering (cluster markers, @sec-clustering) provides with an unbiased approach to identify spatially variable genes. The top $n_{cl}=50$ genes per cluster (low overlap across clusters) were kept.
+ - Insulin-gradient markers (@sec-insulin-gradient) contains genes associated with six bands of insulin expression (the zero-insulin group was excluded). Because overlap across bands is high, the top $n_{cl}=160$ genes per band were kept.
+ - Curated key markers (@sec-key-markers). `r n_key_markers` genes selected a priori. These are all retained and prioritised.
+
+## Method
+
+### Step-by-step selection
+
+For each cluster (group of spots) genes with FDR < 0.01 and prevalence ≥ 10% within that cluster (≥10% of spots with non-zero expression) were kept. The filtered genes were ranked by log2FC (descending) and the top $n_{cl}$ genes were kept. For genes appearing in multiple clusters, the best (lowest) cluster rank per gene was computed. The list was ordered by the rank/best rank. These steps were performed independently for samples 1 and 2.
+
+The ranked lists were integrated across both samples. For each gene, the mean of its best ranks from the two samples was computed. This mean best rank defines the global ordering.
+
+The manually curated key markers were added and a mean rank of 0 was assigned to them, so they appear at the top and are all retained. All sources were merged and duplicate gene symbols were removed, keeping a single entry per gene (key markers were never dropped). The unique list was ordered by mean best rank (ascending). This list can be then manually curated to the final ~480-gene Xenium panel.
+
+## Notes and rationale
+
+The prevalence threshold (≥10%) avoids selecting genes that are statistically significant but confined to very small subpopulations within a cluster. Using the best rank across clusters rewards genes that are strong markers anywhere, while the mean best rank across samples stabilises selection across biological replicates. Keeping all curated key markers (rank = 0) ensures critical biology is represented even if some genes are not top-ranked by DE.
+
+
+## Output
+
+The [final list of recommended genes](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/markers_for_xenium.csv) is available for download. This table contains the following columns:
+
+| Column name | Explanation |
+|-------------|-------------|
+| gene_symbol | Gene symbol |
+| description | Gene description |
+| mean_rank | Mean rank across samples 1 and 2 |
+| best_rank.*n* | Best rank in sample *n* |
+| best_cluster.*n* | In which cluster/group the gene had the best rank, in sample *n* |
+| best_pct.*n* | The percentage of spots expressed (0-1) in the best cluster/group, in sample *n* |
 
 
 # Resources {#sec-resources}

@@ -15,4 +15,5 @@ ggsankey
 readxl
 janitor
 jsonlite
+lobstr
 patchwork

@@ -484,6 +484,12 @@ enrichment_gradient <- function(seu, fterms, gene = "INS", bins = 6, fdr_limit =
 }
 
 
+# Get top max_per_cluster markers (by logFC rank) from each cluster,
+# merge results. Ignore cluster 0.
+# For each gene find
+#   - best_rank - smallest rank across all clusters
+#   - best_cluster - where the smallest rank is
+#   - best_pcs - percentage expressed in best cluster
 find_best_markers <- function(markers, pct_limit = 0.1, fdr_limit = 0.01, max_per_cluster = 200) {
   markers |>
     filter(cluster != "0" & p_val_adj < 0.01 & pct.1 > pct_limit) |> 
@@ -512,4 +518,29 @@ merge_best_markers <- function(best_markers_1, best_markers_2) {
     pivot_wider(id_cols = c(gene_symbol, mean_rank)) |> 
     arrange(mean_rank) |> 
     left_join(m |> select(-starts_with("best_rank")), by = join_by(gene_symbol))
+}
+
+
+merge_all_markers <- function(tbl_best_cluster_markers, tbl_best_insulin_gradient_markers, key_markers, gns) {
+  km <- key_markers |> 
+    distinct(gene_symbol) |> 
+    add_column(mean_rank = 0, source = "Key marker")
+
+  mrk <- bind_rows(
+    tbl_best_cluster_markers |> add_column(source = "Clustering"),
+    tbl_best_insulin_gradient_markers |> add_column(source = "Insulin gradient")
+  ) |> 
+    filter(!(gene_symbol %in% km)) |> # don't duplicated key markers
+    # deduplicate cluster and insulin, remove lower ranks
+    group_by(gene_symbol) |> 
+    slice_min(mean_rank, n = 1, with_ties = FALSE) |>
+    ungroup()
+
+  g <- gns |> 
+    select(gene_symbol, description) |> 
+    distinct()
+  bind_rows(km, mrk) |> 
+    arrange(mean_rank) |> 
+    left_join(g, by = "gene_symbol") |> 
+    relocate(description, .after = gene_symbol)
 }
