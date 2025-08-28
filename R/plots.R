@@ -12,7 +12,77 @@ thm <- th +
     axis.ticks = ggplot2::element_blank()
   )
 
+# Minimal dependencies: rlang (installed with ggplot2)
+# Written by ChatGPT 5
+gg_isolate_env <- function(p) {
+  stopifnot(inherits(p, "ggplot"))
 
+  # Recursively set environments of any quosures to emptyenv()
+  strip_quosure_envs <- function(x) {
+    if (rlang::is_quosure(x)) {
+      return(rlang::quo_set_env(x, rlang::empty_env()))
+    }
+    if (is.list(x)) {
+      return(lapply(x, strip_quosure_envs))
+    }
+    x
+  }
+
+  # 1) Kill the plot-level environment
+  p$plot_env <- rlang::empty_env()
+
+  # 2) Strip envs from top-level aes()
+  if (length(p$mapping)) {
+    p$mapping <- strip_quosure_envs(p$mapping)
+  }
+
+  # 3) Strip envs from each layer's aes()
+  if (length(p$layers)) {
+    p$layers <- lapply(p$layers, function(layer) {
+      if (length(layer$mapping)) {
+        layer$mapping <- strip_quosure_envs(layer$mapping)
+      }
+      layer
+    })
+  }
+
+  # 4) Strip envs from facet quosures (wrap, grid, etc.)
+  if (!is.null(p$facet) && !is.null(p$facet$params)) {
+    params <- p$facet$params
+    for (nm in c("facets", "rows", "cols")) {
+      if (!is.null(params[[nm]])) {
+        params[[nm]] <- strip_quosure_envs(params[[nm]])
+      }
+    }
+    p$facet$params <- params
+  }
+
+  # 5) (Optional) If you store custom data as quosures in labels/scales, clean them too
+  if (length(p$labels)) p$labels <- strip_quosure_envs(p$labels)
+  if (!is.null(p$scales) && length(p$scales$scales)) {
+    p$scales$scales <- lapply(p$scales$scales, function(s) {
+      # some scales may carry expressions/quosures in labels/trans breaks
+      s[] <- strip_quosure_envs(unclass(s))
+      class(s) <- attr(s, "class")
+      s
+    })
+  }
+
+  p
+}
+
+#' Save plot to PNG in doc/images
+#'
+#' Wrapper around ggsave() that writes a ggplot to doc/images/<name>[_<sample>].png.
+#'
+#' @param gg A ggplot object.
+#' @param name Base file name (without extension).
+#' @param sample Optional sample name to append to the file.
+#' @param width Plot width in inches.
+#' @param height Plot height in inches.
+#' @param dpi Resolution in dots per inch.
+#'
+#' @return Invisibly, the file path written.
 gs <- function(gg, name, sample = NULL, width, height, dpi = 240) {
   if(is.null(sample)) {
     fname <- file.path("doc", "images", paste0(name, ".png"))
@@ -24,7 +94,15 @@ gs <- function(gg, name, sample = NULL, width, height, dpi = 240) {
          width = width, height = height, dpi = dpi)
 }
 
-
+#' Save R object to RDS in doc/images
+#'
+#' Writes a serialised object to doc/images/<name>[_<sample>].rds.
+#'
+#' @param gg An R object to serialise (often a ggplot).
+#' @param name Base file name (without extension).
+#' @param sample Optional sample name to append to the file.
+#'
+#' @return Invisibly, the file path written.
 rs <- function(gg, name, sample = NULL) {
   if(is.null(sample)) {
     fname <- file.path("doc", "images", paste0(name, "rds"))
@@ -35,7 +113,13 @@ rs <- function(gg, name, sample = NULL) {
   readr::write_rds(gg, fname)
 }
 
-
+#' Plotmath labels in scientific notation (×10^k)
+#'
+#' Formats numeric values as expressions like 10^k suitable for axis labels.
+#'
+#' @param x Numeric vector.
+#'
+#' @return An expression vector for use in plot labels.
 scientific_10 <- function(x) {
   parse(
     text = scales::scientific_format()(x) |>
@@ -44,7 +128,14 @@ scientific_10 <- function(x) {
   )
 }
 
-
+#' Table of QC thresholds for reporting
+#'
+#' Creates a two-column human-readable table of per-cell and per-gene cutoffs.
+#'
+#' @param params A list/data frame with fields min_detected_genes_per_cell, min_counts_per_cell,
+#'   max_mt_fraction, and min_detections_per_gene.
+#'
+#' @return A tibble with columns Group, Quantity, and Limit.
 make_table_cuts <- function(params) {
   tribble(
     ~Group, ~Quantity, ~Limit,
@@ -55,7 +146,15 @@ make_table_cuts <- function(params) {
   )
 }
 
-
+#' Distributions of per-cell quantities
+#'
+#' Density plots for total counts, detected genes, and mitochondrial fraction.
+#'
+#' @param cell_data Tibble of cell-level metrics with columns total_count, n_genes, mito_fraction.
+#' @param params Optional list with QC thresholds to draw reference lines.
+#' @param with_vlines Logical; add vertical lines at thresholds.
+#'
+#' @return A patchwork of three ggplots.
 plot_cell_marginals <- function(cell_data, params = NULL, with_vlines = TRUE) {
   pl_ <- function(what, xlab, log_scale = TRUE) {
     pl <- cell_data |> 
@@ -87,7 +186,14 @@ plot_cell_marginals <- function(cell_data, params = NULL, with_vlines = TRUE) {
   
 }
 
-
+#' Histogram of gene detection counts
+#'
+#' For each group, counts how many genes are detected in 0..k cells and plots per group.
+#'
+#' @param gene_detection Tibble with one row per gene and columns per group containing detection counts.
+#' @param max_det Integer; values above are collapsed into >max_det.
+#'
+#' @return A faceted ggplot.
 plot_gene_detections <- function(gene_detection, max_det = 8) {
   gene_detection |> 
     pivot_longer(-gene_id, names_to = "group", values_to = "detections") |> 
@@ -108,7 +214,15 @@ plot_gene_detections <- function(gene_detection, max_det = 8) {
     labs(x = "Number of detections", y = "Number of genes") 
 }
 
-
+#' Genes detected vs total counts per cell
+#'
+#' Scatter of n_genes vs total_count coloured by mito_fraction with optional cut lines.
+#'
+#' @param cell_data Tibble of cell-level metrics.
+#' @param params Optional list with min_detected_genes_per_cell and min_counts_per_cell.
+#' @param with_lines Logical; add threshold lines.
+#'
+#' @return A ggplot object.
 plot_count_det <- function(cell_data, params = NULL, with_lines = TRUE) {
   pl <- cell_data |> 
     ggplot(aes(x = total_count, y = n_genes, colour = mito_fraction)) +
@@ -127,6 +241,14 @@ plot_count_det <- function(cell_data, params = NULL, with_lines = TRUE) {
 }
 
 
+#' Counts and sizes across samples
+#'
+#' Three side-by-side bars: number of cells, total reads (millions), and median genes per cell.
+#'
+#' @param cell_data_all Tibble of cell-level metrics with sample, total_count.
+#' @param gene_detection_all Tibble with gene-by-sample detections.
+#'
+#' @return A cowplot grid of three ggplots.
 plot_all_counts <- function(cell_data_all, gene_detection_all) {
   env <- new.env(parent = globalenv())
 
@@ -156,7 +278,15 @@ plot_all_counts <- function(cell_data_all, gene_detection_all) {
   })
 }
 
-
+#' Spatial plot of a metadata field
+#'
+#' Renders a Visium tile map filled by a metadata column, with optional divergent palette.
+#'
+#' @param seu Seurat object.
+#' @param meta_column Metadata column name to show.
+#' @param palette Either "viridis" (continuous) or "divergent" (RdBu centred).
+#'
+#' @return A ggplot of polygons per spot.
 plot_spatial_meta <- function(seu, meta_column = "pseudotime", palette = "viridis") {
   xy <- get_spatial_coordinates(seu) |> 
     mutate(val = seu@meta.data[[meta_column]])
@@ -180,7 +310,15 @@ plot_spatial_meta <- function(seu, meta_column = "pseudotime", palette = "viridi
   pl
 }
 
-
+#' Percentile bands ignoring zero expression
+#'
+#' Replaces zero values with 0 and assigns non-zeros to percentile bands [0, percentile)
+#' and >= percentile.
+#'
+#' @param df Tibble with column expression.
+#' @param percentile Numeric in (0,1); band split threshold.
+#'
+#' @return Tibble with added columns prc and factor val in {0,1,2}.
 percentiles_no_zeroes <- function(df, percentile) {
   df |> 
     mutate(
@@ -195,8 +333,20 @@ percentiles_no_zeroes <- function(df, percentile) {
     )
 }
 
-
-plot_spatial_selection_genes <- function(seu, genes, box = list(x1 = -Inf, x2 = Inf, y1 = -Inf, y2 = Inf), percentile = NULL, spots = NULL, ncol = 2) {
+#' Spatial plots for selected genes
+#'
+#' Spatial plot for each gene's expression or discrete percentile bands; optional highlighted spots.
+#'
+#' @param seu Seurat object.
+#' @param genes Character vector of gene symbols.
+#' @param box Named list with x1, x2, y1, y2 to crop (defaults to full extent).
+#' @param percentile Optional numeric in (0,1) for banded fill using \code{percentiles_no_zeroes()}.
+#' @param spots Optional tibble with columns x,y to outline circular regions.
+#' @param ncol Number of columns in facet layout.
+#'
+#' @return A faceted ggplot.
+plot_spatial_selection_genes <- function(seu, genes, box = list(x1 = -Inf, x2 = Inf, y1 = -Inf, y2 = Inf),
+                                         percentile = NULL, spots = NULL, ncol = 2) {
   ex <- get_gene_expression(seu, genes) |> 
     mutate(val = expression)
   if(!is.null(percentile)) {
@@ -246,9 +396,19 @@ plot_spatial_selection_genes <- function(seu, genes, box = list(x1 = -Inf, x2 = 
   pl
 }
 
-
-animate_spatial_genes <- function(seu, genes, box = list(x1 = -Inf, x2 = Inf, y1 = -Inf, y2 = Inf), percentile = NULL,
-                                      transition_length = 1) {
+#' Animated spatial gene map
+#'
+#' Creates a GIF cycling through genes, showing expression or percentile bands per frame.
+#'
+#' @param seu Seurat object.
+#' @param genes Character vector of gene symbols (order defines animation).
+#' @param box Named list with x1, x2, y1, y2 to crop.
+#' @param percentile Optional numeric in (0,1) for banded fill.
+#' @param transition_length Transition length passed to gganimate.
+#'
+#' @return Saves doc/images/spatial_<genes>.gif; invisibly returns the gganimate object.
+animate_spatial_genes <- function(seu, genes, box = list(x1 = -Inf, x2 = Inf, y1 = -Inf, y2 = Inf),
+                                  percentile = NULL, transition_length = 1) {
   ex <- get_gene_expression(seu, genes) |> 
     mutate(val = expression)
   if(!is.null(percentile)) {
@@ -286,7 +446,16 @@ animate_spatial_genes <- function(seu, genes, box = list(x1 = -Inf, x2 = Inf, y1
   gganimate::anim_save(fname, pl, path = file.path("doc", "images"))
 }
 
-  
+#' Spatial plot of categorical metadata
+#'
+#' Fills Visium tiles by a discrete metadata column (e.g., cell_type) using a fixed palette. Designed
+#' for cell type (that is, don't try it with a different meta_column)
+#'
+#' @param seu Seurat object.
+#' @param meta_column Metadata column name to show (default "cell_type").
+#' @param box Named list with x1, x2, y1, y2 to crop.
+#'
+#' @return A ggplot of polygons per spot.
 plot_spatial_selection_meta <- function(seu, meta_column = "cell_type", box = list(x1 = -Inf, x2 = Inf, y1 = -Inf, y2 = Inf)) {
   mt <- get_cell_data(seu) |> 
     mutate(val = seu@meta.data[[meta_column]]) |> 
@@ -305,7 +474,16 @@ plot_spatial_selection_meta <- function(seu, meta_column = "cell_type", box = li
     scale_fill_manual(values = pal)
 }
 
-
+#' Reduction plot coloured by metadata
+#'
+#' Scatter on reduction coordinates coloured by a continuous metadata variable.
+#'
+#' @param seu Seurat object.
+#' @param reduction Reduction name ("pca", "umap", etc.).
+#' @param meta_column Metadata column to colour by.
+#' @param point_size Point size.
+#'
+#' @return A ggplot object.
 plot_reduction_meta <- function(seu, reduction = "pca", meta_column = "pseudotime", point_size = 0.6) {
   Embeddings(seu, reduction = reduction) |>
     as_tibble(rownames = "cell_id") |>
@@ -320,19 +498,24 @@ plot_reduction_meta <- function(seu, reduction = "pca", meta_column = "pseudotim
 }
 
 
+
+#' UMAP or spatial plot for one quantity
 #'
-#' Generates a scatter plot using either UMAP or spatial coordinates from a Seurat object.
-#' Points can be colored by cluster identity or gene expression values.
+#' Plots either a discrete metadata column or gene expression (one or multiple genes),
+#' on UMAP or spatial tiles.
 #'
-#' @param seu A Seurat object containing the data to plot.
-#' @param resolution Character or numeric value indicating the clustering resolution.
-#' @param point_size Numeric value specifying the size of points in the plot. Default is 0.2.
-#' @param what Character value specifying the type of coordinates to plot. Choices are "umap" or "spatial". Default is "umap".
-#' @param gene Optional character specifying the gene names whose expression will be used for coloring. Default is NULL.
-#' @param with_legend Logical indicating whether to include the legend in the plot. Default is FALSE.
-#' @param combine_genes If true, combine normalised-to-max epxression across genes
+#' @param seu Seurat object.
+#' @param resolution Optional clustering resolution used to set Idents (e.g. "0.2").
+#' @param point_size Point size for scatter/polygons.
+#' @param what One of "umap" or "spatial".
+#' @param meta_column Name of metadata column when plotting categories.
+#' @param genes Optional gene symbol(s); if given, expression is plotted.
+#' @param with_legend Logical; show legend.
+#' @param label_size Size of cluster labels when plotting discrete groups.
+#' @param combine_genes Logical; if multiple genes, average per cell before plotting.
+#' @param discrete_palette Optional vector of colours for discrete groups.
 #'
-#' @return A ggplot2 object.
+#' @return A ggplot object (optionally faceted when multiple genes).
 plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap", "spatial"), meta_column = "cluster",
                         genes = NULL, with_legend = FALSE, label_size = 6, combine_genes = FALSE, discrete_palette = NULL) {
   what <- match.arg(what)
@@ -446,8 +629,17 @@ plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap
 }
 
 
+#' Compare multiple clustering resolutions
+#'
+#' For each resolution, shows UMAP (points) and spatial (tiles) side-by-side.
+#'
+#' @param seu Seurat object.
+#' @param resolutions Numeric/character vector of resolutions.
+#' @param umap_point_size Point size for UMAP.
+#' @param label_size Label size for cluster text.
+#'
+#' @return A cowplot grid.
 plot_resolutions <- function(seu, resolutions, umap_point_size = 0.2, label_size = 5) {
-
   pl <- map(resolutions, function(res) {
 
     pl1 <- plot_one_xy(seu, resolution = res, point_size = umap_point_size, what = "umap")
@@ -456,21 +648,38 @@ plot_resolutions <- function(seu, resolutions, umap_point_size = 0.2, label_size
   })
 
   plot_grid(plotlist = pl, ncol = 1, labels = resolutions)
-
 }
 
-
+#' Cell type maps (UMAP and spatial)
+#'
+#' Side-by-side UMAP and spatial plots coloured by cell_type.
+#'
+#' @param seu Seurat object.
+#' @param umap_point_size Point size for UMAP.
+#' @param label_size Label size for text labels.
+#'
+#' @return A cowplot grid.
 plot_cell_type <- function(seu, umap_point_size = 0.3, label_size = 3) {
-
   pal <- c(okabe_ito_palette[c(4, 1, 8, 5, 2, 3, 6, 7, 9)], "darkgreen", "lightgreen", "red", "brown", "magenta", grey(0.95))
   pl1 <- plot_one_xy(seu, point_size = umap_point_size, label_size = label_size, what = "umap", meta_column = "cell_type", discrete_palette = pal, with_legend = FALSE)
   pl2 <- plot_one_xy(seu, label_size = label_size, what = "spatial", meta_column = "cell_type", discrete_palette = pal, with_legend = TRUE) + guides(colour = guide_legend(override.aes = list(size = 3)))
   plot_grid(pl1, pl2, nrow = 1, rel_widths = c(1, 1.4))
-
 }
 
-
-plot_expression <- function(seu, genes, umap_point_size = 0.1, label_size = 5, grid_label_size = 10, combine_genes = FALSE) {
+#' Gene expression grids (UMAP + spatial)
+#'
+#' For each gene (or combined average), shows UMAP and spatial expression maps.
+#'
+#' @param seu Seurat object.
+#' @param genes Character vector of gene symbols.
+#' @param umap_point_size Point size for UMAP plots.
+#' @param label_size Label size.
+#' @param grid_label_size Facet label size for the grid.
+#' @param combine_genes Logical; average genes per cell instead of faceting.
+#'
+#' @return A cowplot grid or single panel when combine_genes = TRUE.
+plot_expression <- function(seu, genes, umap_point_size = 0.1, label_size = 5, grid_label_size = 10,
+                            combine_genes = FALSE) {
 
   plot_side_by_side <- function(gn) {
     pl1 <- plot_one_xy(seu, genes = gn, point_size = umap_point_size, what = "umap", combine_genes = combine_genes, label_size = label_size)
@@ -489,7 +698,20 @@ plot_expression <- function(seu, genes, umap_point_size = 0.1, label_size = 5, g
 
 }
 
-
+#' Hybrid plot for gene expression by group
+#'
+#' Dot/quasirandom points per cell atop median line; bottom bars reflect % cells expressed with CI.
+#'
+#' @param seu Seurat object.
+#' @param gids Character vector of gene symbols.
+#' @param layer Data layer ("data" or "counts").
+#' @param meta_column Metadata column defining groups (default "cluster").
+#' @param width Quasirandom jitter width.
+#' @param ncol Number of columns in facet layout (NULL for auto).
+#' @param div Fraction of y-range used for percent bars below zero.
+#' @param col_width Half-width of summary bars.
+#'
+#' @return A faceted ggplot.
 plot_gene_expression <- function(seu, gids, layer = "data", meta_column = "cluster", width = 0.3, ncol = NULL,
                                  div = 0.3, col_width = 0.4) {
   
@@ -560,6 +782,15 @@ plot_gene_expression <- function(seu, gids, layer = "data", meta_column = "clust
 
 
 
+#' Heatmap of average expression per cluster
+#'
+#' Computes AverageExpression() per cluster and shows gene-wise relative expression (z/mean scaling).
+#'
+#' @param seu Seurat object.
+#' @param gns Character vector of gene symbols.
+#' @param resolution Optional clustering resolution to set identities before averaging.
+#'
+#' @return A ggplot heatmap.
 plot_gene_heatmap <- function(seu, gns, resolution = NULL) {
   env <- new.env(parent = globalenv())
   
@@ -588,7 +819,17 @@ plot_gene_heatmap <- function(seu, gns, resolution = NULL) {
   })
 }
 
-
+#' Dot plot of gene-by-group expression
+#'
+#' Wrapper around Seurat DotPlot() with cleaned aesthetics and optional legend suppression.
+#'
+#' @param seu Seurat object.
+#' @param gns Character vector of gene symbols.
+#' @param meta_column Grouping metadata column.
+#' @param with_legend Logical; include legend.
+#' @param title Optional plot title.
+#'
+#' @return A ggplot dot plot.
 plot_gene_dots <- function(seu, gns, meta_column = "cluster", with_legend = TRUE, title = NULL) {
   env <- new.env(parent = globalenv())
   env$meta_column <- meta_column
@@ -615,7 +856,15 @@ plot_gene_dots <- function(seu, gns, meta_column = "cluster", with_legend = TRUE
   })
 }
 
-
+#' Dot plots of top markers per cell type
+#'
+#' For each cluster in cell_type_markers, shows dot plot of top n_top genes across cell_type.
+#'
+#' @param seu Seurat object.
+#' @param cell_type_markers Tibble with cluster, gene_symbol, and avg_log2FC.
+#' @param n_top Number of markers per cell type.
+#'
+#' @return A cowplot grid of dot plots.
 plot_cell_type_marker_dots <- function(seu, cell_type_markers, n_top = 30) {
   cell_types <- cell_type_markers$cluster |> unique() |> as.character()
   pl <- map(cell_types, function(ct) {
@@ -630,13 +879,31 @@ plot_cell_type_marker_dots <- function(seu, cell_type_markers, n_top = 30) {
 }
 
 
-
+#' Save UMAP+spatial expression grids for a gene list
+#'
+#' Produces a PNG in doc/images for the given genes.
+#'
+#' @param seu Seurat object.
+#' @param genes Character vector of gene symbols.
+#' @param file_name Base output name.
+#' @param width Plot width in inches.
+#'
+#' @return Invisibly, the file path written.
 plot_png_expression_genes <- function(seu, genes, file_name, width = 8) {
   plot_expression(seu, genes, umap_point_size = 0.4, grid_label_size = 10) |> 
     gs(file_name, width = width, height = 4 * length(genes))
 }
 
-
+#' Save key marker panels per cell type
+#'
+#' For each cell type in key_markers, saves UMAP+spatial expression PNG for its genes.
+#'
+#' @param seu Seurat object.
+#' @param key_markers Tibble with columns cell_type and gene_symbol.
+#' @param file_prefix Prefix for output files.
+#' @param width Plot width in inches.
+#'
+#' @return A list of file paths (invisibly).
 plot_key_markers_umap_spatial <- function(seu, key_markers, file_prefix, width = 8) {
   all_feat <- Features(seu)
 
@@ -655,7 +922,15 @@ plot_key_markers_umap_spatial <- function(seu, key_markers, file_prefix, width =
   }) 
 }
 
-
+#' Save top cluster marker panels
+#'
+#' For each cluster, saves UMAP+spatial expression PNG of its top markers.
+#'
+#' @param seu Seurat object.
+#' @param top_cluster_markers Tibble with cluster and gene_symbol.
+#' @param file_prefix Output file prefix.
+#'
+#' @return A list of file paths (invisibly).
 plot_top_cluster_umap_spatial <- function(seu, top_cluster_markers, file_prefix = "top_clust_gene") {
   
   clusters <- top_cluster_markers$cluster |> 
@@ -671,7 +946,18 @@ plot_top_cluster_umap_spatial <- function(seu, top_cluster_markers, file_prefix 
   })
 }
 
-
+#' Correlation heatmap between genes
+#'
+#' Filters a correlation table by FDR and/or correlation, selects top genes, and draws a symmetric heatmap.
+#'
+#' @param tbl_cor Tibble with gene_1, gene_2, correlation, p_adj.
+#' @param fdr_limit Adjusted p-value cutoff.
+#' @param min_cor Minimum absolute correlation to include.
+#' @param n_top Optional top-N genes to show.
+#' @param cluster_rows Logical; cluster rows.
+#' @param cluster_columns Logical; cluster columns.
+#'
+#' @return A ComplexHeatmap heatmap.
 plot_cor_heat <- function(tbl_cor, fdr_limit = 0.01, min_cor = NULL, n_top = NULL, cluster_rows = TRUE, cluster_columns = TRUE) {
   env <- new.env(parent = globalenv())
 
@@ -699,7 +985,18 @@ plot_cor_heat <- function(tbl_cor, fdr_limit = 0.01, min_cor = NULL, n_top = NUL
   #ggheatmap(tab, palette = "distiller", with.y.text = TRUE, legend.name = "Correlation")
 }
 
-
+#' Mean expression of gene sets vs gene sets
+#'
+#' Compares average expression of two sets (x,y) per cell and colours by a grouping variable.
+#'
+#' @param seu Seurat object.
+#' @param genes1 Character vector for x-axis mean.
+#' @param genes2 Character vector for y-axis mean.
+#' @param group_var Metadata column for colour (default "cluster").
+#' @param group_sel Optional subset of groups to highlight; others collapsed to "Other".
+#' @param point_size Point size.
+#'
+#' @return A ggplot scatter.
 plot_gene_vs_gene <- function(seu, genes1, genes2, group_var = "cluster", group_sel = NULL, point_size = 0.5) {
 
   mt <- get_cell_data(seu) |> 
@@ -732,6 +1029,14 @@ plot_gene_vs_gene <- function(seu, genes1, genes2, group_var = "cluster", group_
 }
 
 
+#' PCA of cell-type marker matrix
+#'
+#' Runs PCA on group-by-gene average expression (rows: genes, columns: cell types).
+#'
+#' @param seu Seurat object.
+#' @param select_markers Tibble with gene_symbol and grouping column "cell_type".
+#'
+#' @return A ggplot of PCA1 vs PCA2.
 plot_cell_marker_pca <- function(seu, select_markers) {
 
   env <- new.env(parent = globalenv())
@@ -763,7 +1068,13 @@ plot_cell_marker_pca <- function(seu, select_markers) {
   })
 }
 
-
+#' List of sets for UpSet from expression matrix
+#'
+#' Converts a wide matrix of 0/1 (or probability) per cell to a list of sets crossing a threshold.
+#'
+#' @param mex Tibble with cell_id and columns for each set (numeric).
+#'
+#' @return A named list of character vectors (cell IDs per set).
 make_list_for_upset <- function(mex) {
   d <- mex |> 
     pivot_longer(-cell_id) |> 
@@ -778,14 +1089,27 @@ make_list_for_upset <- function(mex) {
     set_names(groups)
 }
 
-
+#' Combination matrix for UpSet
+#'
+#' Creates a ComplexHeatmap::comb_mat from a wide 0/1 matrix of membership.
+#'
+#' @param mex Tibble with cell_id and set columns.
+#' @param … Passed to ComplexHeatmap::make_comb_mat().
+#'
+#' @return A comb_mat object.
 make_combmat_for_upset <- function(mex, ...) {
   mex |> 
     make_list_for_upset() |> 
     ComplexHeatmap::make_comb_mat(...)
 }
 
-
+#' Jaccard heatmap: clusters vs cell types
+#'
+#' Computes and plots Jaccard indices of overlap between clusters and annotated cell types.
+#'
+#' @param seu Seurat object.
+#'
+#' @return A ggplot tile heatmap.
 plot_cluster_cell_type_jaccard <- function(seu) {
   env <- new.env(parent = globalenv())
 
@@ -801,6 +1125,14 @@ plot_cluster_cell_type_jaccard <- function(seu) {
   })
 }
 
+#' Sankey diagram: clusters to cell types
+#'
+#' Alluvial flow from annotated cell_type to clusters at the given resolution.
+#'
+#' @param seu Seurat object.
+#' @param resolution Resolution string used to fetch cluster column.
+#'
+#' @return A ggplot Sankey diagram.
 plot_cluster_cell_type_sankey <- function(seu, resolution = "0.4") {
   env <- new.env(parent = globalenv())
 
@@ -832,7 +1164,16 @@ plot_cluster_cell_type_sankey <- function(seu, resolution = "0.4") {
   })
 }
 
-
+#' Expression vs pseudo-time for genes
+#'
+#' Points of expression vs a pseudo-time metadata column, faceted by gene.
+#'
+#' @param seu Seurat object.
+#' @param gids Character vector of genes.
+#' @param pt_column Metadata column name containing pseudo-time.
+#' @param point_size Point size.
+#'
+#' @return A faceted ggplot.
 plot_expression_pseudotime <- function(seu, gids, pt_column = "pseudotime_beta", point_size = 0.8) {
   ex <- get_gene_expression(seu, gids) |> 
     filter(expression > 0)
@@ -848,7 +1189,16 @@ plot_expression_pseudotime <- function(seu, gids, pt_column = "pseudotime_beta",
     labs(x = "Pseudo-time", y = "Normalised expression")
 }
 
-
+#' Internal helper for MA/volcano plotting
+#'
+#' Draws group-faceted scatter with selected points highlighted.
+#'
+#' @param res Tibble with columns x, y, sel, and grouping column.
+#' @param group_var Grouping column name to facet by.
+#' @param point_size Point size.
+#' @param point_alpha Point alpha.
+#'
+#' @return A ggplot object.
 plot_volma <- function(res, group_var, point_size, point_alpha) {
   r <- res |>
     mutate(
@@ -877,7 +1227,21 @@ plot_volma <- function(res, group_var, point_size, point_alpha) {
   g
 }
 
-
+#' MA plot by contrast (faceted)
+#'
+#' MA plot of average expression vs log2FC with significant points highlighted.
+#'
+#' @param res Differential results tibble.
+#' @param a Column name for average expression (x-axis).
+#' @param fc Column name for log2 fold change (y-axis).
+#' @param p Column name for p-value.
+#' @param fdr Column name for adjusted p-value.
+#' @param group_var Grouping column for facets.
+#' @param fdr_limit Significance cutoff.
+#' @param point_size Point size.
+#' @param point_alpha Point alpha.
+#'
+#' @return A ggplot object.
 plot_ma <- function(res, a = "AveExpr", fc = "logFC", p = "PValue", fdr = "FDR", group_var = "contrast",
                     fdr_limit = 0.05, point_size = 0.5, point_alpha = 0.5) {
   res |>
@@ -891,7 +1255,20 @@ plot_ma <- function(res, a = "AveExpr", fc = "logFC", p = "PValue", fdr = "FDR",
     labs(x = expression(log[10]~Intensity), y = expression(log[2]~FC))
 }
 
-
+#' Volcano plot by contrast (faceted)
+#'
+#' Volcano plot of log2FC vs -log10(p) with significant points highlighted.
+#'
+#' @param res Differential results tibble.
+#' @param fc Column name for log2 fold change (x-axis).
+#' @param p Column name for p-value.
+#' @param fdr Column name for adjusted p-value.
+#' @param group_var Grouping column for facets.
+#' @param fdr_limit Significance cutoff.
+#' @param point_size Point size.
+#' @param point_alpha Point alpha.
+#'
+#' @return A ggplot object.
 plot_volcano <- function(res, fc = "avg_log2FC", p = "p_val", fdr = "p_val_adj", group_var = "contrast",
                          fdr_limit = 0.05, point_size = 0.5, point_alpha = 0.5) {
   res |>
@@ -908,7 +1285,16 @@ plot_volcano <- function(res, fc = "avg_log2FC", p = "p_val", fdr = "p_val_adj",
     scale_y_continuous(expand = expansion(mult = c(0, 0.03)))
 }
 
-
+#' P-value distribution histograms
+#'
+#' Faceted histograms of p-values to assess uniformity/enrichment at 0.
+#'
+#' @param res Differential results tibble.
+#' @param p Column name for p-value.
+#' @param group_var Grouping column for facets.
+#' @param n_bins Number of bins.
+#'
+#' @return A ggplot histogram.
 plot_pdist <- function(res, p = "PValue", group_var = "contrast", n_bins = 50) {
   brks <- seq(0, 1, length.out = n_bins)
   r <- res |>
@@ -923,7 +1309,22 @@ plot_pdist <- function(res, p = "PValue", group_var = "contrast", n_bins = 50) {
     facet_wrap(~grp)
 }
 
-
+#' VMP: Volcano, MA, and P-value panels
+#'
+#' Convenience function returning all three diagnostic plots.
+#'
+#' @param res Differential results tibble.
+#' @param a Column name for average expression.
+#' @param fc Column name for log2 fold change.
+#' @param p Column name for p-value.
+#' @param fdr Column name for adjusted p-value.
+#' @param group Column name for grouping (facets).
+#' @param fdr_limit Significance threshold.
+#' @param point_size Point size.
+#' @param point_alpha Point alpha.
+#' @param n_bins Number of histogram bins.
+#'
+#' @return A named list with volcano, ma, and pdist ggplots.
 plot_vmp <- function(res, a = "AveExpr", fc = "logFC", p = "PValue", fdr = "FDR", group = "contrast",
                      fdr_limit = 0.05, point_size = 0.5, point_alpha = 0.5, n_bins = 50){
   list(
@@ -933,17 +1334,33 @@ plot_vmp <- function(res, a = "AveExpr", fc = "logFC", p = "PValue", fdr = "FDR"
   )
 }
 
-
-plot_cell_type_scores <- function(seu, tissue_markers, point_size = 0.4) {
+#' Spatial maps of cell-type scores
+#'
+#' Plots enrichment/score meta-columns (ES_<cell_type>) for each tissue/cell type.
+#'
+#' @param seu Seurat object.
+#' @param tissue_markers Tibble with cell_type column.
+#'
+#' @return A cowplot grid.
+plot_cell_type_scores <- function(seu, tissue_markers) {
   cell_types <- tissue_markers$cell_type |> unique()
   pls <- map(cell_types, function(ct) {
     ct <- str_glue("ES_{ct}")
-    plot_spatial_meta(seu, ct, point_size)
+    plot_spatial_meta(seu, ct)
   })
   plot_grid(plotlist = pls, ncol = 2)
 }
 
-
+#' Spatial overlap of two genes
+#'
+#' Classifies each spot into four states (gene1 only, gene2 only, both, none) and plots spatial tiles.
+#'
+#' @param seu Seurat object.
+#' @param gene_1 First gene symbol.
+#' @param gene_2 Second gene symbol.
+#' @param section Optional tibble of a polyline to overlay with columns x,y.
+#'
+#' @return A ggplot polygon map.
 plot_gene_overlap <- function(seu, gene_1, gene_2, section = NULL) {
   only_1 <- str_glue("{gene_1} only")
   only_2 <- str_glue("{gene_2} only")
@@ -979,7 +1396,14 @@ plot_gene_overlap <- function(seu, gene_1, gene_2, section = NULL) {
   pl
 }
 
-
+#' Distance of points to a line segment
+#'
+#' Computes projection parameter and perpendicular distance from (x,y) points to a segment.
+#'
+#' @param xy Tibble with columns x, y.
+#' @param segment Tibble with two rows and columns x, y.
+#'
+#' @return Tibble with added t, proj_x, proj_y, and dst.
 dist_to_segment <- function(xy, segment) {
   x1 <- segment$x[1]
   x2 <- segment$x[2]
@@ -1001,7 +1425,18 @@ dist_to_segment <- function(xy, segment) {
 }
 
 
-
+#' Expression along a spatial section
+#'
+#' Extracts spots near a line segment and plots expression vs segment parameter for two genes.
+#'
+#' @param seu Seurat object.
+#' @param gene_1 First gene symbol.
+#' @param gene_2 Second gene symbol.
+#' @param section Tibble with two points (x,y) defining a segment.
+#' @param layer Data layer ("data" or "count").
+#' @param slice Image key used to infer spot radius.
+#'
+#' @return A ggplot line plot (two series).
 plot_expression_section <- function(seu, gene_1, gene_2, section, layer = "data", slice = "slice1.008um") {
   
   rad <- seu@images[[slice]]@boundaries$centroids@radius
@@ -1026,7 +1461,18 @@ plot_expression_section <- function(seu, gene_1, gene_2, section, layer = "data"
   pl
 }
 
-
+#' Spatial overlap + section profile
+#'
+#' Two-panel layout: spatial overlap map and line-profile of expression along the section.
+#'
+#' @param seu Seurat object.
+#' @param gene_1 First gene symbol.
+#' @param gene_2 Second gene symbol.
+#' @param section Tibble with two points (x,y) defining a segment.
+#' @param layer Data layer passed to plot_expression_section().
+#' @param slice Image key passed to plot_expression_section().
+#'
+#' @return A cowplot grid.
 plot_spatial_section <- function(seu, gene_1, gene_2, section, layer = "count", slice = "slice1.008um") {
   pl1 <- plot_gene_overlap(seu, gene_1, gene_2, section)
   pl2 <- plot_expression_section(seu, gene_1, gene_2, section, layer = layer, slice = slice)
@@ -1034,7 +1480,15 @@ plot_spatial_section <- function(seu, gene_1, gene_2, section, layer = "count", 
   plot_grid(pl1, pl2, ncol = 1, rel_heights = c(2, 1), align = "v")
 }
 
-
+#' Spatial difference between two meta scores
+#'
+#' Adds type_1 - type_2 as a new meta column and plots it with a divergent palette.
+#'
+#' @param seu Seurat object.
+#' @param type_1 Name of first meta column.
+#' @param type_2 Name of second meta column.
+#'
+#' @return A ggplot polygon map.
 plot_spatial_difference <- function(seu, type_1, type_2) {
   newcol <- str_glue("{type_1} - {type_2}")
   seu[[newcol]] <- seu[[type_1]] - seu[[type_2]]
@@ -1047,6 +1501,15 @@ plot_spatial_difference <- function(seu, type_1, type_2) {
 }
 
 # pairs is a list of vectors
+
+#' Batch spatial differences for pairs
+#'
+#' For each pair of names, plots the difference of corresponding ES_ meta-columns.
+#'
+#' @param seu Seurat object.
+#' @param pairs List of length-2 character vectors, e.g., list(c("Alpha","Beta")).
+#'
+#' @return A cowplot grid.
 plot_spatial_differences <- function(seu, pairs) {
   pl <- map(pairs, function(pair) {
     ct1 <- paste0("ES_", pair[1])
@@ -1057,7 +1520,15 @@ plot_spatial_differences <- function(seu, pairs) {
   plot_grid(plotlist = pl, ncol = 1)
 }
 
-
+#' UpSet plot of co-expressed cells
+#'
+#' Builds an UpSet diagram of cells expressing any of the given genes above a threshold.
+#'
+#' @param seu Seurat object.
+#' @param gns Character vector of gene symbols.
+#' @param expr_limit Numeric threshold on expression to call expressed.
+#'
+#' @return A ComplexHeatmap UpSet object.
 plot_upset_expressed_cells <- function(seu, gns, expr_limit = 0) {
   m <- get_gene_expression(seu, gns, layer = "data") |> 
     filter(expression > expr_limit) |> 
@@ -1073,6 +1544,17 @@ plot_upset_expressed_cells <- function(seu, gns, expr_limit = 0) {
   )
 }
 
+#' Save comb_mat for UpSet to RDS
+#'
+#' Computes a combination matrix and writes it to doc/tables/<suffix>_<sample>.rds.
+#'
+#' @param seu Seurat object.
+#' @param gns Character vector of gene symbols.
+#' @param suffix String identifier for output.
+#' @param sample Sample identifier.
+#' @param expr_limit Numeric threshold on expression to call expressed.
+#'
+#' @return Invisibly, the RDS path written.
 combat_upset_expressed_cells <- function(seu, gns, suffix, sample, expr_limit = 0) {
   rfile <- file.path("doc", "tables", str_glue("{suffix}_{sample}.rds"))
   m <- get_gene_expression(seu, gns, layer = "data") |> 
@@ -1083,7 +1565,19 @@ combat_upset_expressed_cells <- function(seu, gns, suffix, sample, expr_limit = 
   readr::write_rds(m, rfile)
 }
 
-
+#' Save PNG UpSet diagram
+#'
+#' Renders UpSet as a PNG in doc/images/<suffix>_<sample>.png.
+#'
+#' @param seu Seurat object.
+#' @param gns Character vector of gene symbols.
+#' @param suffix String identifier for output.
+#' @param sample Sample identifier.
+#' @param width Image width in pixels.
+#' @param height Image height in pixels.
+#' @param expr_limit Numeric expression threshold.
+#'
+#' @return Invisibly, the PNG path written.
 png_upset_expressed_cells <- function(seu, gns, suffix, sample, width, height, expr_limit = 0) {
   pfile <- file.path("doc", "images", str_glue("{suffix}_{sample}.png"))
 
@@ -1094,6 +1588,18 @@ png_upset_expressed_cells <- function(seu, gns, suffix, sample, width, height, e
   dev.off()
 }
 
+#' Spatial scatter with selection box
+#'
+#' Spatial point map of a gene with a square box overlay at (x_cen, y_cen) with half-size size.
+#'
+#' @param seu Seurat object.
+#' @param gene Gene symbol.
+#' @param x_cen X centre of box.
+#' @param y_cen Y centre of box.
+#' @param size Half-width/height of box (in coordinate units).
+#' @param point_size Point size.
+#'
+#' @return A ggplot object.
 plot_spatial_box <- function(seu, gene, x_cen, y_cen, size, point_size = 0.6) {
   xy <- get_spatial_coordinates(seu)
   ex <- get_gene_expression(seu, gene)
@@ -1112,6 +1618,13 @@ plot_spatial_box <- function(seu, gene, x_cen, y_cen, size, point_size = 0.6) {
     geom_path(data = bx, aes(x = x, y = y))
 }
 
+#' Compare 8µm vs 2µm resolution spatial tiling
+#'
+#' Plots polygons for 8µm and 2µm spot centres with their respective corner grids.
+#'
+#' @param res_comp Tibble of spatial centres with columns cell_id, x, y, and resolution in {“8um”,“2um”}.
+#'
+#' @return A ggplot showing both resolutions.
 plot_resolution_comparison <- function(res_comp) {
   rg <- res_comp |> 
     filter(resolution == "8um") |> 
@@ -1137,7 +1650,13 @@ plot_resolution_comparison <- function(res_comp) {
 }
 
 
-
+#' Compute square polygon corners for each spot
+#'
+#' Given centre coordinates on a regular grid, computes four corner coordinates per spot (plus indexing).
+#'
+#' @param res_comp Tibble with columns cell_id, x, y; may include centre_id.
+#'
+#' @return Tibble with cell_id, centre_id, corner_idx, x_corner, and y_corner.
 get_resolution_grid <- function(res_comp) {
   df <- res_comp |> 
     mutate(centre_id = cell_id |> as.factor() |> as.integer()) |> 
@@ -1188,7 +1707,14 @@ get_resolution_grid <- function(res_comp) {
     ungroup()
 }
 
-
+#' Cluster composition for a single cell type
+#'
+#' Bar plot of the proportion of one annotated cell_type within each clustering label.
+#'
+#' @param seu Seurat object.
+#' @param ct Cell type of interest (string).
+#'
+#' @return A ggplot column chart.
 plot_cluster_cell_type_overlap <- function(seu, ct = "Unknown") {
   ov <- cluster_cell_type_overlap(seu)
 
@@ -1201,6 +1727,15 @@ plot_cluster_cell_type_overlap <- function(seu, ct = "Unknown") {
     labs(x = "Cluster", y = "Proporion of spots in cluster", title = ct)
 }
 
+#' Spatial binning by a gene's expression
+#'
+#' Bins expression of gene_x into intervals; assigns a bin meta and plots spatial polygons by bin.
+#'
+#' @param seu Seurat object.
+#' @param gene_x Gene symbol used for binning.
+#' @param bins Number of equal-width intervals.
+#'
+#' @return A ggplot polygon map with legend.
 plot_binned_spatial <- function(seu, gene_x, bins = 6) {
   gx <- get_gene_expression(seu, gene_x)
   g1 <- gx |> 
@@ -1218,6 +1753,17 @@ plot_binned_spatial <- function(seu, gene_x, bins = 6) {
   plot_one_xy(seu, what = "spatial", meta_column = "bin") + theme(legend.position = "right")
 }
 
+
+#' Expression by bins (dot/quasi plot)
+#'
+#' Computes bins by gene_x and shows expression of genes_y across bins via plot_gene_expression().
+#'
+#' @param seu Seurat object.
+#' @param gene_x Gene symbol used for binning.
+#' @param genes_y Character vector of genes to plot by bin.
+#' @param bins Number of bins.
+#'
+#' @return A faceted ggplot.
 plot_binned_expression <- function(seu, gene_x, genes_y, bins = 6) {
   b <- gene_binned_gradient(seu, gene_x, bins)
   seu$bin <- b$bin
@@ -1225,7 +1771,19 @@ plot_binned_expression <- function(seu, gene_x, genes_y, bins = 6) {
   plot_gene_expression(seu, genes_y, meta_column = "bin")
 }
 
-
+#' Summary statistics of expression across bins (obsolete)
+#'
+#' For each gene in genes_y, summarises mean and 95% CI across bins of gene_x.
+#'
+#' @param seu Seurat object.
+#' @param gene_x Gene symbol used for binning.
+#' @param genes_y Character vector of genes to summarise.
+#' @param what One of "expression" (mean) or "pct" (percentage expressed).
+#' @param bins Number of bins.
+#' @param include_x_zeroes Logical; include zero-expression cells when binning.
+#' @param include_y_zeroes Logical; include zero-expression cells in summaries.
+#'
+#' @return A faceted ggplot with points and error bars.
 plot_binned_xy_expression <- function(seu, gene_x, genes_y, what = "expression", bins = 6,
                                       include_x_zeroes = FALSE, include_y_zeroes = FALSE) {
   env <- new.env(parent = globalenv())
@@ -1288,7 +1846,16 @@ plot_binned_xy_expression <- function(seu, gene_x, genes_y, what = "expression",
 }
 
 
-
+#' Module enrichment heatmap
+#'
+#' Displays enrichment ratios for terms (rows) vs module IDs (columns) for one module/ontology.
+#'
+#' @param me Tibble with columns module, ontology, term_name, ids, and enrichment.
+#' @param mdl Module label to select.
+#' @param ont Ontology label to select.
+#' @param max_name_length Maximum characters of term names to display.
+#'
+#' @return A heatmap grob.
 plot_module_enrichment_heatmap <- function(me, mdl = "red", ont = "re", max_name_length = 50) {
   M <- me |>
     filter(module == mdl & ontology == ont) |> 
@@ -1303,13 +1870,31 @@ plot_module_enrichment_heatmap <- function(me, mdl = "red", ont = "re", max_name
   ggheatmap(M, with.y.text = TRUE, palette = "Purples", legend.name = "Enrichment ratio")
 }
 
-
+#' Any gene expressed per cell
+#'
+#' For a set of genes, returns whether any have counts > 0 in each cell.
+#'
+#' @param seu Seurat object.
+#' @param genes Character vector of gene symbols.
+#'
+#' @return Tibble with cell_id and logical any_expressed.
 get_any_expressed <- function(seu, genes) {
   get_gene_expression(seu, genes, layer = "counts") |> 
     group_by(cell_id) |> 
     summarise(any_expressed = any(expression > 0))
 }
 
+#' Sankey: MPC → Final cell type → EP status
+#'
+#' Builds a three-stage flow: MPC/non-MPC, final assigned cell type (by highest ES with p<limit), 
+#' and EP/non-EP.
+#'
+#' @param seu Seurat object.
+#' @param p_val_limit P-value threshold for ES column selection.
+#' @param EP_markers Marker genes for EP state.
+#' @param MPC_markers Marker genes for MPC state.
+#'
+#' @return A ggplot Sankey diagram.
 plot_sankey_cell_type <- function(seu, p_val_limit = 0.05, EP_markers = c("NEUROD1", "NEUROG3", "PAX4", "PAX6"),
                                   MPC_markers = c("PTF1A", "SOX9", "NKX6-1", "PDX1")) {
   cell_col <- tibble(
@@ -1360,7 +1945,13 @@ plot_sankey_cell_type <- function(seu, p_val_limit = 0.05, EP_markers = c("NEURO
   })
 }
 
-
+#' Heatmap of enrichment gradient across bins
+#'
+#' Orders terms by centre of mass across bins and shows log10(odds ratio) excluding bin 0.
+#'
+#' @param enr Tibble with columns term_name, bin, and odds_ratio.
+#'
+#' @return A heatmap grob.
 plot_enrichment_gradient <- function(enr) {
   mx <- enr |> 
     filter(!is.infinite(odds_ratio)) |> 
