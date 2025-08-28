@@ -34,7 +34,8 @@ targets_8um <- function() {
 
       # Clustering
       cluster_markers = find_group_markers(seu, group_by = "cluster"),
-      tbl_best_cluster_markers = find_best_markers(cluster_markers, max_per_cluster = 50),
+      max_best_clusters = 30,
+      tbl_best_cluster_markers = find_best_markers(cluster_markers, max_per_cluster = max_best_clusters),
       top_cluster_markers = get_top_cluster_markers(cluster_markers, n_top = 12),
       top_cluster_genes = top_cluster_markers$gene_symbol |> unique(),
       tbl_cluster_enrichment = group_enrichment(top_cluster_markers, fterms, group_var = "cluster"),
@@ -52,8 +53,9 @@ targets_8um <- function() {
 
       # Insulin gradient
       n_insulin_bins = 6,
+      max_best_insulin = 100,
       tbls_binned_enrichment = enrichment_gradient(seu, fterms, "INS", bins = n_insulin_bins),
-      tbl_best_insulin_gradient_markers = find_best_markers(tbls_binned_enrichment$markers, max_per_cluster = 160),
+      tbl_best_insulin_gradient_markers = find_best_markers(tbls_binned_enrichment$markers, max_per_cluster = max_best_insulin),
       fig_enrichment_gradient = plot_enrichment_gradient(tbls_binned_enrichment$enrichment),
       genes_for_binned = c("PTF1A", "PDX1", "NKX6-1", "SOX9", "PAX4", "PAX6", "NKX2-2", "NEUROD1", "NEUROG3", "GCG", "SST", "GHRL"),
       fig_binned_expression = plot_binned_expression(seu, "INS", genes_for_binned, bins = n_insulin_bins),

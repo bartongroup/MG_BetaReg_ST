@@ -1268,14 +1268,19 @@ knitr::include_graphics("images/cell_type_marker_dots_2um_1.png")
 
 # Best marker genes for Xenium experiment
 
-In the next phase, we will run a focused Xenium experiment that can target up to 480 genes, offering high sensitivity and excellent spatial resolution.
+```{r}
+#| label: max-clusters
+tar_load(c(max_best_clusters_1, max_best_insulin_1))
+```
 
-First a longlist of ~1,200 genes was generated from three sources: (i) cluster markers, (ii) insulin-gradient markers, and (iii) a manually curated set of key markers. This list can be manually down-selected to the ~480 genes required for the Xenium panel.
+In the next phase, we will run a focused Xenium experiment that can target 300 genes, offering high sensitivity and excellent spatial resolution.
+
+First a longlist of ~800 genes was generated from three sources: (i) cluster markers, (ii) insulin-gradient markers, and (iii) a manually curated set of key markers. This list can be manually down-selected to the 300 genes required for the Xenium panel.
 
 ## Data sources
 
- - Unsupervised clustering (cluster markers, @sec-clustering) provides with an unbiased approach to identify spatially variable genes. The top $n_{cl}=50$ genes per cluster (low overlap across clusters) were kept.
- - Insulin-gradient markers (@sec-insulin-gradient) contains genes associated with six bands of insulin expression (the zero-insulin group was excluded). Because overlap across bands is high, the top $n_{cl}=160$ genes per band were kept.
+ - Unsupervised clustering (cluster markers, @sec-clustering) provides with an unbiased approach to identify spatially variable genes. The top $n_{cl}=`r max_best_clusters_1`$ genes per cluster (low overlap across clusters) were kept.
+ - Insulin-gradient markers (@sec-insulin-gradient) contains genes associated with six bands of insulin expression (the zero-insulin group was excluded). Because overlap across bands is high, the top $n_{cl}=`r max_best_insulin_1`$ genes per band were kept.
  - Curated key markers (@sec-key-markers). `r n_key_markers` genes selected a priori. These are all retained and prioritised.
 
 ## Method
@@ -1286,7 +1291,7 @@ For each cluster (group of spots) genes with FDR < 0.01 and prevalence ≥ 10% w
 
 The ranked lists were integrated across both samples. For each gene, the mean of its best ranks from the two samples was computed. This mean best rank defines the global ordering.
 
-The manually curated key markers were added and a mean rank of 0 was assigned to them, so they appear at the top and are all retained. All sources were merged and duplicate gene symbols were removed, keeping a single entry per gene (key markers were never dropped). The unique list was ordered by mean best rank (ascending). This list can be then manually curated to the final ~480-gene Xenium panel.
+The manually curated key markers were added and a mean rank of 0 was assigned to them, so they appear at the top and are all retained. All sources were merged and duplicate gene symbols were removed, keeping a single entry per gene (key markers were never dropped). The unique list was ordered by mean best rank (ascending). This list can be then manually curated to the final 300-gene Xenium panel.
 
 ## Notes and rationale
 
