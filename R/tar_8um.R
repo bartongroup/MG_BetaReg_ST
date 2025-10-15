@@ -9,7 +9,8 @@ targets_8um <- function() {
       # Create Seurat object
       seu = load_visium_data(DATA_PATH, mito_genes) |>
         NormalizeData() |>
-        cluster_seurat(ident_res = RESOLUTION, resolutions = RESOLUTIONS, nfeatures = 2000),
+        cluster_seurat(ident_res = RESOLUTION, resolutions = RESOLUTIONS, nfeatures = 2000) |> 
+        relabel_clusters(RELABEL_CLUSTERS, RESOLUTION),
       #seu_mark = seu |> mark_cell_types_by_max(tissue_markers),
       #seu_mark = seu |> annotate_cell_types(tissue_markers),
       #seu_mark = seu |> annotate_cells_sctype(tissue_markers),
@@ -203,7 +204,15 @@ targets_8um <- function() {
       sav_cellchat_prob = readr::write_csv(cellchat_prob, paste0("tab/cellchat_prob_", NAME, ".csv")),
 
       # Prepare for shiny
-      dex = make_dexdash(seu_mark, de_mpc, NAME)
+      dex = make_dexdash(seu_mark, de_mpc, NAME),
+
+      # For the manuscript
+      mn_clust = mn_plot_spatial_clustering(seu_mark, RESOLUTION) |> gp("clustering", sample = NAME, width = 3.3, height = 3, path = "manuscript/fig"),
+      mn_all_markers = mn_plot_marker_spatial(seu_mark, tissue_markers, label_size = 2.5) |> gp("all_markers", sample = NAME, width = 8, height = 8, path = "manuscript/fig"),
+      mn_endoc_markers = mn_plot_marker_spatial(seu_mark, tissue_markers_endoc, label_size = 2.5) |> gp("endoc_markers", sample = NAME, width = 8, height = 8, path = "manuscript/fig"),
+      mn_cell_types = mn_plot_cell_type(seu_mark) |> gp("cell_type", sample = NAME, width = 3.55, height = 3, path = "manuscript/fig"),
+      mn_cell_type_dots = mn_plot_cell_type_dots(seu_mark, tissue_markers) |> gp("cell_type_dots", sample = NAME, width = 4.5, height = 7.5, path = "manuscript/fig"),
+      mn_hormone_overlap_8um = mn_plot_hormone_overlap(seu_mark, file.path("manuscript/fig", paste0("hormone_overlap_", NAME, "_8um.pdf")), 7, 3)
     )
   )
 
@@ -247,7 +256,17 @@ targets_8um <- function() {
     tbl_best_cluster_markers = merge_best_markers(tbl_best_cluster_markers_1, tbl_best_cluster_markers_2),
     tbl_best_insulin_gradient_markers = merge_best_markers(tbl_best_insulin_gradient_markers_1, tbl_best_insulin_gradient_markers_2),
     tbl_all_markers = merge_all_markers(tbl_best_cluster_markers, tbl_best_insulin_gradient_markers, key_markers, gns),
-    sav_all_markers = readr::write_csv(tbl_all_markers, "tab/markers_for_xenium.csv")
+    sav_all_markers = readr::write_csv(tbl_all_markers, "tab/markers_for_xenium.csv"),
+    top_genes = get_highest_expressors(seu_1, n_top = 19),
+    bad_xenium_genes = c(top_genes, "LT", "FOS", "TTR", "HBA2", "MGP"),
+    final_markers = prepare_top_markers(tbl_all_markers, n_top = 480, wrong_genes = bad_xenium_genes),
+
+    cellchat_ins = cellchat_insulin_gradient(seu_mark_1, bins = 6),
+    fig_cellchat_ins = plot_cellchat_insulin_gradient_ranks(cellchat_ins),
+    png_cellchat_ins_insulin = plot_cellchat_chord(cellchat_ins$`(2.94,3.95]`, "INSULIN", "insulin_chord_2.94_3.95.png"),
+
+    tbl_clust_clust_jaccard = jaccard_cluster_cluster(cluster_markers_1, cluster_markers_2, n_top = 50),
+    fig_clust_clust_jaccard = plot_cluster_match_samples(cluster_markers_1, cluster_markers_2, n_top = 50)
   )
 
   for_shiny <- tar_plan(
@@ -258,7 +277,6 @@ targets_8um <- function() {
     # lr = get_ligands_receptors(),
     # sav_lr = saveRDS(lr, file = file.path("ext", "cellchat_ligand_receptor.rds"))
   )
-
 
   c(
     map_experiments,

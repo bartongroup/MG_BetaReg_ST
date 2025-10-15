@@ -34,13 +34,25 @@ targets_main <- function() {
     tar_target(genes_of_interest_file, "info/genes.json", format = "file"),
     goi = jsonlite::read_json(genes_of_interest_file, simplifyVector = TRUE),
 
-    tissue_markers = get_unique_markers(goi$tissue_markers_positive, goi$tissue_markers_negative)
+    tissue_markers = get_unique_markers(goi$tissue_markers_positive, goi$tissue_markers_negative),
+    tissue_markers_endoc = tissue_markers |> filter(cell_type %in% c("MPC", "EP", "Beta", "Alpha", "Delta", "Epsilon", "PP")) |> droplevels()
   )
+
+  for_manuscript <- tar_plan(
+    sav_tissue_markers = tissue_markers |> readr::write_tsv("manuscript/tab/key_markers.txt"),
+    mn_hormone_overlap_2um_1 = mn_plot_hormone_overlap_2um("1", "manuscript/fig/hormone_overlap_1_2um.pdf", 7, 3),
+    mn_hormone_overlap_2um_2 = mn_plot_hormone_overlap_2um("2", "manuscript/fig/hormone_overlap_2_2um.pdf", 7, 3),
+    mn_hormone_overlap_ma_8pwc = mn_plot_hormone_overlap_ma("8", "manuscript/fig/hormone_overlap_ma_8pcw.pdf", 3.7, 3),
+    mn_hormone_overlap_ma_11pwc = mn_plot_hormone_overlap_ma("11", "manuscript/fig/hormone_overlap_ma_11pcw.pdf", 7, 3)
+  )
+
+
 
 
   c(
     setup_experiment,
-    get_annotations
+    get_annotations,
+    for_manuscript
   )
 
 }

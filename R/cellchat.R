@@ -160,6 +160,109 @@ compute_cellchat <- function(cellchat, n_cores = 8, n_boot = 100, type = "triMea
 }
 
 
+#' Run CellChat on a selected subset of cells
+#'
+#' @description
+#' Filters a Seurat object to a given set of cells, removes rare cell types
+#' (fewer than `min_n` cells), and runs a CellChat workflow on the remaining
+#' cells. Returns the fitted `CellChat` object and a tibble of
+#' ligand–receptor communication probabilities ranked by `prob`.
+#'
+#' @param seu A **Seurat** object containing single-cell data. Must include a
+#'   `cell_type` column in `seu@meta.data`.
+#' @param cells A character vector of cell/barcode IDs to retain prior to
+#'   filtering by cell type size.
+#' @param min_n Integer (default `3`). Minimum number of cells required for a
+#'   cell type to be kept. Cell types with fewer than `min_n` cells are removed
+#'   before running CellChat.
+#' @param scale_distance Numeric (default `0.15`). Distance scaling parameter
+#'   forwarded to `compute_cellchat()` (used when spatial information is
+#'   available).
+#' @param n_boot Integer (default `100`). Number of bootstraps for communication
+#'   probability estimation in `compute_cellchat()`.
+#'
+#' @return
+#' A list with two elements:
+#' \itemize{
+#'   \item `cellchat`: A fitted `CellChat` object (or `NULL` if not enough cell
+#'   types remain after filtering).
+#'   \item `prob`: A tibble of inferred communications returned by
+#'   `CellChat::subsetCommunication()`, sorted by descending `prob`
+#'   (or `NULL` if CellChat was not run).
+#' }
+cellchat_on_selection <- function(seu, cells, min_n = 3, scale_distance = 0.15, n_boot = 100) {
+  seu_sel <- subset(seu, cells = cells)
+  
+  
+  meta <- seu_sel@meta.data |> 
+    as_tibble(rownames = "cell_id")
+
+  # Remove cell types with too few cells
+  bad_levels <- meta |> 
+    count(cell_type) |>
+    filter(n < min_n) |>
+    pull(cell_type)
+  message(str_glue("Removing {length(bad_levels)} cell types with fewer than {min_n} cells: {str_c(bad_levels, collapse = ', ')}"))
+  good_cells <- meta |> 
+    filter(!(cell_type %in% bad_levels)) |>
+    pull(cell_id)
+  seu_sel <- subset(seu_sel, cells = good_cells)
+  seu_sel$cell_type <- seu_sel$cell_type |> droplevels()
+  if(length(unique(seu_sel$cell_type)) < 2) {
+    message("Not enough cell types remaining after filtering, skipping CellChat")
+    return(list(cellchat = NULL, prob = NULL))
+  }
+
+  cmp <- create_cellchat(seu_sel) |>
+    preprocess_cellchat() |> 
+    compute_cellchat(n_boot = n_boot, scale_distance = scale_distance, raw_use = TRUE, population_size = FALSE)
+  prb <- cmp |> 
+    CellChat::subsetCommunication() |>
+    as_tibble() |>
+    arrange(desc(prob))
+  list(cellchat = cmp, prob = prb)
+}
+
+
+cellchat_insulin_gradient <- function(seu, bins = 6, min_n = 3, scale_distance = 0.15, n_boot = 100) {
+  gx <- gene_binned_gradient(seu, "INS", bins, include_zeroes = FALSE) |> 
+    drop_na() |> 
+    droplevels()
+  all_bins <- levels(gx$bin)
+  map(all_bins, function(b) {
+    message(str_glue("*** Processing bin {b}"))
+    cells <- gx |> filter(bin == b) |> pull(cell_id)
+    cellchat_on_selection(seu, cells, min_n = min_n, scale_distance = scale_distance, n_boot = n_boot) |> 
+        pluck("cellchat")
+  }) |> 
+    set_names(all_bins)
+}
+
+plot_cellchat_insulin_gradient_ranks <- function(cc_list) {
+  env <- new.env(parent = globalenv())
+
+  cc_list <- compact(cc_list)
+  bins <- names(cc_list)
+  
+  env$d <- map(bins, function(b) {
+    CellChat::rankNet(cc_list[[b]], mode = "single", measure = "weight",
+                        return.data = TRUE) |>
+      pluck("signaling.contribution") |> 
+      as_tibble() |> 
+      add_column(bin = b)
+  }) |> 
+    list_rbind() |> 
+    mutate(bin = factor(bin, levels = bins))
+  with(env, {
+    d |> ggplot(aes(x = contribution, y = name)) +
+      th +
+      geom_col() +
+      scale_x_continuous(expand = expansion(mult = c(0, 0.04))) +
+      facet_wrap(~bin, nrow = 1, scales = "free") +
+      labs(x = "Information flow", y = NULL)
+  })
+}
+ 
 
 plot_cellchat_circle <- function(cellchat, pfile) {
 
@@ -239,7 +342,7 @@ plot_cellchat_bubble <- function(cellchat, p_value_limit = 0.01) {
 plot_cellchat_bubble_sel <- function(cellchat, prob_limit = 0.01, point_size = 2) {
   env <- new.env(parent = globalenv())
   env$point_size <- point_size
-
+ 
   env$d <- cellchat |>
     CellChat::subsetCommunication() |>
     as_tibble() |> 

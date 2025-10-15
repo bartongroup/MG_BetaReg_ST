@@ -151,10 +151,11 @@ module_enrichment <- function(tbl_modules, all_genes, fterms, kme_limit = 0, fdr
       ontologies <- names(fterms)
       map(ontologies, function(ont) {
         df <- fenr::functional_enrichment(all_genes, sel_genes, fterms[[ont]])
-        if(nrow(df) > 0) {
-          df <- df |> 
-            filter(p_adjust < fdr_limit) |> 
-            add_column(module = w$module[1], ontology = ont, .before = 1)
+        if(!is.null(df)) {
+          if(nrow(df) > 0)
+            df <- df |> 
+              filter(p_adjust < fdr_limit) |> 
+              add_column(module = w$module[1], ontology = ont, .before = 1)
         }
       }) |> 
         list_rbind()

@@ -731,3 +731,17 @@ cluster_cell_type_overlap <- function(seu) {
   }) |> 
     list_rbind()
 }
+
+
+relabel_clusters <- function(seu, relc = NULL, resolution = "0.3") {
+  if(is.null(relc))
+    return(seu)
+  
+  res <- get_resolution_columns(resolution)
+  r <- relc[as.integer(as.character(get_meta_column(seu, res)$value))]
+  f <- fct_reorder(as.character(r), r)
+  
+  seu[[res]] <- f
+  seu$cluster <- f
+  seu
+}

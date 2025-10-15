@@ -65,8 +65,7 @@ targets_2um <- function() {
       # Insulin pathway
       png_ins_path = plot_expression(seu, goi$insulin_signalling_pathway, umap_point_size = 0.5) |> gs("insulin_path", NAME2, 7, 48),
       png_ins_path_expr = plot_gene_expression(seu, goi$insulin_signalling_pathway, meta_column = "cell_type") |> gs("insulin_path_expr", NAME2, 8, 12),
-      fig_dots_ins_path = plot_gene_dots(seu, goi$insulin_signalling_pathway, meta_column = "cell_type"),
-  
+      fig_dots_ins_path = plot_gene_dots(seu, goi$insulin_signalling_pathway, meta_column = "cell_type")
     )
   )
 

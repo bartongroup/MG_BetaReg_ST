@@ -1,6 +1,8 @@
 
 top_data_path <- "data/spaceranger_output"
 
+#RELABEL_CLUSTERS_2 <- c(6, 9, 3, 1, 2, 7, 8, 10, 5, 4)
+
 EXPERIMENTS_ALL <- tibble::tibble(
   SAMPLE = c("1_18191", "2_17961", "3_18171", "4_17966"),
   NAME = c("1", "2", "3", "4"),
@@ -12,6 +14,7 @@ EXPERIMENTS_ALL <- tibble::tibble(
     c(0.01, 0.025, 0.05)
   ),
   RESOLUTION = c(0.4, 0.3, 0.05,  0.05),
+  RELABEL_CLUSTERS = list(NULL, c(6, 9, 3, 1, 2, 7, 8, 10, 5, 4), NULL, NULL),
   RESOLUTIONS_UNKNOWN = list(
     c(0.025, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4),
     c(0.025, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4),
@@ -335,6 +338,27 @@ jaccard_clusters_cell_types <- function(seu) {
     )
 }
 
+jaccard_cluster_cluster <- function(markers_1, markers_2, n_top = 30) {
+  top_1 <- get_top_cluster_markers(markers_1, n_top = n_top)
+  top_2 <- get_top_cluster_markers(markers_2, n_top = n_top)
+  t1 <- top_1 |>
+    group_by(cluster) |> 
+    summarize(ids = list(gene_symbol), .groups = "drop") |> 
+    deframe()
+  t2 <- top_2 |>
+    group_by(cluster) |> 
+    summarize(ids = list(gene_symbol), .groups = "drop") |> 
+    deframe()    
+
+  expand_grid(cluster_1 = levels(top_1$cluster), cluster_2 = levels(top_2$cluster)) |> 
+    rowwise() |> 
+    mutate(
+      n_un = union(t1[[cluster_1]], t2[[cluster_2]]) |> length(),
+      n_int = intersect(t1[[cluster_1]], t2[[cluster_2]]) |> length(),
+      j = n_int / n_un
+    )
+}
+
 
 # Enrichment score from fold change and a vector of gene names
 ES <- function(fc, genes, mu, delta) {
@@ -530,7 +554,7 @@ merge_all_markers <- function(tbl_best_cluster_markers, tbl_best_insulin_gradien
     tbl_best_cluster_markers |> add_column(source = "Clustering"),
     tbl_best_insulin_gradient_markers |> add_column(source = "Insulin gradient")
   ) |> 
-    filter(!(gene_symbol %in% km)) |> # don't duplicated key markers
+    filter(!(gene_symbol %in% km$gene_symbol)) |> # don't duplicated key markers
     # deduplicate cluster and insulin, remove lower ranks
     group_by(gene_symbol) |> 
     slice_min(mean_rank, n = 1, with_ties = FALSE) |>
@@ -543,4 +567,35 @@ merge_all_markers <- function(tbl_best_cluster_markers, tbl_best_insulin_gradien
     arrange(mean_rank) |> 
     left_join(g, by = "gene_symbol") |> 
     relocate(description, .after = gene_symbol)
+}
+
+prepare_top_markers <- function(tbl_all_markers, n_top = 500, wrong_genes = character(0)) {
+  tb <- tbl_all_markers |> 
+    filter(!(gene_symbol %in% wrong_genes))
+  
+  tb1 <- tb |> 
+    filter(source == "Key marker") |> 
+    add_column(final_rank = 0)
+
+  n_part <- ceiling((n_top - nrow(tb1)) / 2)
+  tb2 <- tb |>
+    filter(source == "Clustering") |>
+    slice_min(order_by = mean_rank, n = n_part, with_ties = FALSE) |> 
+    mutate(final_rank = seq_along(mean_rank))
+  tb3 <- tb |>
+    filter(source == "Insulin gradient") |>
+    slice_min(order_by = mean_rank, n = n_part, with_ties = FALSE) |> 
+    mutate(final_rank = seq_along(mean_rank))
+
+  bind_rows(tb1, tb2, tb3) |> 
+    arrange(final_rank) |>
+    head(n_top) |> 
+    pull(gene_symbol)
+}
+
+# The top 19 is a manual selecttion based on the elbow in the total counts plot.
+get_highest_expressors <- function(seu, n_top = 19) {
+  get_total_count(seu) |> 
+    head(n_top) |> 
+    pull(gene_symbol)
 }

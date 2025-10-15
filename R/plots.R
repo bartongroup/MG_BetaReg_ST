@@ -14,6 +14,7 @@ thm <- th +
 
 # Minimal dependencies: rlang (installed with ggplot2)
 # Written by ChatGPT 5
+# Warning: this does not work
 gg_isolate_env <- function(p) {
   stopifnot(inherits(p, "ggplot"))
 
@@ -83,16 +84,30 @@ gg_isolate_env <- function(p) {
 #' @param dpi Resolution in dots per inch.
 #'
 #' @return Invisibly, the file path written.
-gs <- function(gg, name, sample = NULL, width, height, dpi = 240) {
+gs <- function(gg, name, sample = NULL, width, height, dpi = 240, path = "doc/images") {
+  dir.create(path, recursive = TRUE, showWarnings = FALSE)
   if(is.null(sample)) {
-    fname <- file.path("doc", "images", paste0(name, ".png"))
+    fname <- file.path(path, paste0(name, ".png"))
   } else {
-    fname <- file.path("doc", "images", paste0(name, "_", sample, ".png"))
+    fname <- file.path(path, paste0(name, "_", sample, ".png"))
   }
 
   ggsave(filename = fname, plot = gg, device = "png", limitsize = FALSE,
          width = width, height = height, dpi = dpi)
 }
+
+gp <- function(gg, name, sample = NULL, width, height, path = "doc/images") {
+  dir.create(path, recursive = TRUE, showWarnings = FALSE)
+  if(is.null(sample)) {
+    fname <- file.path(path, paste0(name, ".pdf"))
+  } else {
+    fname <- file.path(path, paste0(name, "_", sample, ".pdf"))
+  }
+
+  ggsave(filename = fname, plot = gg, device = "pdf", limitsize = FALSE,
+         width = width, height = height)
+}
+
 
 #' Save R object to RDS in doc/images
 #'
@@ -642,7 +657,7 @@ plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap
 plot_resolutions <- function(seu, resolutions, umap_point_size = 0.2, label_size = 5) {
   pl <- map(resolutions, function(res) {
 
-    pl1 <- plot_one_xy(seu, resolution = res, point_size = umap_point_size, what = "umap")
+    pl1 <- plot_one_xy(seu, resolution = res, point_size = umap_point_size, what = "umap", label_size = label_size)
     pl2 <- plot_one_xy(seu, resolution = res, what = "spatial")
     plot_grid(pl1, pl2, nrow = 1, rel_widths = c(1, 1))
   })
@@ -849,7 +864,7 @@ plot_gene_dots <- function(seu, gns, meta_column = "cluster", with_legend = TRUE
       geom_point() +
       scale_colour_gradient(low = "grey90", high = "blue") +
       scale_radius(range = c(1, 6)) +
-      labs(x = meta_column, y = "Gene", size = "Percent expressed", colour = "Average expresion", title = title)
+      labs(x = meta_column, y = "Gene", size = "Percent\nexpressed", colour = "Average\nexpresion", title = title)
     if(!with_legend)
       pl <- pl + theme(legend.position = "none")
     pl
@@ -1602,6 +1617,7 @@ png_upset_expressed_cells <- function(seu, gns, suffix, sample, width, height, e
 #' @return A ggplot object.
 plot_spatial_box <- function(seu, gene, x_cen, y_cen, size, point_size = 0.6) {
   xy <- get_spatial_coordinates(seu)
+  corners <- get_resolution_grid(xy)
   ex <- get_gene_expression(seu, gene)
 
   bx <- tibble(
@@ -1609,13 +1625,15 @@ plot_spatial_box <- function(seu, gene, x_cen, y_cen, size, point_size = 0.6) {
     y = c(y_cen - size, y_cen - size, y_cen + size, y_cen + size, y_cen - size)
   )
 
-  inner_join(xy, ex, by = "cell_id") |> 
+  corners |> 
+    inner_join(ex, by = "cell_id") |> 
     ggplot() +
     th +
     theme(legend.position = "none") +
-    geom_point(aes(x = x, y = y, colour = expression), size = point_size) +
-    scale_colour_distiller(palette = "Blues", direction = 1) +
-    geom_path(data = bx, aes(x = x, y = y))
+    geom_polygon(aes(group = cell_id, x = x_corner, y = y_corner, fill = expression), colour = NA, linewidth = 0) +
+    scale_fill_distiller(palette = "Purples", direction = 1) +
+    geom_path(data = bx, aes(x = x, y = y)) +
+    labs(x = "x", y = "y")
 }
 
 #' Compare 8µm vs 2µm resolution spatial tiling
@@ -1973,3 +1991,31 @@ plot_enrichment_gradient <- function(enr) {
 
   ggheatmap(d, order.col = FALSE, order.row = FALSE, with.y.text = TRUE, palette = "viridis", legend.name = expression(log[10]~OR))
 }
+
+
+plot_cluster_match_samples <- function(cluster_markers_1, cluster_markers_2, n_top = 50) {
+  jaccard_cluster_cluster(cluster_markers_1, cluster_markers_2, n_top) |> 
+    ggplot(aes(x = cluster_1, y = cluster_2, fill = j)) +
+    th +
+    geom_tile() +
+    scale_fill_viridis_c(option = "cividis") +
+    labs(fill = "Jaccard")
+}
+
+
+plot_cluster_cell_type_jaccard <- function(seu) {
+  env <- new.env(parent = globalenv())
+
+  env$d <- seu |>
+    jaccard_clusters_cell_types()
+  with(env, {
+    d |> 
+      ggplot(aes(x = cluster, y = cell_type, fill = j)) +
+      th +
+      geom_tile() +
+      scale_fill_viridis_c(option = "cividis") +
+      labs(fill = "Jaccard")
+  })
+}
+
+
