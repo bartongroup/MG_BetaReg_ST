@@ -43,7 +43,13 @@ targets_main <- function() {
     mn_hormone_overlap_2um_1 = mn_plot_hormone_overlap_2um("1", "manuscript/fig/hormone_overlap_1_2um.pdf", 7, 3),
     mn_hormone_overlap_2um_2 = mn_plot_hormone_overlap_2um("2", "manuscript/fig/hormone_overlap_2_2um.pdf", 7, 3),
     mn_hormone_overlap_ma_8pwc = mn_plot_hormone_overlap_ma("8", "manuscript/fig/hormone_overlap_ma_8pcw.pdf", 3.7, 3),
-    mn_hormone_overlap_ma_11pwc = mn_plot_hormone_overlap_ma("11", "manuscript/fig/hormone_overlap_ma_11pcw.pdf", 7, 3)
+    mn_hormone_overlap_ma_11pwc = mn_plot_hormone_overlap_ma("11", "manuscript/fig/hormone_overlap_ma_11pcw.pdf", 7, 3),
+    mn_enrichment_gradient_heat_1 = fig_enrichment_gradient_1 |> gp("insulin_gradient_enrichment_heatmap", "1", width = 7.3, height = 12, path = "manuscript/fig"),
+    mn_enrichment_gradient_heat_2 = fig_enrichment_gradient_2 |> gp("insulin_gradient_enrichment_heatmap", "2", width = 6.85, height = 14, path = "manuscript/fig"),
+    mn_enrichment_gradient_1 = mn_plot_binned_enrichment(tbls_binned_enrichment_1$enrichment) |> gp("insulin_gradient_enrichment", "1", width = 8, height = 22, path = "manuscript/fig"),
+    mn_enrichment_gradient_2 = mn_plot_binned_enrichment(tbls_binned_enrichment_2$enrichment) |> gp("insulin_gradient_enrichment", "2", width = 8, height = 20, path = "manuscript/fig"),
+    mn_ins_neurog3_grid_1 = mn_plot_spatial_selection_genes(seu_1, c("INS", "NEUROG3"), list(x1 = 4350, x2 = 5600, y1 = -5200, y2 = -3600)) |> gp("ins_neurog3_grid", "1", width = 7, height = 4, path = "manuscript/fig"),
+    mn_ins_neurog3_grid_2 = mn_plot_spatial_selection_genes(seu_2, c("INS", "NEUROG3"), list(x1 = 3100, x2 = 4350, y1 = -3950, y2 = -2350)) |> gp("ins_neurog3_grid", "2", width = 7, height = 4, path = "manuscript/fig")
   )
 
 

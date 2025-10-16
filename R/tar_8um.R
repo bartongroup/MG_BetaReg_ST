@@ -212,7 +212,8 @@ targets_8um <- function() {
       mn_endoc_markers = mn_plot_marker_spatial(seu_mark, tissue_markers_endoc, label_size = 2.5) |> gp("endoc_markers", sample = NAME, width = 8, height = 8, path = "manuscript/fig"),
       mn_cell_types = mn_plot_cell_type(seu_mark) |> gp("cell_type", sample = NAME, width = 3.55, height = 3, path = "manuscript/fig"),
       mn_cell_type_dots = mn_plot_cell_type_dots(seu_mark, tissue_markers) |> gp("cell_type_dots", sample = NAME, width = 4.5, height = 7.5, path = "manuscript/fig"),
-      mn_hormone_overlap_8um = mn_plot_hormone_overlap(seu_mark, file.path("manuscript/fig", paste0("hormone_overlap_", NAME, "_8um.pdf")), 7, 3)
+      mn_hormone_overlap_8um = mn_plot_hormone_overlap(seu_mark, file.path("manuscript/fig", paste0("hormone_overlap_", NAME, "_8um.pdf")), 7, 3),
+      mn_insulin_bins_spatial = mn_plot_binned_spatial(seu_mark) |> gp("insulin_bins", sample = NAME, width = 3.8, height = 3, path = "manuscript/fig")
     )
   )
 

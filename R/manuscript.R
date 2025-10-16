@@ -83,3 +83,146 @@ mn_plot_hormone_overlap_ma <- function(pcw, fname, width, height) {
   ComplexHeatmap::draw(up)
 }
 
+
+
+mn_plot_binned_spatial <- function(seu, gene_x = "INS", bins = 6) {
+  gx <- get_gene_expression(seu, gene_x)
+  g1 <- gx |> 
+    filter(expression > 0) |> 
+    mutate(bin = cut_interval(expression, n = bins) |> fct_expand("0", after = 0))
+  g0 <- gx |> 
+    filter(expression == 0) |> 
+    mutate(bin = factor("0", levels = levels(g1$bin)))
+  gx <- bind_rows(g0, g1)
+  # reorder before inserting into meta
+  m <- tibble(cell_id = colnames(seu)) |> 
+    left_join(gx, by = "cell_id")
+  seu$bin <- m$bin
+
+  plot_one_xy(seu, what = "spatial", meta_column = "bin") + 
+    theme(
+      legend.position = "right",
+      legend.text = element_text(size = 8),
+      legend.title = element_text(size = 9),
+      legend.key.size = unit(0.5, "lines")
+    ) +
+    labs(fill = "INS intensity bin")
+}
+
+
+mn_plot_binned_enrichment <- function(tbl) {
+  tb <- tbl |>
+    filter(bin != "0") |>
+    droplevels() |> 
+    mutate(
+      ibin = as.integer(bin),
+      infor = is.infinite(odds_ratio),
+      logp = -log10(p_adjust),
+      lor = log10(odds_ratio)
+    )
+
+  mx_scale <- 1.05
+  mxo <- tb |> 
+    filter(!infor) |> 
+    pull(lor) |> 
+    max()
+  mxp <- tb |> 
+    filter(!is.infinite(logp)) |> 
+    pull(logp) |> 
+    max()
+
+  tb <- tb |> 
+    mutate(
+      lor = if_else(infor, mx_scale * mxo, lor),
+      logp = if_else(is.infinite(logp), mxp, logp)
+    )
+
+  bin_counts <- tb |> 
+    count(ibin) |> 
+    pull(n)
+  # Extend top and bottom to account for legend and x-scale
+  bin_counts[1] <- bin_counts[1] + 5
+  bin_counts[length(bin_counts)] <- bin_counts[length(bin_counts)] + 3
+
+  plts <- map(1:max(tb$ibin), function(ibn) {
+    pl <- tb |> 
+      filter(ibin == ibn) |> 
+      mutate(term_name = fct_reorder(term_name, enrichment)) |>
+      ggplot(aes(x = lor, y = term_name)) +
+      th +
+      guides(colour = "none", linetype = "none") +
+      geom_segment(aes(xend = 0, yend = term_name, linetype = infor), colour = "grey70") +
+      geom_point(aes(size = logp, colour = infor)) +
+      scale_size_continuous(limits = c(0, mxp)) +
+      scale_colour_manual(values = c("black", "grey80")) +
+      scale_linetype_manual(values = c("solid", "dashed")) +
+      scale_x_continuous(expand = expansion(mult = c(0, 0.03)), limits = c(0, mx_scale * mxo)) +
+      labs(x = expression(log[10]~Odds~ratio), y = NULL, size = expression(-log[10]~FDR)) +
+      facet_wrap(~ bin, strip.position = "right")
+    if(ibn == 1) {
+      pl <- pl + theme(legend.position = "top")
+    } else {
+      pl <- pl + theme(legend.position = "none")
+    }
+    if(ibn != max(tb$ibin)) {
+      pl <- pl + theme(
+        axis.text.x = element_blank(),
+        axis.title.x = element_blank()
+      )
+    }
+    pl
+
+  })
+
+  plot_grid(plotlist = plts, ncol = 1, rel_heights = bin_counts, align = "v")
+}
+
+
+
+
+
+mn_plot_spatial_selection_genes <- function(seu, genes, box = list(x1 = -Inf, x2 = Inf, y1 = -Inf, y2 = Inf),
+                                            ncol = 2, n_grid = 10) {
+  ex <- get_gene_expression(seu, genes) |> 
+    mutate(val = expression)
+  xy <- get_spatial_coordinates(seu) |> 
+    mutate(cell = cell_id |> str_remove("s_008um_") |> str_remove("-1$")) |> 
+    separate_wider_delim(cell, delim = "_", names = c("x_grid", "y_grid")) |> 
+    mutate(across(c(x_grid, y_grid), as.integer))
+    
+  # Select grid coordinates, not x-y
+  grid_sel <-xy |> 
+    filter(x >= box$x1 & x <= box$x2 & y >= box$y1 & y <= box$y2) |> 
+    distinct(x_grid, y_grid)
+
+  xy <- xy |> 
+    filter(x_grid %in% grid_sel$x_grid & y_grid %in% grid_sel$y_grid)
+
+  ay <- xy |> arrange(y_grid, x_grid)
+  dx <- abs(ay[2, ]$x - ay[1, ]$x)
+  ax <- xy |> arrange(x_grid, y_grid)
+  dy <- abs(ax[2, ]$y - ax[1, ]$y)
+
+  corners <- get_resolution_grid(xy)
+  d <- inner_join(corners, ex, by = "cell_id", relationship = "many-to-many")
+  
+  # The 10x10 grid is going through the middle of pixels, need to shift by hafl width
+  grid <- xy |> 
+    filter(x_grid %% n_grid == 0 & y_grid %% n_grid == 0) |>     
+    get_resolution_grid() |> 
+    mutate(
+      x_corner = x_corner + dx / 2,
+      y_corner = y_corner + dy / 2
+    )
+    
+
+  d |> 
+    ggplot() +
+    thm +
+    geom_polygon(aes(x = x_corner, y = y_corner, group = cell_id, fill = val), colour = NA, linewidth = 0) +
+    labs(x = NULL, y = NULL, fill = "Expression") +
+    facet_wrap(~gene_symbol, ncol = ncol) +
+    #scale_fill_viridis_c(option = "cividis") +
+    scale_fill_distiller(palette = "Purples", direction = 1) +
+    geom_polygon(data = grid, aes(x = x_corner, y = y_corner, group = cell_id), fill = NA, colour = "white", alpha = 0.5, linewidth = 0.3)
+}
