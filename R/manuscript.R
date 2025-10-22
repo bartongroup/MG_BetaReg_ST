@@ -178,9 +178,6 @@ mn_plot_binned_enrichment <- function(tbl) {
 }
 
 
-
-
-
 mn_plot_spatial_selection_genes <- function(seu, genes, box = list(x1 = -Inf, x2 = Inf, y1 = -Inf, y2 = Inf),
                                             ncol = 2, n_grid = 10) {
   ex <- get_gene_expression(seu, genes) |> 
@@ -214,7 +211,6 @@ mn_plot_spatial_selection_genes <- function(seu, genes, box = list(x1 = -Inf, x2
       x_corner = x_corner + dx / 2,
       y_corner = y_corner + dy / 2
     )
-    
 
   d |> 
     ggplot() +
@@ -225,4 +221,9 @@ mn_plot_spatial_selection_genes <- function(seu, genes, box = list(x1 = -Inf, x2
     #scale_fill_viridis_c(option = "cividis") +
     scale_fill_distiller(palette = "Purples", direction = 1) +
     geom_polygon(data = grid, aes(x = x_corner, y = y_corner, group = cell_id), fill = NA, colour = "white", alpha = 0.5, linewidth = 0.3)
+}
+
+
+mn_plot_ins_gradient_expression <- function(seu) {
+  plot_binned_expression(seu, "INS", c("NEUROG3", "GCG", "SST"), bins = 6)
 }

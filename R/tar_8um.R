@@ -213,7 +213,8 @@ targets_8um <- function() {
       mn_cell_types = mn_plot_cell_type(seu_mark) |> gp("cell_type", sample = NAME, width = 3.55, height = 3, path = "manuscript/fig"),
       mn_cell_type_dots = mn_plot_cell_type_dots(seu_mark, tissue_markers) |> gp("cell_type_dots", sample = NAME, width = 4.5, height = 7.5, path = "manuscript/fig"),
       mn_hormone_overlap_8um = mn_plot_hormone_overlap(seu_mark, file.path("manuscript/fig", paste0("hormone_overlap_", NAME, "_8um.pdf")), 7, 3),
-      mn_insulin_bins_spatial = mn_plot_binned_spatial(seu_mark) |> gp("insulin_bins", sample = NAME, width = 3.8, height = 3, path = "manuscript/fig")
+      mn_insulin_bins_spatial = mn_plot_binned_spatial(seu_mark) |> gp("insulin_bins", sample = NAME, width = 3.8, height = 3, path = "manuscript/fig"),
+      mn_insulin_gradient_expression = plot_binned_expression(seu, "INS", c("NEUROG3", "GCG", "SST"), bins = 6) |> gp("insulin_expression", sample = NAME, width = 4, height = 2, path = "manuscript/fig")
     )
   )
 

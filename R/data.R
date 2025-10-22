@@ -599,3 +599,31 @@ get_highest_expressors <- function(seu, n_top = 19) {
     head(n_top) |> 
     pull(gene_symbol)
 }
+
+
+# Written by ChatGPT
+fetch_uniprot_fasta <- function(genes, reviewed = TRUE, canonical_only = TRUE, chunk_size = 100) {
+  q_parts <- sprintf("gene_exact:%s", genes)
+  filters <- c("organism_id:9606")
+  if (reviewed)      filters <- c(filters, "reviewed:true")
+  if (canonical_only) filters <- c(filters, "is_isoform:false")  # canonical entry per gene
+
+  # Split into chunks to keep URLs reasonable
+  q_parts <- sprintf("gene_exact:%s", genes)
+  chunks <- split(q_parts, ceiling(seq_along(q_parts) / chunk_size))
+
+  fas <- character()
+  for (ch in chunks) {
+    # THIS is the important bit: collapse with OR, don't pass the vector itself
+    core <- paste(ch, collapse = " OR ")
+    q <- sprintf("(%s) AND %s", core, paste(filters, collapse = " AND "))
+
+    url <- paste0("https://rest.uniprot.org/uniprotkb/stream?format=fasta&query=",
+                  URLencode(q, reserved = TRUE))
+
+    resp <- request(url) |> req_perform()
+    fas <- c(fas, resp_body_string(resp))
+  }
+
+  fas
+}

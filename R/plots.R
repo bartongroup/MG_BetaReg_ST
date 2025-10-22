@@ -1786,7 +1786,7 @@ plot_binned_expression <- function(seu, gene_x, genes_y, bins = 6) {
   b <- gene_binned_gradient(seu, gene_x, bins)
   seu$bin <- b$bin
 
-  plot_gene_expression(seu, genes_y, meta_column = "bin")
+  plot_gene_expression(seu, genes_y, meta_column = "bin") + ylab("Expression")
 }
 
 #' Summary statistics of expression across bins (obsolete)
