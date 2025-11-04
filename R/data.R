@@ -509,12 +509,17 @@ enrichment_gradient <- function(seu, fterms, gene = "INS", bins = 6, fdr_limit =
 
 
 # Get top max_per_cluster markers (by logFC rank) from each cluster,
-# merge results. Ignore cluster 0.
+# merge results. Ignore cluster 0. If negative = TRUE, get negative markers.
 # For each gene find
 #   - best_rank - smallest rank across all clusters
 #   - best_cluster - where the smallest rank is
 #   - best_pcs - percentage expressed in best cluster
-find_best_markers <- function(markers, pct_limit = 0.1, fdr_limit = 0.01, max_per_cluster = 200) {
+find_best_markers <- function(markers, pct_limit = 0.1, fdr_limit = 0.01, max_per_cluster = 200, negative = FALSE) {
+  if(negative) {
+    pct_limit <- 0
+    markers <- markers |> 
+      mutate(avg_log2FC = -avg_log2FC)
+  }
   markers |>
     filter(cluster != "0" & p_val_adj < 0.01 & pct.1 > pct_limit) |> 
     group_by(cluster) |> 
@@ -525,7 +530,8 @@ find_best_markers <- function(markers, pct_limit = 0.1, fdr_limit = 0.01, max_pe
     summarise(
       best_rank = min(rank),
       best_cluster = cluster[which.min(rank)],
-      best_pct = pct.1[which.min(rank)]
+      best_pct = pct.1[which.min(rank)],
+      best_pct_out = pct.2[which.min(rank)]
     ) |>
     arrange(best_rank)
 }
