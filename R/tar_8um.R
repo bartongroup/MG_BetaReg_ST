@@ -226,6 +226,23 @@ targets_8um <- function() {
     tar_combine(gse_all, map_experiments$gse_mpc, command = bind_rows(!!!.x))
   )
 
+  cluster_integrated_samples <- tar_plan(
+    integ_res = c(0.1, 0.15, 0.2, 0.25, 0.3, 0.5),
+    seu_integ = integrate_seurats(seu_1, seu_2, nfeatures = 3000),
+    seu_integ_clust = cluster_seurat(seu_integ, ident_res = 0.25, resolutions = integ_res, nfeatures = 3000, res_suffix = "integrated"),
+
+    cluster_markers_integ = find_group_markers(seu_integ_clust, group_by = "cluster"),
+    max_best_clusters_integ = 30,
+    tbl_best_cluster_markers_integ = find_best_markers(cluster_markers_integ, max_per_cluster = max_best_clusters_integ),
+    tbl_best_cluster_negative_markers_integ = find_best_markers(cluster_markers_integ, max_per_cluster = max_best_clusters_integ, negative = TRUE),
+    top_cluster_markers_integ = get_top_cluster_markers(cluster_markers_integ, n_top = 12),
+    top_cluster_genes_integ = top_cluster_markers_integ$gene_symbol |> unique(),
+    tbl_cluster_enrichment_integ = group_enrichment(top_cluster_markers_integ, fterms, group_var = "cluster"),
+
+    png_clusters_integ = plot_seurat_clusters(seu_integ_clust, resolutions = integ_res) |> gs("integ_clust", width = 8, height = 6)
+    #png_top_clust_gene_integ = plot_top_cluster_features(seu_integ_clust, cluster_markers_integ, gns)
+  )
+
   for_report <- tar_plan(
     fig_counts = plot_all_counts(cell_data_all, gene_detection_all),
     png_marginals = plot_grid(fig_marginals_1, fig_marginals_2, ncol = 1, labels = 1:2)  |> gs("marginals", "all", 8, 6),
@@ -291,7 +308,8 @@ targets_8um <- function() {
     combine_samples,
     for_report,
     for_shiny,
-    for_external_run
+    for_external_run,
+    cluster_integrated_samples
   )
 
 }

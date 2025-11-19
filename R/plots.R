@@ -531,13 +531,13 @@ plot_reduction_meta <- function(seu, reduction = "pca", meta_column = "pseudotim
 #' @param discrete_palette Optional vector of colours for discrete groups.
 #'
 #' @return A ggplot object (optionally faceted when multiple genes).
-plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap", "spatial"), meta_column = "cluster",
+plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap", "spatial"), meta_column = "cluster", suffix = "Spatial.008um",
                         genes = NULL, with_legend = FALSE, label_size = 6, combine_genes = FALSE, discrete_palette = NULL) {
   what <- match.arg(what)
 
   # Convert resolutions (e.g. "0.1") into metadata column name ("Spatial.008um_snn_res.0.1")
   if(!is.null(resolution))
-    res <- get_resolution_columns(resolution)
+    res <- get_resolution_columns(resolution, suffix = suffix)
 
   # Create x-y coordinates for umap or spatial
   if(what == "umap") {
@@ -2018,4 +2018,95 @@ plot_cluster_cell_type_jaccard <- function(seu) {
   })
 }
 
+
+
+
+feature_plot <- function(seu, gids, genes, assay = "RNA", slot = "data", min_cutoff = 0.1, n_col = NULL,
+                         point_size = 0.4, max_n = 12, reorder = FALSE) {
+  
+  g2s <- genes |> 
+    select(gene_id, gene_symbol)
+  
+  env <- new.env(parent = globalenv())
+  env$n_col = n_col
+  env$point_size = point_size
+  
+  # Extract umap embeddings
+  um <- seu[["umap"]]@cell.embeddings |>
+    as_tibble(rownames = "cell_id")
+  
+  # Extract normalised expression for the selection of genes
+  expr <- GetAssayData(seu, assay = assay, slot = slot)
+  all_genes <- rownames(expr)
+  gids <- intersect(gids, all_genes)
+  stopifnot(length(gids) > 0)
+  expr <- expr[gids, , drop = FALSE] |> 
+    t() |> 
+    as.data.frame() |> 
+    as_tibble(rownames = "cell_id")
+  
+  if(reorder) {
+    # Order genes from highest to lowest expression
+    gene_order <- expr |> 
+      pivot_longer(-cell_id, names_to = "gene_id") |> 
+      left_join(g2s, by = "gene_id") |>
+      group_by(gene_symbol) |> 
+      summarise(m = median(value)) |> 
+      arrange(desc(m)) |> 
+      pull(gene_symbol)
+  } else {
+    gene_order <-  tibble(gene_id = gids) |> 
+      left_join(g2s, by = "gene_id") |>
+      pull(gene_symbol)
+  }
+  
+  env$d <- um |> 
+    inner_join(expr, by = "cell_id") |> 
+    pivot_longer(-c(cell_id, UMAP_1, UMAP_2), names_to = "gene_id", values_to = "Expression") |> 
+    filter(Expression > quantile(Expression, probs = min_cutoff)) |> 
+    left_join(g2s, by = "gene_id") |> 
+    mutate(gene_symbol = factor(gene_symbol, levels = gene_order)) |> 
+    filter(gene_symbol %in% head(gene_order, max_n))
+
+  with(env, {
+    d |> 
+      ggplot(aes(x = UMAP_1, y = UMAP_2, colour = Expression)) +
+      th +
+      facet_wrap(~gene_symbol, ncol = n_col) +
+      geom_point(size = point_size) +
+      scale_colour_gradient(low = "#F0F0F0", high = "blue") +
+      labs(x = "umap 1", y = "umap 2")
+  })
+}
+
+top_conserved_genes <- function(cons, max_n = 12) {
+  cons |> 
+    group_by(cluster, gene_symbol) |> 
+    summarise(
+      mfc = mean(avg_log2FC)
+    ) |>
+    top_n(max_n, mfc) |> 
+    arrange(desc(mfc), .by_group = TRUE) |> 
+    ungroup()
+}
+
+
+
+
+plot_top_cluster_features <- function(seu_clust, conserved_markers, genes, sample = NULL, max_n = 12, n_col = 4,
+                                      x_size = 11, y_size = 10, file_prefix = "top_clust_gene") {
+  top_genes <- top_conserved_genes(conserved_markers, max_n)
+  clusters <- top_genes$cluster |> 
+    unique() |> 
+    sort()
+  
+  map(clusters, function(cl) {
+    gname <- str_glue("{file_prefix}_{cl}")
+    tg <- top_genes |> 
+      filter(cluster == cl)
+    gids <- tg$gene_symbol
+    feature_plot(seu_clust, gids, genes, n_col = n_col) |> 
+      gs(gname, width = x_size, height = y_size)
+  })
+}
 

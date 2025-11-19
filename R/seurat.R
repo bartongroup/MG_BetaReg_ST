@@ -745,3 +745,65 @@ relabel_clusters <- function(seu, relc = NULL, resolution = "0.3") {
   seu$cluster <- f
   seu
 }
+
+
+clean_seurat <- function(seu) {
+  meta <- seu@meta.data
+  remove_cols <- colnames(meta) |> 
+    str_subset("Spatial|cluster")
+  meta <- meta[, !(names(meta) %in% remove_cols)]
+  CreateSeuratObject(
+    counts = GetAssayData(seu, layer = "counts"),
+    meta.data = meta
+  ) |> 
+  subset(nCount_RNA > 0)
+}
+
+integrate_seurats <- function(seu_1, seu_2, nfeatures = 2000) {
+  seu_1$sample <- "sample1"
+  seu_2$sample <- "sample2"
+
+  options(future.globals.maxSize = 10 * 1024^3)
+
+  seu_list <- list(seu_1, seu_2)
+
+  seu_list <- map(seu_list, function(seu) {
+    seu |> 
+      clean_seurat() |> 
+      NormalizeData() |> 
+      SCTransform()
+  })
+
+  # Select most variable genes found by CSTransform
+  integ_features <- SelectIntegrationFeatures(seu_list, nfeatures = nfeatures)
+  # Prepare split object for integration
+  seu_list <- PrepSCTIntegration(seu_list, anchor.features = integ_features)
+  # Perform canonical correlation analysis (CCA) to identify sources of variation between samples.
+  # Identify anchors (or mutual nearest neighbours or best buddies) across samples,
+  # Filter incorrect anchors
+  # WARNING: this part takes a lot of time to calculate!
+  seu_list <- FindIntegrationAnchors(seu_list, normalization.method = "SCT", anchor.features = integ_features)
+  
+  # Integrate dataset using anchors
+  IntegrateData(anchorset = seu_list, normalization.method = "SCT")
+}
+
+
+plot_seurat_clusters <- function(seu_clust, resolutions = NULL, with_legend = FALSE, label = TRUE, ...) {
+  if(is.null(resolutions)) {
+    resols <- names(seu_clust@meta.data) |> str_subset("snn_res")
+  } else {
+    resols <-  get_resolution_columns(resolutions, suffix = "integrated")
+  }
+  
+  P <- map(resols, function(res) {
+    Idents(seu_clust) <- res
+    r <- str_remove(res, "^.*res\\.")
+    dp <- DimPlot(seu_clust, reduction = "umap", label = label, label.size = 6, ...) +
+      labs(title = r)
+    if(!with_legend)
+      dp <- dp + theme(legend.position = "none")
+    dp
+  })
+  plot_grid(plotlist = P)
+}
