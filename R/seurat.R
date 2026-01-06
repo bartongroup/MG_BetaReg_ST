@@ -12,7 +12,8 @@
 load_visium_data <- function(path, mito_genes, bin_size = 8) {
   seu <- Load10X_Spatial(data.dir = path, bin.size = bin_size)
 
-  suffix <- sprintf("Spatial.%03dum", bin_size)
+  bs <- ifelse(is.numeric(bin_size), sprintf("%03dum", bin_size), str_to_title(bin_size))
+  suffix <- str_glue("Spatial.{bs}")
   seu_genes <- Features(seu)
   mito <- intersect(mito_genes, seu_genes)
   seu$mito_fraction <- PercentageFeatureSet(object = seu, features = mito) / 100
@@ -534,11 +535,11 @@ annotate_clusters <- function(seu, key_markers, resolution = NULL) {
 #' @param fname Output CSV file path.
 #'
 #' @return Invisibly, the path written; called for its side effect of writing a file.
-save_for_loupe <- function(seu, fname) {
+save_for_loupe <- function(seu, fname, cluster_col = "cluster") {
   seu@meta.data |>
     as_tibble(rownames = "barcode") |> 
-    select(barcode, cell_type, starts_with("Spatial.008um_snn_res")) |> 
-    rename_with(~str_replace(., "^Spatial.008um_snn_res.", "resolution_"), starts_with("Spatial.008um_snn_res")) |> 
+    mutate(cluster = get(cluster_col)) |> 
+    select(barcode, cell_type, cluster) |> 
     write_csv(fname)
 }
 

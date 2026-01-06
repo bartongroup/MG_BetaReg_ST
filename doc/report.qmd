@@ -1071,6 +1071,43 @@ Examples of CellChat communication pathways.
 :::
 
 
+
+# Integrative clustering
+
+In this Section the two samples (referred to as sample 1 and 2) are integrated and clustering is performed on integrated data. For this analysis only expression data were used and spatial information was stripped off to save some memory - clustering in Seurat is based on expression data only.
+
+Raw counts were normalised with `NormalizeData()` and `SCTransform()` for each sample separately. Integration was done following Seurat's tutorials using `SelectIntegrationFeatures()` with 3000 variable features, `PrepSCTIntegration()`, `PrepSCTIntegration()` and `IntegrateData()`. The integrated data were clustered using the standard Seurat's approach in 1:40 dimensions and for the range or resolutions. Finally, the sample layers were joined using `JoinLayers()`. After inspecting several resolution results a resolution of 0.25 that resulted in 10 clusters was selected for downstream analysis.
+
+This approach created consistent clustering across both samples, with spots in the same cluster exhibiting the same properties in each sample. The resulting cluster assignment was then transferred to the original Seurat objects for each sample, so spatial and clustering data can be viewed together.
+
+
+```{r, out.width="100%"}
+#| label: fig-clust-integ-1
+#| fig-cap: Spatial distribution of clusters based on integrated data for sample 1.
+knitr::include_graphics("images/clustering_integ_1.png")  
+```
+
+```{r, out.width="100%"}
+#| label: fig-clust-integ-2
+#| fig-cap: Spatial distribution of clusters based on integrated data for sample 2.
+knitr::include_graphics("images/clustering_integ_2.png") 
+```
+
+
+
+```{r}
+#| label: fig-clust-integ-cell-type
+#| fig-cap: Comparison between integrative clustering and cell type assignment for both samples. 
+#| fig-width: 8
+#| fig-height: 4
+pl1 <- tar_read(fig_clust_integ_jaccard_1)
+pl2 <- tar_read(fig_clust_integ_jaccard_2)
+plot_grid(pl1, pl2, nrow = 1, labels = c("1", "2"))
+```
+
+
+
+
 # 2 μm data
 
 ## Introduction

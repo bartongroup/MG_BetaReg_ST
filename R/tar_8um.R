@@ -208,7 +208,25 @@ targets_8um <- function() {
       # Prepare for shiny
       dex = make_dexdash(seu_mark, de_mpc, NAME),
 
+      # Integration
+      seu_integ = add_clusters_integ(seu_mark, integ_clust, NAME),
+      cluster_markers_integ = find_group_markers(seu_integ, group_by = "cluster_integ"),
+      png_clust_integ = mn_plot_spatial_clustering(seu_integ, meta_column = "cluster_integ") |> gs("clustering_integ", sample = NAME, width = 7, height = 6),
+      fig_clust_integ_jaccard = mn_plot_cluster_cell_type_jaccard(seu_integ, cluster_col = "cluster_integ"),
+      top_cluster_markers_integ = get_top_cluster_markers(cluster_markers_integ, n_top = 12),
+      top_cluster_genes_integ = top_cluster_markers_integ$gene_symbol |> unique(),
+      tbl_cluster_enrichment_integ = group_enrichment(top_cluster_markers_integ, fterms, group_var = "cluster") |> dplyr::rename(cluster = group),
+      png_dots_top_cluster_integ = plot_gene_dots(seu_integ, top_cluster_genes_integ, meta_column = "cluster_integ") |> gs("dot_clusters_integ", sample = NAME, width = 3.5, height = 14),
+      sav_loupe_integ = save_for_loupe(seu_integ, paste0("tab/clusters_integ_", NAME, ".csv"), cluster_col = "cluster_integ"),
+      sav_clust_integ_enr = save_enrichment(tbl_cluster_enrichment_integ, paste0("tab/cluster_integ_enrichment_", NAME, ".csv"), group_var = "cluster"),
+
+      # Segmentation data
+      seu_seg = load_visium_data(SEG_DATA_PATH, mito_genes, bin_size = c("polygons", 8)) |>
+        NormalizeData(),
+
       # For the manuscript
+      mn_clust_integ = mn_plot_spatial_clustering(seu_integ, meta_column = "cluster_integ") |> gp("clustering_integ", sample = NAME, width = 3.3, height = 3, path = "manuscript/fig"),
+      mn_clust_jaccard = mn_plot_cluster_cell_type_jaccard(seu_integ, cluster_col = "cluster_integ") |> gp("jaccard_integ", sample = NAME, width = 3.5, height = 2.7, path = "manuscript/fig"),
       mn_clust = mn_plot_spatial_clustering(seu_mark, RESOLUTION) |> gp("clustering", sample = NAME, width = 3.3, height = 3, path = "manuscript/fig"),
       mn_all_markers = mn_plot_marker_spatial(seu_mark, tissue_markers, label_size = 2.5) |> gp("all_markers", sample = NAME, width = 8, height = 8, path = "manuscript/fig"),
       mn_endoc_markers = mn_plot_marker_spatial(seu_mark, tissue_markers_endoc, label_size = 2.5) |> gp("endoc_markers", sample = NAME, width = 8, height = 8, path = "manuscript/fig"),
@@ -229,7 +247,9 @@ targets_8um <- function() {
   cluster_integrated_samples <- tar_plan(
     integ_res = c(0.1, 0.15, 0.2, 0.25, 0.3, 0.5),
     seu_integ = integrate_seurats(seu_1, seu_2, nfeatures = 3000),
-    seu_integ_clust = cluster_seurat(seu_integ, ident_res = 0.25, resolutions = integ_res, nfeatures = 3000, res_suffix = "integrated"),
+    seu_integ_clust = cluster_seurat(seu_integ, ident_res = 0.25, resolutions = integ_res, nfeatures = 3000, res_suffix = "integrated") |> 
+                      JoinLayers(assay = "RNA"), # after integrative analysis we still have two layers
+    integ_clust = extract_clusters_integ(seu_integ_clust, "0.2", clust_order = c(3, 5, 4, 7, 6, 9, 1, 2, 8, 10)),
 
     cluster_markers_integ = find_group_markers(seu_integ_clust, group_by = "cluster"),
     max_best_clusters_integ = 30,
@@ -237,10 +257,9 @@ targets_8um <- function() {
     tbl_best_cluster_negative_markers_integ = find_best_markers(cluster_markers_integ, max_per_cluster = max_best_clusters_integ, negative = TRUE),
     top_cluster_markers_integ = get_top_cluster_markers(cluster_markers_integ, n_top = 12),
     top_cluster_genes_integ = top_cluster_markers_integ$gene_symbol |> unique(),
-    tbl_cluster_enrichment_integ = group_enrichment(top_cluster_markers_integ, fterms, group_var = "cluster"),
 
-    png_clusters_integ = plot_seurat_clusters(seu_integ_clust, resolutions = integ_res) |> gs("integ_clust", width = 8, height = 6)
-    #png_top_clust_gene_integ = plot_top_cluster_features(seu_integ_clust, cluster_markers_integ, gns)
+    png_clusters_integ = plot_seurat_clusters(seu_integ_clust, resolutions = integ_res) |> gs("integ_clust", width = 8, height = 6),
+    png_top_clust_gene_integ = plot_top_cluster_features(seu_integ_clust, cluster_markers_integ, gns)
   )
 
   for_report <- tar_plan(

@@ -1544,8 +1544,8 @@ plot_spatial_differences <- function(seu, pairs) {
 #' @param expr_limit Numeric threshold on expression to call expressed.
 #'
 #' @return A ComplexHeatmap UpSet object.
-plot_upset_expressed_cells <- function(seu, gns, expr_limit = 0) {
-  m <- get_gene_expression(seu, gns, layer = "data") |> 
+plot_upset_expressed_cells <- function(seu, gns, expr_limit = 0, layer = "data") {
+  m <- get_gene_expression(seu, gns, layer = layer) |> 
     filter(expression > expr_limit) |> 
     mutate(expression = 1) |> 
     pivot_wider(id_cols = cell_id, names_from = gene_symbol, values_from = expression, values_fill = 0) |> 
@@ -2021,11 +2021,8 @@ plot_cluster_cell_type_jaccard <- function(seu) {
 
 
 
-feature_plot <- function(seu, gids, genes, assay = "RNA", slot = "data", min_cutoff = 0.1, n_col = NULL,
+feature_plot <- function(seu, gids, genes, assay = "RNA", layer = "data", min_cutoff = 0.1, n_col = NULL,
                          point_size = 0.4, max_n = 12, reorder = FALSE) {
-  
-  g2s <- genes |> 
-    select(gene_id, gene_symbol)
   
   env <- new.env(parent = globalenv())
   env$n_col = n_col
@@ -2036,7 +2033,7 @@ feature_plot <- function(seu, gids, genes, assay = "RNA", slot = "data", min_cut
     as_tibble(rownames = "cell_id")
   
   # Extract normalised expression for the selection of genes
-  expr <- GetAssayData(seu, assay = assay, slot = slot)
+  expr <- GetAssayData(seu, assay = assay, layer = layer)
   all_genes <- rownames(expr)
   gids <- intersect(gids, all_genes)
   stopifnot(length(gids) > 0)
@@ -2048,33 +2045,29 @@ feature_plot <- function(seu, gids, genes, assay = "RNA", slot = "data", min_cut
   if(reorder) {
     # Order genes from highest to lowest expression
     gene_order <- expr |> 
-      pivot_longer(-cell_id, names_to = "gene_id") |> 
-      left_join(g2s, by = "gene_id") |>
+      pivot_longer(-cell_id, names_to = "gene_symbol") |> 
       group_by(gene_symbol) |> 
       summarise(m = median(value)) |> 
       arrange(desc(m)) |> 
       pull(gene_symbol)
   } else {
-    gene_order <-  tibble(gene_id = gids) |> 
-      left_join(g2s, by = "gene_id") |>
-      pull(gene_symbol)
+    gene_order <-  gids
   }
   
   env$d <- um |> 
     inner_join(expr, by = "cell_id") |> 
-    pivot_longer(-c(cell_id, UMAP_1, UMAP_2), names_to = "gene_id", values_to = "Expression") |> 
+    pivot_longer(-c(cell_id, umap_1, umap_2), names_to = "gene_symbol", values_to = "Expression") |> 
     filter(Expression > quantile(Expression, probs = min_cutoff)) |> 
-    left_join(g2s, by = "gene_id") |> 
     mutate(gene_symbol = factor(gene_symbol, levels = gene_order)) |> 
     filter(gene_symbol %in% head(gene_order, max_n))
 
   with(env, {
     d |> 
-      ggplot(aes(x = UMAP_1, y = UMAP_2, colour = Expression)) +
+      ggplot(aes(x = umap_1, y = umap_2, colour = Expression)) +
       th +
       facet_wrap(~gene_symbol, ncol = n_col) +
       geom_point(size = point_size) +
-      scale_colour_gradient(low = "#F0F0F0", high = "blue") +
+      scale_colour_distiller(palette = "Purples", direction = 1) +
       labs(x = "umap 1", y = "umap 2")
   })
 }
@@ -2093,10 +2086,11 @@ top_conserved_genes <- function(cons, max_n = 12) {
 
 
 
-plot_top_cluster_features <- function(seu_clust, conserved_markers, genes, sample = NULL, max_n = 12, n_col = 4,
+plot_top_cluster_features <- function(seu_clust, conserved_markers, genes, max_n = 12, n_col = 4,
                                       x_size = 11, y_size = 10, file_prefix = "top_clust_gene") {
   top_genes <- top_conserved_genes(conserved_markers, max_n)
   clusters <- top_genes$cluster |> 
+    as.character() |> 
     unique() |> 
     sort()
   

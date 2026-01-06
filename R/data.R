@@ -1,5 +1,6 @@
 
 top_data_path <- "data/spaceranger_output"
+seg_data_path <- "data/spaceranger_new"
 
 #RELABEL_CLUSTERS_2 <- c(6, 9, 3, 1, 2, 7, 8, 10, 5, 4)
 
@@ -37,6 +38,8 @@ EXPERIMENTS_ALL <- tibble::tibble(
 ) |> 
   dplyr::mutate(
     DATA_PATH = file.path(top_data_path, stringr::str_glue("{SAMPLE}_Results"), "outs"),
+    #SEG_DATA_PATH = file.path(seg_data_path, stringr::str_glue("{SAMPLE}_Results"), "outs")
+    SEG_DATA_PATH = file.path(seg_data_path, stringr::str_glue("1_18191_Results"), "outs") # Temporary
   )
 
 # Only use samples 1 and 2. Samples 3 and 4 are failed.
@@ -315,9 +318,10 @@ save_for_shiny <- function(seu, suffix) {
 }
 
 
-jaccard_clusters_cell_types <- function(seu) {
+jaccard_clusters_cell_types <- function(seu, cluster_col = "cluster") {
   meta <- seu@meta.data |>
     as_tibble(rownames = "cell_id") |> 
+    mutate(cluster = get(cluster_col)) |> 
     select(cell_id, cluster, cell_type)
   m_cl <- meta |>
     group_by(cluster) |> 
@@ -632,4 +636,37 @@ fetch_uniprot_fasta <- function(genes, reviewed = TRUE, canonical_only = TRUE, c
   }
 
   fas
+}
+
+
+# Extract join clustering from integrated object and split it to samples 1 and 2
+extract_clusters_integ <- function(seu, resolution, clust_order = NULL) {
+  res <- get_resolution_columns(resolution, suffix = "integrated")
+  m <- seu@meta.data |> 
+    as_tibble(rownames = "cell_id") |> 
+    select(cell_id, cluster = all_of(res)) |> 
+    separate_wider_regex(cell_id, patterns = c(cell_id = ".+", "_", sample = "\\d+$")) 
+    
+  if(!is.null(clust_order)) {
+    cl2cl <- tibble(
+      old_clust = clust_order |> as.character(),
+      new_clust = seq_along(old_clust) |> as.character()
+    )
+    m <- m |> 
+      left_join(cl2cl, by = join_by(cluster == old_clust)) |> 
+      select(-cluster, cluster = new_clust)
+  }
+  
+  m |> 
+      mutate(cluster = fct_reorder(cluster, cluster |> as.character() |> as.numeric()))
+}
+
+
+add_clusters_integ <- function(seu, clust_info, smpl) {
+  ci <- clust_info |> 
+    filter(sample == smpl)
+  meta <- seu@meta.data[ci$cell_id, ]
+  meta$cluster_integ <- ci$cluster
+  seu@meta.data <- meta
+  seu
 }

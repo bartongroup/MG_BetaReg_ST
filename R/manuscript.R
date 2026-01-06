@@ -1,5 +1,5 @@
-mn_plot_spatial_clustering <- function(seu, res) {
-  plot_one_xy(seu, resolution = res, what = "spatial") +
+mn_plot_spatial_clustering <- function(seu, res = NULL, meta_column = "cluster") {
+  plot_one_xy(seu, resolution = res, meta_column = meta_column, what = "spatial") +
     theme(
       legend.position = "right",
       legend.text = element_text(size = 8),
@@ -7,6 +7,22 @@ mn_plot_spatial_clustering <- function(seu, res) {
       legend.key.size = unit(0.5, "lines")
     ) +
     labs(fill = "Cluster")
+}
+
+
+mn_plot_cluster_cell_type_jaccard <- function(seu, cluster_col = "cluster") {
+  env <- new.env(parent = globalenv())
+
+  env$d <- seu |>
+    jaccard_clusters_cell_types(cluster_col = cluster_col)
+  with(env, {
+    d |> 
+      ggplot(aes(x = cluster, y = cell_type, fill = j)) +
+      th +
+      geom_tile() +
+      scale_fill_viridis_c(option = "cividis") +
+      labs(fill = "Jaccard", x = "Cluster", y = "Cell type")
+  })
 }
 
 
