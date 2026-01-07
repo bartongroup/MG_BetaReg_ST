@@ -122,6 +122,30 @@ get_spatial_coordinates <- function(seu) {
     relocate(cell_id, .before = 1) 
 }
 
+#' Get segmentation polygons coordinates in Visium layout
+#'
+#' Extracts tissue coordinates, reorients to a Newcastle convention
+#' (swaps x/y and inverts y), and adds cell_id.
+#'
+#' @param seu Seurat object with Visium data.
+#'
+#' @return Tibble with columns cell_id, x, and y.
+get_polygons <- function(seu) {
+  # This is ugly, I don't know a better way to access the polygons
+  seg <- seu@images$slice1.polygons$segmentations
+  GetTissueCoordinates(seg) |> 
+    as_tibble(rownames = "cid") |>
+    select(-cid, cell_id = cell) |> 
+    # Rearrange cooridnates to look like Newcastle report
+    #rename(
+    #  t = x,
+    #  x = y
+    #) |> 
+    #rename(y = t) |> 
+    mutate(y = -y) |> 
+    relocate(cell_id, .before = 1) 
+}
+
 
 #' Average expression per group.
 #'

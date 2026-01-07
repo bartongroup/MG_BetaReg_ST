@@ -2104,3 +2104,19 @@ plot_top_cluster_features <- function(seu_clust, conserved_markers, genes, max_n
   })
 }
 
+
+
+
+plot_gene_segmentation <- function(seu, genes) {
+  centr <- get_spatial_coordinates(seu)
+  poly <- get_polygons(seu)
+  ex <- get_gene_expression(seu, genes)
+
+  d <- inner_join(poly, ex, by = "cell_id") 
+  d |> 
+    ggplot(aes(x = x, y = y, group = cell_id, fill = expression)) +
+    thm +
+    geom_polygon(colour = NA, linewidth = 0) +
+    scale_fill_distiller(palette = "Purples", direction = 1) +
+    labs(x = NULL, y = NULL)  
+}

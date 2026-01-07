@@ -223,6 +223,8 @@ targets_8um <- function() {
       # Segmentation data
       seu_seg = load_visium_data(SEG_DATA_PATH, mito_genes, bin_size = c("polygons", 8)) |>
         NormalizeData(),
+      fig_seg_hormone_overlap = plot_upset_expressed_cells(seu_seg, c("INS", "SST", "GCG", "GHRL", "PPY")),
+      fig_seg_hormneu_overlap = plot_upset_expressed_cells(seu_seg, c("INS", "SST", "GCG", "GHRL", "NEUROG3")),
 
       # For the manuscript
       mn_clust_integ = mn_plot_spatial_clustering(seu_integ, meta_column = "cluster_integ") |> gp("clustering_integ", sample = NAME, width = 3.3, height = 3, path = "manuscript/fig"),
