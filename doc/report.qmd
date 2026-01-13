@@ -1349,6 +1349,33 @@ The [final list of recommended genes](https://www.compbio.dundee.ac.uk/user/mgie
 | best_pct.*n* | The percentage of spots expressed (0-1) in the best cluster/group, in sample *n* |
 
 
+
+# Segmentation
+
+Cell segmentation for Visium HD is the process of assigning high-resolution (2 µm) transcriptomic data to individual cells by defining their biological boundaries, typically using H&E or DAPI microscopy images. It has been introduced in Space Ranger v4.0. Here we have a quick look at segmentation results.
+
+@fig-segmentation-grid shows a comparison between 8 μm grid and the segmentation.
+
+```{r, out.width="100%"}
+#| label: fig-segmentation-grid
+#| fig-cap: A small section of the slide showing 8 μm grid and the underlying segmentation, with expression of INS and SST shown in shading. Each coloured region corresponds to a single cell identified by the segmentation algorithm. 
+knitr::include_graphics("images/segmentation_grid.png") 
+```
+
+
+@fig-seg-hormone-overlap shows the overlap between expression of five hormones at the segmentation level.
+
+```{r, out.width="100%"}
+#| label: fig-seg-hormone-overlap
+#| fig-cap: Hormone overlap, similar to @fig-hormone-overlap, but at the segmentation level.
+#| fig-width: 8
+#| fig-height: 4
+tar_read(fig_seg_hormone_overlap_1)
+```
+
+
+
+
 # Resources {#sec-resources}
 
 ## Interactive data explorer {#sec-shiny-app}

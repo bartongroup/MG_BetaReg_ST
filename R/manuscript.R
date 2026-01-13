@@ -63,8 +63,8 @@ mn_plot_cell_type_dots <- function(seu_mark, tissue_markers) {
 }
 
 
-mn_plot_hormone_overlap <- function(seu, fname, width, height) {
-  up <- plot_upset_expressed_cells(seu, c("INS", "SST", "GCG", "GHRL", "PPY")) 
+mn_plot_hormone_overlap <- function(seu, fname, width, height, genes = c("INS", "SST", "GCG", "GHRL", "PPY")) {
+  up <- plot_upset_expressed_cells(seu, genes) 
 
   pdf(fname, width = width, height = height)
   on.exit(dev.off(), add = TRUE)  

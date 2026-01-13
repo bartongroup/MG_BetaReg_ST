@@ -108,18 +108,21 @@ get_gene_cells <- function(seu, ids) {
 #' @param seu Seurat object with Visium data.
 #'
 #' @return Tibble with columns cell_id, x, and y.
-get_spatial_coordinates <- function(seu) {
-  GetTissueCoordinates(seu) |> 
+get_spatial_coordinates <- function(seu, swap_xy = TRUE) {
+  cr <- GetTissueCoordinates(seu) |> 
     as_tibble(rownames = "cell_id") |>
     select(-cell) |> 
-    # Rearrange cooridnates to look like Newcastle report
-    rename(
-      t = x,
-      x = y
-    ) |> 
-    rename(y = t) |> 
-    mutate(y = -y) |> 
-    relocate(cell_id, .before = 1) 
+    relocate(cell_id, .before = 1)
+  if(swap_xy) {
+    cr <- cr |> 
+      rename(
+        t = x,
+        x = y
+      ) |> 
+      rename(y = t)
+  }
+  cr |> 
+    mutate(y = -y)
 }
 
 #' Get segmentation polygons coordinates in Visium layout

@@ -38,8 +38,7 @@ EXPERIMENTS_ALL <- tibble::tibble(
 ) |> 
   dplyr::mutate(
     DATA_PATH = file.path(top_data_path, stringr::str_glue("{SAMPLE}_Results"), "outs"),
-    #SEG_DATA_PATH = file.path(seg_data_path, stringr::str_glue("{SAMPLE}_Results"), "outs")
-    SEG_DATA_PATH = file.path(seg_data_path, stringr::str_glue("1_18191_Results"), "outs") # Temporary
+    SEG_DATA_PATH = file.path(seg_data_path, stringr::str_glue("{SAMPLE}_Results"), "outs")
   )
 
 # Only use samples 1 and 2. Samples 3 and 4 are failed.
@@ -669,4 +668,12 @@ add_clusters_integ <- function(seu, clust_info, smpl) {
   meta$cluster_integ <- ci$cluster
   seu@meta.data <- meta
   seu
+}
+
+# The last point of (x, y) is the first point repeated.
+polygon_area <- function(x, y, coord2um = 2.195) {
+  n <- length(x)
+  dn <- sum(x[1:(n - 1)] * y[2:n]) / coord2um^2
+  up <- sum(x[2:n] * y[1:(n - 1)]) / coord2um^2
+  abs(dn - up) / 2
 }

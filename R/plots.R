@@ -2107,16 +2107,51 @@ plot_top_cluster_features <- function(seu_clust, conserved_markers, genes, max_n
 
 
 
-plot_gene_segmentation <- function(seu, genes) {
-  centr <- get_spatial_coordinates(seu)
+plot_gene_segmentation <- function(seu, genes, box = list(x1 = -Inf, x2 = Inf, y1 = -Inf, y2 = Inf),
+                                   seu_grid = NULL, with_centroids = FALSE) {
   poly <- get_polygons(seu)
   ex <- get_gene_expression(seu, genes)
 
-  d <- inner_join(poly, ex, by = "cell_id") 
-  d |> 
-    ggplot(aes(x = x, y = y, group = cell_id, fill = expression)) +
+  if(with_centroids) {
+    centroids <- get_spatial_coordinates(seu, swap_xy = FALSE)
+  }
+
+  if(!is.null(seu_grid)) {
+    xy <- get_spatial_coordinates(seu_grid, swap_xy = FALSE)
+    corners <- get_resolution_grid(xy)
+  }
+
+  d <- inner_join(poly, ex, by = "cell_id", relationship = "many-to-many") 
+  pl <- d |> 
+    ggplot() +
     thm +
-    geom_polygon(colour = NA, linewidth = 0) +
+    geom_polygon(aes(x = x, y = y, group = cell_id, fill = expression), colour = NA, linewidth = 0) +
     scale_fill_distiller(palette = "Purples", direction = 1) +
+    facet_wrap(~gene_symbol) +
+    coord_cartesian(xlim = c(box$x1, box$x2), ylim = c(box$y1, box$y2)) +
     labs(x = NULL, y = NULL)  
+  if(!is.null(seu_grid)) {
+    pl <- pl +
+      geom_path(data = corners, aes(x = x_corner, y = y_corner, group = cell_id), colour = "black", linewidth = 0.3)
+  }
+  if(with_centroids) {
+    pl <- pl +
+      geom_point(data = centroids, aes(x = x, y = y), colour = "black", size = 0.5)
+  }
+  pl
+}
+
+
+plot_cell_area_distribution <- function(seu, bins = 160) {
+  seu |> 
+    get_polygons() |>
+    group_by(cell_id) |>
+    summarise(ar = polygon_area(x, y)) |>
+  ggplot(aes(x = ar)) +
+    th +
+    geom_histogram(bins = bins) +
+    geom_vline(xintercept = 64) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.03))) +
+    scale_x_continuous(expand = expansion(mult = c(0, 0.03))) +
+    labs(x = "Cell area (µm²)", y = "Count")
 }

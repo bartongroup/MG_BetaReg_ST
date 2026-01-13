@@ -221,10 +221,12 @@ targets_8um <- function() {
       sav_clust_integ_enr = save_enrichment(tbl_cluster_enrichment_integ, paste0("tab/cluster_integ_enrichment_", NAME, ".csv"), group_var = "cluster"),
 
       # Segmentation data
-      seu_seg = load_visium_data(SEG_DATA_PATH, mito_genes, bin_size = c("polygons", 8)) |>
-        NormalizeData(),
+      seu_seg = load_visium_data(SEG_DATA_PATH, mito_genes, bin_size = "polygons") |>
+        NormalizeData() |> 
+        cluster_seurat(ident_res = RESOLUTION, resolutions = RESOLUTIONS, nfeatures = 2000, res_suffix = "Spatial.Polygons"),
       fig_seg_hormone_overlap = plot_upset_expressed_cells(seu_seg, c("INS", "SST", "GCG", "GHRL", "PPY")),
       fig_seg_hormneu_overlap = plot_upset_expressed_cells(seu_seg, c("INS", "SST", "GCG", "GHRL", "NEUROG3")),
+      seu_seg_mark = annotate_cells_page(seu_seg, tissue_markers, n_boot = 1000, p_val_limit = 0.05),
 
       # For the manuscript
       mn_clust_integ = mn_plot_spatial_clustering(seu_integ, meta_column = "cluster_integ") |> gp("clustering_integ", sample = NAME, width = 3.3, height = 3, path = "manuscript/fig"),
@@ -278,6 +280,9 @@ targets_8um <- function() {
     ins_spots = read_sx_sy("info/insulin_spots.csv", seu_1),
     png_spatial_selection_genes = plot_spatial_selection_genes(seu_1, c("SOX9", "NEUROG3", "INS", "SST", "GCG", "GHRL"), box_1, spots = ins_spots) |> gs("spatial_selection_hormones", width = 8, height = 12),
     png_spatial_selection_meta = plot_spatial_selection_meta(seu_mark_1, "cell_type", box_1) |> gs("spatial_selection_cell_type", width = 5, height = 4),
+
+    box_2 = list(x1 = 4900, x2 = 5200, y1 = -4500, y2 = -4150),
+    png_segmentation_grid = plot_gene_segmentation(seu_seg_1, c("INS", "SST"), box_2, seu_grid = seu_1) |> gs("segmentation_grid", width = 8, height = 4.5),
 
     gif_spatial_ins_gcg = animate_spatial_genes(seu_1, c("INS", "GCG"), box_1),
     gif_spatial_ins_sst = animate_spatial_genes(seu_1, c("INS", "SST"), box_1),
