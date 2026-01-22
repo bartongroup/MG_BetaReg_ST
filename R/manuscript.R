@@ -1,5 +1,5 @@
-mn_plot_spatial_clustering <- function(seu, res = NULL, meta_column = "cluster") {
-  plot_one_xy(seu, resolution = res, meta_column = meta_column, what = "spatial") +
+mn_plot_spatial_clustering <- function(seu, res = NULL, meta_column = "cluster", swap_xy = TRUE) {
+  plot_one_xy(seu, resolution = res, meta_column = meta_column, what = "spatial", swap_xy = swap_xy) +
     theme(
       legend.position = "right",
       legend.text = element_text(size = 8),

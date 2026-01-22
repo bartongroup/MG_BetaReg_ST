@@ -211,7 +211,7 @@ targets_8um <- function() {
       # Integration
       seu_integ = add_clusters_integ(seu_mark, integ_clust, NAME),
       cluster_markers_integ = find_group_markers(seu_integ, group_by = "cluster_integ"),
-      png_clust_integ = mn_plot_spatial_clustering(seu_integ, meta_column = "cluster_integ") |> gs("clustering_integ", sample = NAME, width = 7, height = 6),
+      png_clust_integ = mn_plot_spatial_clustering(seu_integ, meta_column = "cluster_integ", swap_xy = FALSE) |> gs("clustering_integ", sample = NAME, width = 7, height = 6),
       fig_clust_integ_jaccard = mn_plot_cluster_cell_type_jaccard(seu_integ, cluster_col = "cluster_integ"),
       top_cluster_markers_integ = get_top_cluster_markers(cluster_markers_integ, n_top = 12),
       top_cluster_genes_integ = top_cluster_markers_integ$gene_symbol |> unique(),
@@ -238,7 +238,8 @@ targets_8um <- function() {
       mn_cell_type_dots = mn_plot_cell_type_dots(seu_mark, tissue_markers) |> gp("cell_type_dots", sample = NAME, width = 4.5, height = 7.5, path = "manuscript/fig"),
       mn_hormone_overlap_8um = mn_plot_hormone_overlap(seu_mark, file.path("manuscript/fig", paste0("hormone_overlap_", NAME, "_8um.pdf")), 7, 3),
       mn_insulin_bins_spatial = mn_plot_binned_spatial(seu_mark) |> gp("insulin_bins", sample = NAME, width = 3.8, height = 3, path = "manuscript/fig"),
-      mn_insulin_gradient_expression = plot_binned_expression(seu, "INS", c("NEUROG3", "GCG", "SST"), bins = 6) |> gp("insulin_expression", sample = NAME, width = 6, height = 3, path = "manuscript/fig")
+      mn_insulin_gradient_expression = plot_binned_expression(seu, "INS", c("NEUROG3", "GCG", "SST"), bins = 6) |> gp("insulin_expression", sample = NAME, width = 6, height = 3, path = "manuscript/fig"),
+      mn_metadata = write_meta_for_archive(seu_integ, paste0("manuscript/data_submit/metadata_", NAME, ".csv"))
     )
   )
 
@@ -253,7 +254,7 @@ targets_8um <- function() {
     seu_integ = integrate_seurats(seu_1, seu_2, nfeatures = 3000),
     seu_integ_clust = cluster_seurat(seu_integ, ident_res = 0.25, resolutions = integ_res, nfeatures = 3000, res_suffix = "integrated") |> 
                       JoinLayers(assay = "RNA"), # after integrative analysis we still have two layers
-    integ_clust = extract_clusters_integ(seu_integ_clust, "0.2", clust_order = c(3, 5, 4, 7, 6, 9, 1, 2, 8, 10)),
+    integ_clust = extract_clusters_integ(seu_integ_clust, "0.25", clust_order = c(3, 5, 4, 7, 6, 9, 1, 2, 8, 10)),
 
     cluster_markers_integ = find_group_markers(seu_integ_clust, group_by = "cluster"),
     max_best_clusters_integ = 30,

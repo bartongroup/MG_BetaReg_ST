@@ -677,3 +677,18 @@ polygon_area <- function(x, y, coord2um = 2.195) {
   up <- sum(x[2:n] * y[1:(n - 1)]) / coord2um^2
   abs(dn - up) / 2
 }
+
+write_meta_for_archive <- function(seu, fname) {
+  seu@meta.data |> 
+    as_tibble(rownames = "spot_id") |> 
+    select(
+      spot_id,
+      total_count,
+      n_genes,
+      cluster = cluster_integ,
+      cell_type,
+      starts_with("ES_"),
+      starts_with("p_val_")
+    ) |> 
+    write_csv(fname)
+}

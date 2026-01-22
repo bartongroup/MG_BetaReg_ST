@@ -532,7 +532,7 @@ plot_reduction_meta <- function(seu, reduction = "pca", meta_column = "pseudotim
 #'
 #' @return A ggplot object (optionally faceted when multiple genes).
 plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap", "spatial"), meta_column = "cluster", suffix = "Spatial.008um",
-                        genes = NULL, with_legend = FALSE, label_size = 6, combine_genes = FALSE, discrete_palette = NULL) {
+                        genes = NULL, with_legend = FALSE, label_size = 6, combine_genes = FALSE, discrete_palette = NULL, swap_xy = FALSE)  {
   what <- match.arg(what)
 
   # Convert resolutions (e.g. "0.1") into metadata column name ("Spatial.008um_snn_res.0.1")
@@ -546,7 +546,7 @@ plot_one_xy <- function(seu, resolution = NULL, point_size = 0.2, what = c("umap
       rename(x = umap_1, y = umap_2)
     point_shape <- 16
   } else {
-    xy <- get_spatial_coordinates(seu)
+    xy <- get_spatial_coordinates(seu, swap_xy)
     corners <- get_resolution_grid(xy)
     point_shape <- 15
   }
