@@ -1106,6 +1106,25 @@ plot_grid(pl1, pl2, nrow = 1, labels = c("1", "2"))
 ```
 
 
+@fig-cluster-integ-cell-count shows the cell percentage per cluster for integrated data in each sample. Clusters 7 and 8 are large and mostly overlap with "unknown" cell types.
+
+```{r}
+#| label: fig-cluster-integ-cell-count
+#| fig-cap: Percentage of cells per cluster for integrated data, calculated across each sample.
+#| fig-width: 5
+#| fig-height: 4
+tar_read(fig_cluster_integ_cell_count)
+```
+
+For comparison, we show cell type percentage distribution across samples in @fig-cell-type-cell-count.
+
+```{r}
+#| label: fig-cell-type-cell-count
+#| fig-cap: Percentage of cells per cell type for integrated data, calculated across each sample.
+#| fig-width: 7
+#| fig-height: 4
+tar_read(fig_cell_type_cell_count)
+```
 
 
 # 2 μm data

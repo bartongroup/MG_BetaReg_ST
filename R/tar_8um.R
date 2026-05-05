@@ -11,9 +11,6 @@ targets_8um <- function() {
         NormalizeData() |>
         cluster_seurat(ident_res = RESOLUTION, resolutions = RESOLUTIONS, nfeatures = 2000) |> 
         relabel_clusters(RELABEL_CLUSTERS, RESOLUTION),
-      #seu_mark = seu |> mark_cell_types_by_max(tissue_markers),
-      #seu_mark = seu |> annotate_cell_types(tissue_markers),
-      #seu_mark = seu |> annotate_cells_sctype(tissue_markers),
       seu_mark = annotate_cells_page(seu, tissue_markers, n_boot = 1000, p_val_limit = 0.05),
 
       # Save seurat for shiny
@@ -213,12 +210,12 @@ targets_8um <- function() {
       cluster_markers_integ = find_group_markers(seu_integ, group_by = "cluster_integ"),
       png_clust_integ = mn_plot_spatial_clustering(seu_integ, meta_column = "cluster_integ", swap_xy = FALSE) |> gs("clustering_integ", sample = NAME, width = 7, height = 6),
       fig_clust_integ_jaccard = mn_plot_cluster_cell_type_jaccard(seu_integ, cluster_col = "cluster_integ"),
-      top_cluster_markers_integ = get_top_cluster_markers(cluster_markers_integ, n_top = 12),
+      top_cluster_markers_integ = get_top_cluster_markers(cluster_markers_integ, n_top = 30),
       top_cluster_genes_integ = top_cluster_markers_integ$gene_symbol |> unique(),
       tbl_cluster_enrichment_integ = group_enrichment(top_cluster_markers_integ, fterms, group_var = "cluster") |> dplyr::rename(cluster = group),
       png_dots_top_cluster_integ = plot_gene_dots(seu_integ, top_cluster_genes_integ, meta_column = "cluster_integ") |> gs("dot_clusters_integ", sample = NAME, width = 3.5, height = 14),
       sav_loupe_integ = save_for_loupe(seu_integ, paste0("tab/clusters_integ_", NAME, ".csv"), cluster_col = "cluster_integ"),
-      sav_clust_integ_enr = save_enrichment(tbl_cluster_enrichment_integ, paste0("tab/cluster_integ_enrichment_", NAME, ".csv"), group_var = "cluster"),
+  
 
       # Segmentation data
       seu_seg = load_visium_data(SEG_DATA_PATH, mito_genes, bin_size = "polygons") |>
@@ -253,15 +250,20 @@ targets_8um <- function() {
     integ_res = c(0.1, 0.15, 0.2, 0.25, 0.3, 0.5),
     seu_integ = integrate_seurats(seu_1, seu_2, nfeatures = 3000),
     seu_integ_clust = cluster_seurat(seu_integ, ident_res = 0.25, resolutions = integ_res, nfeatures = 3000, res_suffix = "integrated") |> 
-                      JoinLayers(assay = "RNA"), # after integrative analysis we still have two layers
-    integ_clust = extract_clusters_integ(seu_integ_clust, "0.25", clust_order = c(3, 5, 4, 7, 6, 9, 1, 2, 8, 10)),
+                      JoinLayers(assay = "RNA") |>  # after integrative analysis we still have two layers
+                      reorder_clusters(clust_order = c(2, 8, 3, 7, 6, 9, 1, 4, 5, 10)),
+    integ_clust = extract_clusters_integ(seu_integ_clust),
 
     cluster_markers_integ = find_group_markers(seu_integ_clust, group_by = "cluster"),
     max_best_clusters_integ = 30,
     tbl_best_cluster_markers_integ = find_best_markers(cluster_markers_integ, max_per_cluster = max_best_clusters_integ),
     tbl_best_cluster_negative_markers_integ = find_best_markers(cluster_markers_integ, max_per_cluster = max_best_clusters_integ, negative = TRUE),
-    top_cluster_markers_integ = get_top_cluster_markers(cluster_markers_integ, n_top = 12),
+    top_cluster_markers_integ = get_top_cluster_markers(cluster_markers_integ, n_top = 30),
     top_cluster_genes_integ = top_cluster_markers_integ$gene_symbol |> unique(),
+
+    tbl_cluster_enrichment_integ = group_enrichment(top_cluster_markers_integ, fterms, group_var = "cluster") |> dplyr::rename(cluster = group),
+    sav_clust_integ_top_markers = top_cluster_markers_integ |> dplyr::mutate(dplyr::across(where(is.numeric), ~signif(., 4))) |> readr::write_csv("tab/cluster_integ_top_markers.csv"),
+    sav_clust_integ_enr = save_enrichment(tbl_cluster_enrichment_integ, paste0("tab/cluster_integ_enrichment.csv"), group_var = "cluster"),
 
     png_clusters_integ = plot_seurat_clusters(seu_integ_clust, resolutions = integ_res) |> gs("integ_clust", width = 8, height = 6),
     png_top_clust_gene_integ = plot_top_cluster_features(seu_integ_clust, cluster_markers_integ, gns)
@@ -300,6 +302,11 @@ targets_8um <- function() {
     fig_res_comp = plot_resolution_comparison(res_comp),
 
     tbl_key_markers_count = get_total_count(seu_1) |> dplyr::filter(gene_symbol %in% key_markers$gene_symbol),
+
+    tbl_cluster_count = integ_clust |> dplyr::count(cluster, sample),
+    tbl_cell_type_count = dplyr::bind_rows(tbl_cell_type_count_1 |> tibble::add_column(sample = "1"), tbl_cell_type_count_2 |> tibble::add_column(sample = "2")),
+    fig_cluster_integ_cell_count = plot_counted_cell_perc(tbl_cluster_count, "cluster"),
+    fig_cell_type_cell_count = plot_counted_cell_perc(tbl_cell_type_count, "cell_type"),
 
     tbl_best_cluster_markers = merge_best_markers(tbl_best_cluster_markers_1, tbl_best_cluster_markers_2),
     tbl_best_insulin_gradient_markers = merge_best_markers(tbl_best_insulin_gradient_markers_1, tbl_best_insulin_gradient_markers_2),

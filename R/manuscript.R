@@ -10,8 +10,9 @@ mn_plot_spatial_clustering <- function(seu, res = NULL, meta_column = "cluster",
 }
 
 
-mn_plot_cluster_cell_type_jaccard <- function(seu, cluster_col = "cluster") {
+mn_plot_cluster_cell_type_jaccard <- function(seu, cluster_col = "cluster", scale_limits = c(0, NA)) {
   env <- new.env(parent = globalenv())
+  env$scale_limits <- scale_limits
 
   env$d <- seu |>
     jaccard_clusters_cell_types(cluster_col = cluster_col)
@@ -20,7 +21,7 @@ mn_plot_cluster_cell_type_jaccard <- function(seu, cluster_col = "cluster") {
       ggplot(aes(x = cluster, y = cell_type, fill = j)) +
       th +
       geom_tile() +
-      scale_fill_viridis_c(option = "cividis") +
+      scale_fill_viridis_c(option = "cividis", limits = scale_limits) +
       labs(fill = "Jaccard", x = "Cluster", y = "Cell type")
   })
 }

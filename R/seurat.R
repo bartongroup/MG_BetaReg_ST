@@ -787,7 +787,7 @@ clean_seurat <- function(seu) {
   subset(nCount_RNA > 0)
 }
 
-integrate_seurats <- function(seu_1, seu_2, nfeatures = 2000) {
+integrate_seurats <- function(seu_1, seu_2, nfeatures = 2000, seed= 42) {
   seu_1$sample <- "sample1"
   seu_2$sample <- "sample2"
 
@@ -799,7 +799,7 @@ integrate_seurats <- function(seu_1, seu_2, nfeatures = 2000) {
     seu |> 
       clean_seurat() |> 
       NormalizeData() |> 
-      SCTransform()
+      SCTransform(seed.use = seed)
   })
 
   # Select most variable genes found by CSTransform

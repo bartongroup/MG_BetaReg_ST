@@ -1118,6 +1118,21 @@ make_combmat_for_upset <- function(mex, ...) {
     ComplexHeatmap::make_comb_mat(...)
 }
 
+# cnt_tab needs column what, "sample" and "n".
+plot_counted_cell_perc <- function(cnt_tab, what) {
+  cnt_tab |> 
+    mutate(grp = get(what)) |> 
+    group_by(sample) |> 
+    mutate(perc = 100 *n / sum(n)) |> 
+    ggplot(aes(x = grp, y = perc, fill = sample)) +
+    th +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+    geom_col() +
+    scale_fill_manual(values = okabe_ito_palette) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+    labs(x = what, y = "Percentage of cells")
+}
+
 #' Jaccard heatmap: clusters vs cell types
 #'
 #' Computes and plots Jaccard indices of overlap between clusters and annotated cell types.

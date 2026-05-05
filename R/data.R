@@ -295,6 +295,7 @@ save_correlation <- function(cors, fname, fdr_limit = 0.05) {
 save_enrichment <- function(enr, fname, fdr_limit = 0.05, group_var = "group") {
   enr |> 
     select({{ group_var }}, ontology, term_id, term_name, N_with, n_with_sel, odds_ratio, p_value, p_adjust, genes = ids) |> 
+    arrange(.data[[group_var]], desc(odds_ratio)) |> 
     mutate(across(where(is.numeric), ~signif(.x, 4))) |> 
     write_csv(fname)
 }
@@ -638,12 +639,27 @@ fetch_uniprot_fasta <- function(genes, reviewed = TRUE, canonical_only = TRUE, c
 }
 
 
+reorder_clusters <- function(seu, clust_order, clust_col_name = "cluster") {
+  cl2cl <- tibble(
+    old_clust = clust_order |> as.character(),
+    new_clust = seq_along(old_clust) |> as.character()
+  )
+  m <- get_cell_data(seu) |> 
+    rename(old_clust = !!clust_col_name) |> 
+    left_join(cl2cl, by = join_by(old_clust)) |> 
+    select(-old_clust) |> 
+    mutate(new_clust = factor(new_clust, levels = cl2cl$new_clust)) |> 
+    rename(!!clust_col_name := new_clust) |>
+    column_to_rownames("cell_id")
+  seu@meta.data <- m
+  seu
+}
+
 # Extract join clustering from integrated object and split it to samples 1 and 2
-extract_clusters_integ <- function(seu, resolution, clust_order = NULL) {
-  res <- get_resolution_columns(resolution, suffix = "integrated")
+extract_clusters_integ <- function(seu, clust_order = NULL) {
   m <- seu@meta.data |> 
     as_tibble(rownames = "cell_id") |> 
-    select(cell_id, cluster = all_of(res)) |> 
+    select(cell_id, cluster) |> 
     separate_wider_regex(cell_id, patterns = c(cell_id = ".+", "_", sample = "\\d+$")) 
     
   if(!is.null(clust_order)) {
