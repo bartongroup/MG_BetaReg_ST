@@ -524,13 +524,13 @@
     },
     "CellChat": {
       "Package": "CellChat",
-      "Version": "1.6.1",
+      "Version": "2.2.0.9001",
       "Source": "GitHub",
       "Type": "Package",
-      "Title": "Inference and analysis of cell-cell communication from single-cell and spatial transcriptomics data",
+      "Title": "Inference and analysis of cell-cell communication from single-cell and spatially resolved transcriptomics data",
       "Author": "Suoqin Jin",
-      "Maintainer": "Suoqin Jin <suoqin.jin@gmail.com>",
-      "Description": "an open source R tool that infers, visualizes and analyzes the cell-cell communication networks from scRNA-seq and spatial imaging data.",
+      "Maintainer": "Suoqin Jin <sqjin@whu.edu.cn>",
+      "Description": "an open source R tool that infers, visualizes and analyzes the cell-cell communication networks from scRNA-seq and spatially resolved transcriptomics data.",
       "Depends": [
         "R (>= 3.6.0)",
         "dplyr",
@@ -539,7 +539,7 @@
       ],
       "License": "GPL-3",
       "Encoding": "UTF-8",
-      "LazyData": "true",
+      "LazyData": "TRUE",
       "Imports": [
         "future",
         "future.apply",
@@ -550,8 +550,6 @@
         "stringr",
         "svglite",
         "Matrix",
-        "expm",
-        "Rtsne",
         "ggrepel",
         "circlize (>= 0.4.12)",
         "RColorBrewer",
@@ -560,11 +558,9 @@
         "ComplexHeatmap",
         "RSpectra",
         "Rcpp",
-        "RcppEigen",
         "reticulate",
         "scales",
         "sna",
-        "forcats",
         "reshape2",
         "FNN",
         "shape",
@@ -575,7 +571,11 @@
         "plyr",
         "ggpubr",
         "ggnetwork",
-        "BiocNeighbors"
+        "BiocNeighbors",
+        "plotly",
+        "shiny",
+        "bslib",
+        "collapse"
       ],
       "LinkingTo": [
         "Rcpp",
@@ -591,16 +591,21 @@
         "purrr",
         "uwot",
         "gg.gap",
-        "wordcloud"
+        "wordcloud",
+        "bsicons",
+        "presto",
+        "tidyverse",
+        "tidyr",
+        "rlang"
       ],
-      "RoxygenNote": "7.1.2",
+      "RoxygenNote": "7.3.1",
       "VignetteBuilder": "knitr",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
-      "RemoteUsername": "sqjin",
+      "RemoteUsername": "jinworks",
       "RemoteRepo": "CellChat",
-      "RemoteRef": "master",
-      "RemoteSha": "e4f68625b074247d619c2e488d33970cc531e17c"
+      "RemoteRef": "main",
+      "RemoteSha": "75253cd0c9e68410e6e721a6d3a0419a1d7e358f"
     },
     "ComplexHeatmap": {
       "Package": "ComplexHeatmap",
@@ -875,6 +880,51 @@
       "NeedsCompilation": "no",
       "Author": "Achim Zeileis [aut, cre] (<https://orcid.org/0000-0003-0918-3766>), Yves Croissant [aut]",
       "Maintainer": "Achim Zeileis <Achim.Zeileis@R-project.org>",
+      "Repository": "CRAN"
+    },
+    "GeneNMF": {
+      "Package": "GeneNMF",
+      "Version": "0.9.2",
+      "Source": "Repository",
+      "Type": "Package",
+      "Title": "Non-Negative Matrix Factorization for Single-Cell Omics",
+      "Authors@R": "c( person('Massimo', 'Andreatta', email = 'massimo.andreatta@unige.ch', role = c('aut','cre'), comment = c(ORCID = '0000-0002-8036-2647')), person('Santiago', 'Carmona', email = 'santiago.carmona@unige.ch', role = c('aut'), comment = c(ORCID = '0000-0002-2495-0671'))  )",
+      "Description": "A collection of methods to extract gene programs from single-cell gene expression data using non-negative matrix factorization (NMF). 'GeneNMF' contains functions to directly interact with the 'Seurat' toolkit and derive interpretable gene program signatures.",
+      "biocViews": "",
+      "Depends": [
+        "R (>= 4.3.0)"
+      ],
+      "Imports": [
+        "RcppML",
+        "Matrix",
+        "stats",
+        "methods",
+        "utils",
+        "Seurat (>= 4.3.0)",
+        "cluster",
+        "lsa",
+        "irlba",
+        "pheatmap",
+        "dendextend",
+        "viridis",
+        "colorspace"
+      ],
+      "Suggests": [
+        "knitr",
+        "rmarkdown",
+        "fgsea",
+        "msigdbr"
+      ],
+      "VignetteBuilder": "knitr",
+      "URL": "https://github.com/carmonalab/GeneNMF",
+      "BugReports": "https://github.com/carmonalab/GeneNMF/issues",
+      "License": "GPL-3",
+      "Encoding": "UTF-8",
+      "LazyData": "true",
+      "RoxygenNote": "7.3.2",
+      "NeedsCompilation": "no",
+      "Author": "Massimo Andreatta [aut, cre] (ORCID: <https://orcid.org/0000-0002-8036-2647>), Santiago Carmona [aut] (ORCID: <https://orcid.org/0000-0002-2495-0671>)",
+      "Maintainer": "Massimo Andreatta <massimo.andreatta@unige.ch>",
       "Repository": "CRAN"
     },
     "GeneOverlap": {
@@ -1816,6 +1866,41 @@
       "Maintainer": "James Melville <jlmelville@gmail.com>",
       "Repository": "CRAN"
     },
+    "RcppML": {
+      "Package": "RcppML",
+      "Version": "0.3.7.1",
+      "Source": "Repository",
+      "Type": "Package",
+      "Title": "Rcpp Machine Learning Library",
+      "Date": "2021-09-21",
+      "Authors@R": "person(\"Zachary\", \"DeBruine\",  email = \"zacharydebruine@gmail.com\",  role = c(\"aut\", \"cre\"),  comment = c(ORCID = \"0000-0003-2234-4827\"))",
+      "Description": "Fast machine learning algorithms including matrix factorization  and divisive clustering for large sparse and dense matrices.",
+      "License": "GPL (>= 2)",
+      "Imports": [
+        "Rcpp",
+        "Matrix",
+        "methods",
+        "stats"
+      ],
+      "LinkingTo": [
+        "Rcpp",
+        "RcppEigen"
+      ],
+      "VignetteBuilder": "knitr",
+      "RoxygenNote": "7.1.1",
+      "Suggests": [
+        "knitr",
+        "rmarkdown",
+        "testthat (>= 3.0.0)"
+      ],
+      "Config/testthat/edition": "3",
+      "URL": "https://github.com/zdebruine/RcppML",
+      "BugReports": "https://github.com/zdebruine/RcppML/issues",
+      "NeedsCompilation": "yes",
+      "Author": "Zachary DeBruine [aut, cre] (ORCID: <https://orcid.org/0000-0003-2234-4827>)",
+      "Maintainer": "Zachary DeBruine <zacharydebruine@gmail.com>",
+      "Repository": "CRAN"
+    },
     "RcppParallel": {
       "Package": "RcppParallel",
       "Version": "5.1.11-2",
@@ -2376,6 +2461,24 @@
       "NeedsCompilation": "no",
       "Author": "Aaron Lun [aut, cph], Davide Risso [aut, cre, cph], Keegan Korthauer [ctb], Kevin Rue-Albrecht [ctb], Luke Zappia [ctb] (ORCID: <https://orcid.org/0000-0001-7744-8565>, github: lazappi)",
       "Maintainer": "Davide Risso <risso.davide@gmail.com>"
+    },
+    "SnowballC": {
+      "Package": "SnowballC",
+      "Version": "0.7.1",
+      "Source": "Repository",
+      "Type": "Package",
+      "Date": "2023-04-25",
+      "Title": "Snowball Stemmers Based on the C 'libstemmer' UTF-8 Library",
+      "Authors@R": "person(\"Milan\", \"Bouchet-Valat\", email=\"nalimilan@club.fr\", role=c(\"aut\", \"cre\"))",
+      "Description": "An R interface to the C 'libstemmer' library that implements Porter's word stemming algorithm for collapsing words to a common root to aid comparison of vocabulary. Currently supported languages are Arabic, Basque, Catalan, Danish, Dutch, English, Finnish, French, German, Greek, Hindi, Hungarian, Indonesian, Irish, Italian, Lithuanian, Nepali, Norwegian, Portuguese, Romanian, Russian, Spanish, Swedish, Tamil and Turkish.",
+      "License": "BSD_3_clause + file LICENSE",
+      "Copyright": "Dr Martin Porter (2001) and Richard Boulton (2004, 2005) for the 'libstemmer' C library, and Milan Bouchet-Valat (2013) for the R package contents.",
+      "URL": "https://github.com/nalimilan/R.TeMiS",
+      "BugReports": "https://github.com/nalimilan/R.TeMiS/issues",
+      "NeedsCompilation": "yes",
+      "Author": "Milan Bouchet-Valat [aut, cre]",
+      "Maintainer": "Milan Bouchet-Valat <nalimilan@club.fr>",
+      "Repository": "CRAN"
     },
     "SparseArray": {
       "Package": "SparseArray",
@@ -4095,6 +4198,58 @@
       "NeedsCompilation": "no",
       "Repository": "CRAN"
     },
+    "collapse": {
+      "Package": "collapse",
+      "Version": "2.1.7",
+      "Source": "Repository",
+      "Title": "Advanced and Fast Data Transformation",
+      "Date": "2026-05-17",
+      "Authors@R": "c( person(\"Sebastian\", \"Krantz\", role = c(\"aut\", \"cre\"),  email = \"sebastian.krantz@graduateinstitute.ch\",  comment = c(ORCID = \"0000-0001-6212-5229\")), person(\"Matt\", \"Dowle\", role = \"ctb\"), person(\"Arun\", \"Srinivasan\", role = \"ctb\"), person(\"Morgan\", \"Jacob\", role = \"ctb\"), person(\"Dirk\", \"Eddelbuettel\", role = \"ctb\"), person(\"Laurent\", \"Berge\", role = \"ctb\"), person(\"Kevin\", \"Tappe\", role = \"ctb\"), person(\"Alina\", \"Cherkas\", role = \"ctb\"), person(\"Ivan\", \"Krylov\", role = \"ctb\"), person(\"R Core Team and contributors worldwide\", role = \"ctb\"), person(\"Martyn\", \"Plummer\", role = \"cph\"), person(\"1999-2016 The R Core Team\", role = \"cph\") )",
+      "Description": "A large C/C++-based package for advanced data transformation and  statistical computing in R that is extremely fast, class-agnostic, robust, and  programmer friendly. Core functionality includes a rich set of S3 generic grouped  and weighted statistical functions for vectors, matrices and data frames, which  provide efficient low-level vectorizations, OpenMP multithreading, and skip missing  values by default. These are integrated with fast grouping and ordering algorithms  (also callable from C), and efficient data manipulation functions. The package also  provides a flexible and rigorous approach to time series and panel data in R, fast  functions for data transformation and common statistical procedures, detailed  (grouped, weighted) summary statistics, powerful tools to work with nested data,  fast data object conversions, functions for memory efficient R programming, and  helpers to effectively deal with variable labels, attributes, and missing data. It  seamlessly supports base R objects/classes as well as 'units', 'integer64', 'xts'/ 'zoo', 'tibble', 'grouped_df', 'data.table', 'sf', and 'pseries'/'pdata.frame'.  For a concise overview of the package see Krantz (2026) <doi:10.18637/jss.v116.i01>.",
+      "URL": "https://fastverse.org/collapse/, https://github.com/fastverse/collapse",
+      "BugReports": "https://github.com/fastverse/collapse/issues",
+      "License": "GPL (>= 2) | file LICENSE",
+      "Encoding": "UTF-8",
+      "LazyData": "true",
+      "Depends": [
+        "R (>= 4.1.0)"
+      ],
+      "Imports": [
+        "Rcpp (>= 1.0.1)"
+      ],
+      "LinkingTo": [
+        "Rcpp"
+      ],
+      "Suggests": [
+        "fastverse",
+        "data.table",
+        "magrittr",
+        "kit",
+        "xts",
+        "zoo",
+        "plm",
+        "fixest",
+        "vars",
+        "RcppArmadillo",
+        "RcppEigen",
+        "tibble",
+        "dplyr",
+        "ggplot2",
+        "scales",
+        "microbenchmark",
+        "testthat",
+        "covr",
+        "knitr",
+        "rmarkdown",
+        "withr",
+        "bit64"
+      ],
+      "VignetteBuilder": "knitr",
+      "NeedsCompilation": "yes",
+      "Author": "Sebastian Krantz [aut, cre] (ORCID: <https://orcid.org/0000-0001-6212-5229>), Matt Dowle [ctb], Arun Srinivasan [ctb], Morgan Jacob [ctb], Dirk Eddelbuettel [ctb], Laurent Berge [ctb], Kevin Tappe [ctb], Alina Cherkas [ctb], Ivan Krylov [ctb], R Core Team and contributors worldwide [ctb], Martyn Plummer [cph], 1999-2016 The R Core Team [cph]",
+      "Maintainer": "Sebastian Krantz <sebastian.krantz@graduateinstitute.ch>",
+      "Repository": "CRAN"
+    },
     "colorspace": {
       "Package": "colorspace",
       "Version": "2.1-2",
@@ -4512,6 +4667,70 @@
       "ByteCompile": "true",
       "License": "GPL (>= 2)",
       "NeedsCompilation": "yes",
+      "Repository": "CRAN"
+    },
+    "dendextend": {
+      "Package": "dendextend",
+      "Version": "1.19.1",
+      "Source": "Repository",
+      "Type": "Package",
+      "Title": "Extending 'dendrogram' Functionality in R",
+      "Date": "2025-07-15",
+      "Authors@R": "c(person(\"Tal\", \"Galili\", role = c(\"aut\", \"cre\", \"cph\"), email = \"tal.galili@gmail.com\", comment = \"https://www.r-statistics.com\"), person(\"Yoav\", \"Benjamini\", email = \"ybenja@tau.ac.il\",role = \"ths\"), person(\"Gavin\", \"Simpson\", role = \"ctb\"), person(\"Gregory\",\"Jefferis\", role = c(\"aut\", \"ctb\"), email = \"jefferis@gmail.com\", comment =\"imported code from his dendroextras package\"), person(\"Marco\", \"Gallotta\", role = \"ctb\", comment = \"a.k.a: marcog\") , person(\"Johan\", \"Renaudie\", role = \"ctb\", comment = \"https://github.com/plannapus\"), person(\"The R Core Team\", role = \"ctb\", comment = \"Thanks for the Infastructure, and code in the examples\"), person(\"Kurt\", \"Hornik\", role = \"ctb\"), person(\"Uwe\", \"Ligges\", role = \"ctb\"), person(\"Andrej-Nikolai\", \"Spiess\", role = \"ctb\"), person(\"Steve\", \"Horvath\",email = \"SHorvath@mednet.ucla.edu\", role = \"ctb\"), person(\"Peter\", \"Langfelder\",email = \"Peter.Langfelder@gmail.com\", role = \"ctb\"), person(\"skullkey\", role = \"ctb\"), person(\"Mark\", \"Van Der Loo\", email = \"mark.vanderloo@gmail.com\", comment = \"https://github.com/markvanderloo d3dendrogram\", role = \"ctb\"), person(\"Andrie\", \"de Vries\", email = \"apdevries@gmail.com\", comment = \"ggdendro author\", role = \"ctb\"), person(\"Zuguang\", \"Gu\", email = \"z.gu@dkfz-heidelberg.de\", comment = \"circlize author\", role = \"ctb\"),     person(\"Cath\", comment = \"https://github.com/CathG\", role = \"ctb\"), person(\"John\", \"Ma\", comment = \"https://github.com/JohnMCMa\", role = \"ctb\"), person(\"Krzysiek\", \"G\", comment = \"https://github.com/storaged\", role = \"ctb\"), person(\"Manuela\", \"Hummel\", email = \"m.hummel@dkfz.de\", comment = \"https://github.com/hummelma\", role = \"ctb\"),  person(\"Chase\", \"Clark\", comment = \"https://github.com/chasemc\", role = \"ctb\"),  person(\"Lucas\", \"Graybuck\", comment = \"https://github.com/hypercompetent\", role = \"ctb\"),  person(\"jdetribol\", comment = \"https://github.com/jdetribol\", role = \"ctb\"),  person(\"Ben\", \"Ho\", role = \"ctb\", email = \"ben.ho@sickkids.ca\", comment = \"https://github.com/SplitInf\"), person(\"Samuel\", \"Perreault\", role = \"ctb\", email = \"samuel.perreault.3@ulaval.ca\", comment = \"https://github.com/samperochkin\"), person(\"Christian\", \"Hennig\", role = \"ctb\", email = \"c.hennig@ucl.ac.uk\", comment = \"http://www.homepages.ucl.ac.uk/~ucakche/\"), person(\"David\", \"Bradley\", role = \"ctb\", comment = \"https://github.com/DBradley27\"), person(\"Houyun\", \"Huang\", role = \"ctb\", email = 'houyunhuang@163.com', comment = \"https://github.com/houyunhuang\"), person(\"Patrick\", \"Schupp\", role = \"ctb\", email = 'pschupp@sonic.net', comment = \"https://github.com/pschupp\"), person(\"Alec\", \"Buetow\", role = \"ctb\", email = 'alecbuetow@gmail.com', comment = \"https://github.com/alecbuetow\") )",
+      "Description": "Offers a set of functions for extending 'dendrogram' objects in R, letting you visualize and compare trees of 'hierarchical clusterings'. You can (1) Adjust a tree's graphical parameters - the color, size, type, etc of its branches, nodes and labels. (2) Visually and statistically compare different 'dendrograms' to one another.",
+      "Depends": [
+        "R (>= 3.0.0)"
+      ],
+      "Imports": [
+        "utils",
+        "stats",
+        "datasets",
+        "magrittr (>= 1.0.1)",
+        "ggplot2",
+        "viridis"
+      ],
+      "Suggests": [
+        "knitr",
+        "rmarkdown",
+        "testthat",
+        "seriation",
+        "colorspace",
+        "ape",
+        "microbenchmark",
+        "gplots",
+        "heatmaply",
+        "dynamicTreeCut",
+        "pvclust",
+        "corrplot",
+        "DendSer",
+        "MASS",
+        "cluster",
+        "fpc",
+        "circlize (>= 0.2.5)",
+        "covr"
+      ],
+      "Enhances": [
+        "ggdendro",
+        "dendroextras",
+        "Hmisc",
+        "data.table",
+        "rpart",
+        "WGCNA",
+        "moduleColor",
+        "distory",
+        "phangorn",
+        "zoo"
+      ],
+      "VignetteBuilder": "knitr",
+      "LazyData": "true",
+      "License": "GPL-2 | GPL-3",
+      "URL": "https://talgalili.github.io/dendextend/, https://github.com/talgalili/dendextend/, https://cran.r-project.org/package=dendextend, https://www.r-statistics.com/tag/dendextend/, https://doi.org/10.1093/bioinformatics/btv428",
+      "BugReports": "https://github.com/talgalili/dendextend/issues",
+      "RoxygenNote": "7.3.2",
+      "Encoding": "UTF-8",
+      "NeedsCompilation": "no",
+      "Author": "Tal Galili [aut, cre, cph] (https://www.r-statistics.com), Yoav Benjamini [ths], Gavin Simpson [ctb], Gregory Jefferis [aut, ctb] (imported code from his dendroextras package), Marco Gallotta [ctb] (a.k.a: marcog), Johan Renaudie [ctb] (https://github.com/plannapus), The R Core Team [ctb] (Thanks for the Infastructure, and code in the examples), Kurt Hornik [ctb], Uwe Ligges [ctb], Andrej-Nikolai Spiess [ctb], Steve Horvath [ctb], Peter Langfelder [ctb], skullkey [ctb], Mark Van Der Loo [ctb] (https://github.com/markvanderloo d3dendrogram), Andrie de Vries [ctb] (ggdendro author), Zuguang Gu [ctb] (circlize author), Cath [ctb] (https://github.com/CathG), John Ma [ctb] (https://github.com/JohnMCMa), Krzysiek G [ctb] (https://github.com/storaged), Manuela Hummel [ctb] (https://github.com/hummelma), Chase Clark [ctb] (https://github.com/chasemc), Lucas Graybuck [ctb] (https://github.com/hypercompetent), jdetribol [ctb] (https://github.com/jdetribol), Ben Ho [ctb] (https://github.com/SplitInf), Samuel Perreault [ctb] (https://github.com/samperochkin), Christian Hennig [ctb] (http://www.homepages.ucl.ac.uk/~ucakche/), David Bradley [ctb] (https://github.com/DBradley27), Houyun Huang [ctb] (https://github.com/houyunhuang), Patrick Schupp [ctb] (https://github.com/pschupp), Alec Buetow [ctb] (https://github.com/alecbuetow)",
+      "Maintainer": "Tal Galili <tal.galili@gmail.com>",
       "Repository": "CRAN"
     },
     "dexdash": {
@@ -4934,37 +5153,6 @@
       "NeedsCompilation": "no",
       "Author": "Hadley Wickham [aut, cre], Yihui Xie [aut] (ORCID: <https://orcid.org/0000-0003-0645-5666>), Michael Lawrence [ctb], Thomas Kluyver [ctb], Jeroen Ooms [ctb], Barret Schloerke [ctb], Adam Ryczkowski [ctb], Hiroaki Yutani [ctb], Michel Lang [ctb], Karolis Koncevičius [ctb], Posit Software, PBC [cph, fnd]",
       "Maintainer": "Hadley Wickham <hadley@posit.co>",
-      "Repository": "CRAN"
-    },
-    "expm": {
-      "Package": "expm",
-      "Version": "1.0-0",
-      "Source": "Repository",
-      "Type": "Package",
-      "Title": "Matrix Exponential, Log, 'etc'",
-      "Date": "2024-08-19",
-      "Authors@R": "c(person(\"Martin\", \"Maechler\", role=c(\"aut\",\"cre\"), email=\"maechler@stat.math.ethz.ch\", comment = c(ORCID = \"0000-0002-8685-9910\")) , person(\"Christophe\",\"Dutang\", role = \"aut\", comment = c(ORCID = \"0000-0001-6732-1501\")) , person(\"Vincent\",   \"Goulet\", role = \"aut\", comment = c(ORCID = \"0000-0002-9315-5719\")) , person(\"Douglas\",   \"Bates\",      role = \"ctb\", comment = \"cosmetic clean up, in svn r42\") , person(\"David\",     \"Firth\",      role = \"ctb\", comment = \"expm(method= \\\"PadeO\\\" and \\\"TaylorO\\\")\") , person(\"Marina\",    \"Shapira\",    role = \"ctb\", comment = \"expm(method= \\\"PadeO\\\" and \\\"TaylorO\\\")\") , person(\"Michael\",   \"Stadelmann\", role = \"ctb\", comment = \"\\\"Higham08*\\\" methods, see ?expm.Higham08...\") )",
-      "Contact": "expm-developers@lists.R-forge.R-project.org",
-      "Description": "Computation of the matrix exponential, logarithm, sqrt, and related quantities, using traditional and modern methods.",
-      "Depends": [
-        "Matrix"
-      ],
-      "Imports": [
-        "methods"
-      ],
-      "Suggests": [
-        "RColorBrewer",
-        "sfsmisc",
-        "Rmpfr"
-      ],
-      "BuildResaveData": "no",
-      "License": "GPL (>= 2)",
-      "URL": "https://R-Forge.R-project.org/projects/expm/",
-      "BugReports": "https://R-forge.R-project.org/tracker/?atid=472&group_id=107",
-      "Encoding": "UTF-8",
-      "NeedsCompilation": "yes",
-      "Author": "Martin Maechler [aut, cre] (<https://orcid.org/0000-0002-8685-9910>), Christophe Dutang [aut] (<https://orcid.org/0000-0001-6732-1501>), Vincent Goulet [aut] (<https://orcid.org/0000-0002-9315-5719>), Douglas Bates [ctb] (cosmetic clean up, in svn r42), David Firth [ctb] (expm(method= \"PadeO\" and \"TaylorO\")), Marina Shapira [ctb] (expm(method= \"PadeO\" and \"TaylorO\")), Michael Stadelmann [ctb] (\"Higham08*\" methods, see ?expm.Higham08...)",
-      "Maintainer": "Martin Maechler <maechler@stat.math.ethz.ch>",
       "Repository": "CRAN"
     },
     "farver": {
@@ -7956,6 +8144,28 @@
       "Maintainer": "Gábor Csárdi <csardi.gabor@gmail.com>",
       "Repository": "CRAN"
     },
+    "lsa": {
+      "Package": "lsa",
+      "Version": "0.73.4",
+      "Source": "Repository",
+      "Title": "Latent Semantic Analysis",
+      "Authors@R": "person(given = \"Fridolin\", family = \"Wild\", role = c(\"aut\", \"cre\"), email = \"wild@brookes.ac.uk\")",
+      "Description": "The basic idea of latent semantic analysis (LSA) is,  that text do have a higher order (=latent semantic) structure which,  however, is obscured by word usage (e.g. through the use of synonyms  or polysemy). By using conceptual indices that are derived statistically  via a truncated singular value decomposition (a two-mode factor analysis)  over a given document-term matrix, this variability problem can be overcome.",
+      "Depends": [
+        "SnowballC"
+      ],
+      "Suggests": [
+        "tm"
+      ],
+      "License": "GPL (>= 2)",
+      "Encoding": "UTF-8",
+      "LazyData": "yes",
+      "BuildResaveData": "no",
+      "NeedsCompilation": "no",
+      "Author": "Fridolin Wild [aut, cre]",
+      "Maintainer": "Fridolin Wild <wild@brookes.ac.uk>",
+      "Repository": "CRAN"
+    },
     "lubridate": {
       "Package": "lubridate",
       "Version": "1.9.5",
@@ -8638,6 +8848,36 @@
       "LazyData": "true",
       "NeedsCompilation": "no",
       "Author": "Ulrich Halekoh [aut, cph], Søren Højsgaard [aut, cre, cph]",
+      "Repository": "CRAN"
+    },
+    "pheatmap": {
+      "Package": "pheatmap",
+      "Version": "1.0.13",
+      "Source": "Repository",
+      "Type": "Package",
+      "Title": "Pretty Heatmaps",
+      "Date": "2025-06-05",
+      "Authors@R": "person(given = \"Raivo\", family = \"Kolde\", role = c(\"aut\", \"cre\"), email = \"rkolde@gmail.com\")",
+      "Depends": [
+        "R (>= 2.0)"
+      ],
+      "Description": "Implementation of heatmaps that offers more control over dimensions and appearance.",
+      "Imports": [
+        "grid",
+        "RColorBrewer",
+        "scales",
+        "gtable",
+        "stats",
+        "grDevices",
+        "graphics"
+      ],
+      "License": "GPL-2",
+      "Encoding": "UTF-8",
+      "LazyLoad": "yes",
+      "RoxygenNote": "7.3.2",
+      "NeedsCompilation": "no",
+      "Author": "Raivo Kolde [aut, cre]",
+      "Maintainer": "Raivo Kolde <rkolde@gmail.com>",
       "Repository": "CRAN"
     },
     "pillar": {

@@ -1,4 +1,4 @@
-mn_plot_spatial_clustering <- function(seu, res = NULL, meta_column = "cluster", swap_xy = TRUE) {
+mn_plot_spatial_clustering <- function(seu, res = NULL, meta_column = "cluster", swap_xy = FALSE) {
   plot_one_xy(seu, resolution = res, meta_column = meta_column, what = "spatial", swap_xy = swap_xy) +
     theme(
       legend.position = "right",
@@ -199,7 +199,7 @@ mn_plot_spatial_selection_genes <- function(seu, genes, box = list(x1 = -Inf, x2
                                             ncol = 2, n_grid = 10) {
   ex <- get_gene_expression(seu, genes) |> 
     mutate(val = expression)
-  xy <- get_spatial_coordinates(seu) |> 
+  xy <- get_spatial_coordinates(seu, swap_xy = FALSE) |> 
     mutate(cell = cell_id |> str_remove("s_008um_") |> str_remove("-1$")) |> 
     separate_wider_delim(cell, delim = "_", names = c("x_grid", "y_grid")) |> 
     mutate(across(c(x_grid, y_grid), as.integer))
@@ -243,4 +243,37 @@ mn_plot_spatial_selection_genes <- function(seu, genes, box = list(x1 = -Inf, x2
 
 mn_plot_ins_gradient_expression <- function(seu) {
   plot_binned_expression(seu, "INS", c("NEUROG3", "GCG", "SST"), bins = 6)
+}
+
+mn_plot_wgcna_modules_expr_score <- function(seu, n_genes = "all", ncol = 2) {
+  library(UCell)
+
+  xy <- get_spatial_coordinates(seu, swap_xy = FALSE)
+  corners <- get_resolution_grid(xy)
+  
+  ex <-  seu |> 
+    hdWGCNA::ModuleExprScore(n_genes = n_genes, method = "UCell", ncores = 8) |>    # this is a bit slow
+    hdWGCNA::GetModuleScores() |>
+    as_tibble(rownames = "cell_id")
+
+  d <- inner_join(corners, ex, by = "cell_id") |> 
+    select(-c(centre_id, x, y, corner_idx)) |>
+    pivot_longer(-c(cell_id, x_corner, y_corner), names_to = "module") 
+
+  d |> 
+    ggplot() +
+    thm +
+    geom_polygon(aes(x = x_corner, y = y_corner, group = cell_id, fill = value, colour = value), linewidth = 0.2) +
+    facet_wrap(~ module, ncol = ncol) +
+    labs(x = NULL, y = NULL, fill = "Expr score", colour = "Expr score") +
+    scale_fill_distiller(palette = "Purples", direction = 1) +
+    scale_colour_distiller(palette = "Purples", direction = 1)
+}
+
+
+mn_plot_cellchat_rank <- function(cellchat) {
+
+  d2 <- CellChat::rankNet(cellchat, mode = "single", measure = "weight", return.data = TRUE)$signaling.contribution |> as_tibble()
+  
+  plot_one_rank(d2, "Information flow")
 }

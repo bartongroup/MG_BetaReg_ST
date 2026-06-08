@@ -354,11 +354,11 @@ get_meta_column <- function(seu, col) {
 #' @return Seurat object with clustering across resolutions and UMAP embeddings.
 cluster_seurat <- function(seu, dims = 1:40, resolutions = c(0.1, 0.125, 0.15, 0.175, 0.2, 0.25, 0.3, 0.4),
                            ident_res = 0.2, seed = 42, res_suffix = "Spatial.008um", nfeatures = 3000,
-                           min_group_count = 3, algorithm = 4) {
+                           pca_approx = FALSE, min_group_count = 3, algorithm = 4) {
   seu <- seu |> 
     FindVariableFeatures(nfeatures = nfeatures) |> 
     ScaleData() |> 
-    RunPCA(approx = FALSE) |> 
+    RunPCA(approx = pca_approx) |> 
     FindNeighbors(dims = dims) |> 
     FindClusters(resolution = resolutions, random.seed = seed, algorithm = algorithm)
     
@@ -698,9 +698,9 @@ get_hormone_count <- function(seu, gns = c("INS", "SST", "GCG", "GHRL", "PPY")) 
 #'
 #' @return Tibble with coordinates, cell_id, gene_symbol, expression, and resolution.
 combine_resolution_area <- function(seu_8um, seu_2um, genes, x_cen, y_cen, size, layer = "counts") {
-  sp8 <- get_spatial_coordinates(seu_8um) |> 
+  sp8 <- get_spatial_coordinates(seu_8um, swap_xy = FALSE) |> 
     filter(abs(x - x_cen) < size & abs(y - y_cen) < size)
-  sp2 <- get_spatial_coordinates(seu_2um) |> 
+  sp2 <- get_spatial_coordinates(seu_2um, swap_xy = FALSE) |> 
     filter(abs(x - x_cen) < size & abs(y - y_cen) < size)
   ex8 <- get_gene_expression(seu_8um, genes, layer = layer) |> 
     filter(cell_id %in% sp8$cell_id)

@@ -504,10 +504,17 @@ hd_wgcna_analysis <- function(seu, sample, wgcna_name = "wgcna", group_var = "cl
 }
 
 
+get_modules_expr_score <- function(seu) {
+  seu |> 
+    hdWGCNA::ModuleExprScore(n_genes = "all", method = "UCell", ncores = 8) |> 
+    hdWGCNA::GetModuleScores() |>
+    as_tibble(rownames = "barcode")
+}
+
 plot_modules_expr_score <- function(seu, n_genes = "all", point_size = 0.4, ncol = 2) {
   library(UCell)
 
-  xy <- get_spatial_coordinates(seu)
+  xy <- get_spatial_coordinates(seu, swap_xy = FALSE)
   corners <- get_resolution_grid(xy)
   
   ex <-  seu |> 
@@ -522,10 +529,11 @@ plot_modules_expr_score <- function(seu, n_genes = "all", point_size = 0.4, ncol
   d |> 
     ggplot() +
     thm +
-    geom_polygon(aes(x = x_corner, y = y_corner, group = cell_id, fill = value), colour = NA, linewidth = 0) +
+    geom_polygon(aes(x = x_corner, y = y_corner, group = cell_id, fill = value, colour = value), linewidth = 0.2) +
     facet_wrap(~ module, ncol = ncol) +
-    labs(x = NULL, y = NULL, fill = "Expr score") +
-    scale_fill_distiller(palette = "Purples", direction = 1)
+    labs(x = NULL, y = NULL, fill = "Expr score", colour = "Expr score") +
+    scale_fill_distiller(palette = "Purples", direction = 1) +
+    scale_colour_distiller(palette = "Purples", direction = 1)
 }
 
 plot_modules_spatial <- function(seu, features = "hMEs", point_size = 0.4, ncol = 2) {
@@ -562,8 +570,11 @@ plot_metacells_spatial <- function(seu, group_var = "cluster", point_size = 0.9)
   env$group_var <- group_var
 
   # Spatial coordinates of individual cells
-  spat <- seu@reductions$spatial@cell.embeddings |> 
-    as_tibble(rownames = "cell_id")
+  spat <-  get_spatial_coordinates(seu, swap_xy = TRUE) |> 
+    mutate(y = -y) |>
+    rename(spatial_1 = x, spatial_2 = y)
+  #spat <- seu@reductions$spatial@cell.embeddings |> 
+  #  as_tibble(rownames = "cell_id")
   # Get metacells
   mc <- hdWGCNA::GetMetacellObject(seu)
   env$d <- mc@meta.data |>

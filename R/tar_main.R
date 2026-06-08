@@ -17,7 +17,9 @@ targets_main <- function() {
     gns =  biomart_fetch_genes(mart) |> filter(chr %in% chromosomes),
     all_features = load_features(config$feature_file),
 
-    terms = get_functional_terms_sym(config_annot$designations),
+    # Due to WikiPathways connection problems, cached
+    #terms = get_functional_terms_sym(config_annot$designations),
+    terms = readr::read_rds("cache/terms.rds"),
     fterms = prepare_terms_fenr(terms, all_features, feature_name = "gene_symbol"),
 
     cell_cycle_markers = get_cell_cycle_markers(config$species, gns),
@@ -48,8 +50,12 @@ targets_main <- function() {
     mn_enrichment_gradient_heat_2 = fig_enrichment_gradient_2 |> gp("insulin_gradient_enrichment_heatmap", "2", width = 6.85, height = 14, path = "manuscript/fig"),
     mn_enrichment_gradient_1 = mn_plot_binned_enrichment(tbls_binned_enrichment_1$enrichment) |> gp("insulin_gradient_enrichment", "1", width = 8, height = 22, path = "manuscript/fig"),
     mn_enrichment_gradient_2 = mn_plot_binned_enrichment(tbls_binned_enrichment_2$enrichment) |> gp("insulin_gradient_enrichment", "2", width = 8, height = 20, path = "manuscript/fig"),
-    mn_ins_neurog3_grid_1 = mn_plot_spatial_selection_genes(seu_1, c("INS", "NEUROG3"), list(x1 = 4350, x2 = 5600, y1 = -5200, y2 = -3600)) |> gp("ins_neurog3_grid", "1", width = 7, height = 4, path = "manuscript/fig"),
-    mn_ins_neurog3_grid_2 = mn_plot_spatial_selection_genes(seu_2, c("INS", "NEUROG3"), list(x1 = 3100, x2 = 4350, y1 = -3950, y2 = -2350)) |> gp("ins_neurog3_grid", "2", width = 7, height = 4, path = "manuscript/fig")
+    mn_ins_neurog3_grid_1 = mn_plot_spatial_selection_genes(seu_1, c("INS", "NEUROG3", "DLK1"), list(x1 = 4350, x2 = 5600, y1 = -5200, y2 = -3600)) |> gp("ins_neurog3_grid", "1", width = 7, height = 8, path = "manuscript/fig"),
+    mn_ins_neurog3_grid_2 = mn_plot_spatial_selection_genes(seu_2, c("INS", "NEUROG3", "DLK1"), list(x1 = 3100, x2 = 4350, y1 = -3950, y2 = -2350)) |> gp("ins_neurog3_grid", "2", width = 7, height = 8, path = "manuscript/fig"),
+    mn_gcg_pcsk_grid_1 = mn_plot_spatial_selection_genes(seu_1, c("GCG", "PCSK1", "PCSK2", "PCSK1N"), list(x1 = 4350, x2 = 5600, y1 = -5200, y2 = -3600)) |> gp("gcg_pcsk_grid", "1", width = 7, height = 8, path = "manuscript/fig"),
+    mn_gcg_pcsk_grid_2 = mn_plot_spatial_selection_genes(seu_2, c("GCG", "PCSK1", "PCSK2", "PCSK1N"), list(x1 = 3100, x2 = 4350, y1 = -3950, y2 = -2350)) |> gp("gcg_pcsk_grid", "2", width = 7, height = 8, path = "manuscript/fig"),
+    mn_cellchat_rank_1 = mn_plot_cellchat_rank(cellchat_comp_1) |> gp("cellchat_rank", sample = "1", width = 4, height = 8, path = "manuscript/fig"),
+    mn_cellchat_rank_2 = mn_plot_cellchat_rank(cellchat_comp_2) |> gp("cellchat_rank", sample = "2", width = 4, height = 1.3, path = "manuscript/fig")
   )
 
 

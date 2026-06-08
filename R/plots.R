@@ -303,7 +303,7 @@ plot_all_counts <- function(cell_data_all, gene_detection_all) {
 #'
 #' @return A ggplot of polygons per spot.
 plot_spatial_meta <- function(seu, meta_column = "pseudotime", palette = "viridis") {
-  xy <- get_spatial_coordinates(seu) |> 
+  xy <- get_spatial_coordinates(seu, swap_xy = FALSE) |> 
     mutate(val = seu@meta.data[[meta_column]])
   corners <- get_resolution_grid(xy)
   ex <- seu@meta.data |> 
@@ -319,6 +319,8 @@ plot_spatial_meta <- function(seu, meta_column = "pseudotime", palette = "viridi
     labs(x = NULL, y = NULL, fill = meta_column)
   if(palette == "viridis") {
     pl <- pl + scale_fill_viridis_c(option = "cividis")
+  } else if(palette == "Purples") {
+    pl <- pl + scale_fill_distiller(palette = "Purples", direction = 1)
   } else if(palette == "divergent") {
     pl <- pl + scale_fill_distiller(type = "div", palette = "RdBu", limits = c(-mx, mx))
   }
@@ -372,7 +374,7 @@ plot_spatial_selection_genes <- function(seu, genes, box = list(x1 = -Inf, x2 = 
       ungroup()
   }
 
-  xy <- get_spatial_coordinates(seu) |> 
+  xy <- get_spatial_coordinates(seu, swap_xy = FALSE) |> 
     filter(x >= box$x1 & x <= box$x2 & y >= box$y1 & y <= box$y2)
   corners <- get_resolution_grid(xy)
   d <- inner_join(corners, ex, by = "cell_id", relationship = "many-to-many")
@@ -458,7 +460,7 @@ animate_spatial_genes <- function(seu, genes, box = list(x1 = -Inf, x2 = Inf, y1
 
   sgenes <- str_c(genes, collapse = "_")
   fname <- str_glue("spatial_{sgenes}.gif")
-  gganimate::anim_save(fname, pl, path = file.path("doc", "images"))
+  gganimate::anim_save(fname, pl, path = file.path("doc", "images"), renderer = gganimate::gifski_renderer())
 }
 
 #' Spatial plot of categorical metadata
@@ -850,6 +852,7 @@ plot_gene_dots <- function(seu, gns, meta_column = "cluster", with_legend = TRUE
   env$meta_column <- meta_column
   env$with_legend <- with_legend
   env$title <- title
+
   Idents(seu) <- meta_column
   dp <- DotPlot(seu, features = gns)
   env$d <- dp$data |> 
@@ -1395,7 +1398,7 @@ plot_gene_overlap <- function(seu, gene_1, gene_2, section = NULL) {
   only_1 <- str_glue("{gene_1} only")
   only_2 <- str_glue("{gene_2} only")
 
-  xy <- get_spatial_coordinates(seu)
+  xy <- get_spatial_coordinates(seu, swap_xy = FALSE)
   corners <- get_resolution_grid(xy)
   ex <- get_gene_expression(seu, c(gene_1, gene_2), layer = "count") |> 
     pivot_wider(id_cols = cell_id, names_from = gene_symbol, values_from = expression) |> 
@@ -1631,7 +1634,7 @@ png_upset_expressed_cells <- function(seu, gns, suffix, sample, width, height, e
 #'
 #' @return A ggplot object.
 plot_spatial_box <- function(seu, gene, x_cen, y_cen, size, point_size = 0.6) {
-  xy <- get_spatial_coordinates(seu)
+  xy <- get_spatial_coordinates(seu, swap_xy = FALSE)
   corners <- get_resolution_grid(xy)
   ex <- get_gene_expression(seu, gene)
 

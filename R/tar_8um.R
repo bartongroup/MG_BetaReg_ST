@@ -134,12 +134,13 @@ targets_8um <- function() {
       # wg = wgcna_analysis(cor_file),
 
       # hdWGCNA
-      seu_hdwgcna = hd_wgcna_analysis(seu, NAME, soft_power = NULL),
+      seu_hdwgcna = hd_wgcna_analysis(seu, NAME, soft_power = NULL, merge_cut_height = WGCNA_MERGE_CUT_HEIGHT, min_module_size = WGCNA_MIN_MODULE_SIZE),
       png_module_dendro = plot_hdwgcna_dendrogram(seu_hdwgcna, NAME),
       fig_metacells_spatial = plot_metacells_spatial(seu_hdwgcna),
       png_modules_spatial = plot_modules_spatial(seu_hdwgcna) |> gs("modules_spatial", NAME, 8, 13),
-      png_modules_expr_score = plot_modules_expr_score(seu_hdwgcna, n_genes = "all") |> gs("modules_score", NAME, 8, 20),
+      png_modules_expr_score = plot_modules_expr_score(seu_hdwgcna, n_genes = "all") |> gs("modules_score", NAME, 8, 18),
       igr_hub_gene_network = plot_hub_gene_network(seu_hdwgcna, n_hubs = 12),
+      tbl_module_score = get_modules_expr_score(seu_hdwgcna),
       tbl_modules = get_modules(seu_hdwgcna),
       tbl_hub_genes = get_hub_genes(seu_hdwgcna),
       tbl_module_enrichment = module_enrichment(tbl_modules, gene_detection$gene_symbol, fterms, kme_limit = 0, fdr_limit = 0.05),
@@ -236,8 +237,22 @@ targets_8um <- function() {
       mn_hormone_overlap_8um = mn_plot_hormone_overlap(seu_mark, file.path("manuscript/fig", paste0("hormone_overlap_", NAME, "_8um.pdf")), 7, 3),
       mn_insulin_bins_spatial = mn_plot_binned_spatial(seu_mark) |> gp("insulin_bins", sample = NAME, width = 3.8, height = 3, path = "manuscript/fig"),
       mn_insulin_gradient_expression = plot_binned_expression(seu, "INS", c("NEUROG3", "GCG", "SST"), bins = 6) |> gp("insulin_expression", sample = NAME, width = 6, height = 3, path = "manuscript/fig"),
-      mn_metadata = write_meta_for_archive(seu_integ, paste0("manuscript/data_submit/metadata_", NAME, ".csv"))
+      mn_metadata = write_meta_for_archive(seu_integ, paste0("manuscript/data_submit/metadata_", NAME, ".csv")),
+      mn_wgcna_modules_expr_score = mn_plot_wgcna_modules_expr_score(seu_hdwgcna, n_genes = "all") |> gp("wgcna_modules_score", sample = NAME, width = 8, height = 24, path = "manuscript/fig")
     )
+  )
+
+  nmf_analysis <- tar_plan(
+    seu_list = list("1" = seu_1, "2" = seu_2),
+    nmf = gene_nmf_analysis(seu_list, k = 6:12, nmp = 12),
+    seu_nmf_1 = add_module_score_ucell(seu_mark_1, nmf$metaprograms.genes),
+    seu_nmf_2 = add_module_score_ucell(seu_mark_2, nmf$metaprograms.genes),
+
+    png_nmf_metaprograms_1 = plot_nmf_metaprograms(seu_nmf_1) |> gs("nmf_metaprograms_1", width = 8, height = 18),
+    png_nmf_metaprograms_2 = plot_nmf_metaprograms(seu_nmf_2) |> gs("nmf_metaprograms_2", width = 8, height = 18),
+
+    png_nmf_dots_1 = plot_metaprogram_dots(seu_mark_1, nmf) |> gs("nmf_metaprograms_dots_1", width = 8, height = 30),
+    png_nmf_dots_2 = plot_metaprogram_dots(seu_mark_2, nmf) |> gs("nmf_metaprograms_dots_2", width = 8, height = 30)
   )
 
   combine_samples <- list(
@@ -247,11 +262,11 @@ targets_8um <- function() {
   )
 
   cluster_integrated_samples <- tar_plan(
-    integ_res = c(0.1, 0.15, 0.2, 0.25, 0.3, 0.5),
+    integ_res = c(0.15, 0.2, 0.25, 0.3),
     seu_integ = integrate_seurats(seu_1, seu_2, nfeatures = 3000),
-    seu_integ_clust = cluster_seurat(seu_integ, ident_res = 0.25, resolutions = integ_res, nfeatures = 3000, res_suffix = "integrated", seed = 666) |> 
+    seu_integ_clust = cluster_seurat(seu_integ, dims = 1:30, ident_res = 0.25, resolutions = integ_res, nfeatures = 2000, pca_approx = TRUE, res_suffix = "integrated", seed = 123) |> 
                       JoinLayers(assay = "RNA"),  # after integrative analysis we still have two layers
-    seu_integ_ord = reorder_clusters(seu_integ_clust, clust_order = c(2, 8, 6, 5, 4, 1, 9, 3, 7, 10)),
+    seu_integ_ord = reorder_clusters(seu_integ_clust, clust_order = c(3, 5, 6, 7, 8, 1, 9, 4, 2, 10)),
                       
     integ_clust = extract_clusters_integ(seu_integ_ord),
 
@@ -340,6 +355,7 @@ targets_8um <- function() {
 
   c(
     map_experiments,
+    nmf_analysis,
     combine_samples,
     for_report,
     for_shiny,

@@ -972,6 +972,7 @@ tar_read(igr_hub_gene_network_1) |>
 knitr::include_graphics("images/modules_dots_1.png")
 ```
 
+
 ### Module enrichment
 
 Functional enrichment for several ontologies (GO, KEGG, Reactome and WikiPathways) has been calculated for all genes assigned to the module with the kME score greater than 0. The full results are available for download from @sec-downloads.
@@ -1126,6 +1127,66 @@ For comparison, we show cell type percentage distribution across samples in @fig
 tar_read(fig_cell_type_cell_count)
 ```
 
+# Non-negative matrix factorisation
+
+Non-negative matrix factorization is a method for the analysis of high dimensional data that allows extracting sparse and meaningful features from a set of non-negative data vectors. 
+
+```{r, out.width="100%"}
+#| label: fig-nmf
+#| fig-cap: "Non-negative matrix factorisation. The original genes x cells matrix is split into two matrices, including an intermediate layer of programs - weights for cells and genes. For a cell, the weights tell how much each program is active in the cell. For genes, weights tell how much a gene is involved in the program. Source: https://carmonalab.github.io/GeneNMF.demo/NMF_demo_PBMC.html"
+knitr::include_graphics("images/nmf.png") 
+```
+
+An R package *GeneNMF* was used across both samples. In a similar fashion to WGCNA, multiple programs are found first, and then similar programs are merged into meta 10 metaprograms. Genes driving each metaprogram are shown in @tbl-nmf-genes.
+
+```{r}
+#| label: tbl-nmf-genes
+#| tbl-cap: NMF metaprogram genes.
+tar_load(nmf)
+nmf$metaprograms.genes |>
+  tibble::enframe() |>
+  rename(Program = name, Genes = value) |>
+  gt() |> 
+  cols_align(
+    columns = c("Program", "Genes"),
+    align = "left"
+  )
+```
+
+
+```{r}
+#| label: tbl-nmf-composition
+#| tbl-cap: NMF metaprogram composition across both samples. The table contains counts of the original programs (before grouping) in each sample. Programs 9 and 10 and found in one sample only.
+tar_load(nmf)
+nmf$metaprograms.composition |>
+  as_tibble(rownames = "Program") |>
+  gt()
+```
+
+```{r, out.width="100%"}
+#| label: fig-nmf-metaprograms-1
+#| fig-cap: Expression of genes driving NMF metaprograms for sample 1.
+knitr::include_graphics("images/nmf_metaprograms_1.png") 
+```
+
+```{r, out.width="100%"}
+#| label: fig-nmf-metaprograms-2
+#| fig-cap: Expression of genes driving NMF metaprograms for sample 2.
+knitr::include_graphics("images/nmf_metaprograms_2.png") 
+```
+
+
+```{r, out.width="100%"}
+#| label: fig-nmf-metaprograms-dots-1
+#| fig-cap: Dot plot of genes driving NMF metaprograms for sample 1.
+knitr::include_graphics("images/nmf_metaprograms_dots_1.png") 
+```
+
+```{r, out.width="100%"}
+#| label: fig-nmf-metaprograms-dots-2
+#| fig-cap: Dot plot of genes driving NMF metaprograms for sample 2.
+knitr::include_graphics("images/nmf_metaprograms_dots_2.png") 
+```
 
 # 2 μm data
 
@@ -1144,7 +1205,7 @@ Therefore, not all calculations are possible of feasible. I have skipped cluster
 #| fig-cap: Total number spots, reads and the median number of genes per spot from 2 μm resolution data. Compare this to @fig-counts.
 #| fig-width: 8
 #| fig-height: 4
-readr::read_rds("images/counts_2um_all.rds")
+#readr::read_rds("images/counts_2um_all.rds")
 ```
 
 ```{r, out.width="100%"}
@@ -1271,7 +1332,7 @@ readr::read_tsv("tables/hormone_count_2um_1.txt") |>
 #| fig-cap: Selection box shows in details in @fig-resolution-comparison. Shading indicates expression of insulin.
 #| fig-width: 8
 #| fig-height: 8
-tar_read(fig_box_ins) 
+tar_read(fig_box_ins)
 ```
 
 ```{r}
@@ -1279,7 +1340,7 @@ tar_read(fig_box_ins)
 #| fig-cap: Zoomed-in section of the slide, as shown in @fig-box-ins, with read counts at two different resolutions from four hormones. Black and grey numbers show the read counts from 8 and 2 μm resolutions, respectively. Black boxes indicate the extent of the 8 μm grid boxes.
 #| fig-width: 8
 #| fig-height: 8
-tar_read(fig_res_comp)
+tar_read(fig_res_comp) 
 ```
 
 ### How many counts per spot in 2 μm?
