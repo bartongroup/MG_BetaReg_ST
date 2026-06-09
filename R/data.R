@@ -617,7 +617,7 @@ get_highest_expressors <- function(seu, n_top = 19) {
 
 
 # Written by ChatGPT
-fetch_uniprot_fasta <- function(genes, reviewed = TRUE, canonical_only = TRUE, chunk_size = 100) {
+fetch_uniprot_fasta_ <- function(genes, reviewed = TRUE, canonical_only = TRUE, chunk_size = 100) {
   q_parts <- sprintf("gene_exact:%s", genes)
   filters <- c("organism_id:9606")
   if (reviewed)      filters <- c(filters, "reviewed:true")

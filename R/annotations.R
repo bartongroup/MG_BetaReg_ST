@@ -128,3 +128,75 @@ prepare_terms_fenr <- function(terms, all_features, feature_name = "gene_symbol"
     set_names(ontologies)
 }
 
+
+
+
+# Written by ChatGPT
+fetch_uniprot_fasta <- function(
+  genes,
+  organism_id = 9606,
+  reviewed = TRUE,
+  max_hits_per_gene = 5
+) {
+  genes <- unique(as.character(genes))
+  base_url <- "https://rest.uniprot.org/uniprotkb/search"
+
+  one_gene <- function(gene) {
+    query <- sprintf(
+      "gene_exact:%s AND organism_id:%s%s",
+      gene,
+      organism_id,
+      if (reviewed) " AND reviewed:true" else ""
+    )
+
+    url <- paste0(
+      base_url,
+      "?query=", utils::URLencode(query, reserved = TRUE),
+      "&format=tsv",
+      "&fields=accession,id,gene_primary,protein_name,organism_name,length,sequence",
+      "&size=", max_hits_per_gene
+    )
+
+    tab <- tryCatch(
+      utils::read.delim(url, sep = "\t", quote = "", stringsAsFactors = FALSE),
+      error = function(e) NULL
+    )
+
+    if (is.null(tab) || nrow(tab) == 0) {
+      warning(sprintf("No UniProt match found for gene symbol: %s", gene))
+      return(NULL)
+    }
+
+    if (nrow(tab) > 1) {
+      warning(sprintf(
+        "Multiple UniProt matches found for %s; using first accession: %s",
+        gene, tab$Entry[1]
+      ))
+    }
+
+    hit <- tab[1, ]
+
+    header <- sprintf(
+      ">%s|%s|%s OS=%s GN=%s PE=canonical",
+      hit$Entry,
+      hit$`Entry.Name`,
+      hit$`Protein.names`,
+      hit$Organism,
+      hit$`Gene.Names..primary.`
+    )
+
+    seq_wrapped <- paste(
+      substring(
+        hit$Sequence,
+        seq(1, nchar(hit$Sequence), by = 60),
+        pmin(seq(60, nchar(hit$Sequence) + 59, by = 60), nchar(hit$Sequence))
+      ),
+      collapse = "\n"
+    )
+
+    paste(header, seq_wrapped, sep = "\n")
+  }
+
+  records <- Filter(Negate(is.null), lapply(genes, one_gene))
+  paste(records, collapse = "\n")
+}
