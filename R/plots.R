@@ -1,5 +1,9 @@
 okabe_ito_palette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#AAAAAA", "#666666")
 
+modified_brewer_paired <- RColorBrewer::brewer.pal(12, "Paired")
+modified_brewer_paired[6] <- "#C47A5C"
+
+
 th <- ggplot2::theme_bw() +
   ggplot2::theme(
     panel.grid = ggplot2::element_blank()
@@ -1565,15 +1569,15 @@ plot_spatial_differences <- function(seu, pairs) {
 plot_upset_expressed_cells <- function(seu, gns, expr_limit = 0, layer = "data") {
   m <- get_gene_expression(seu, gns, layer = layer) |> 
     filter(expression > expr_limit) |> 
-    mutate(expression = 1) |> 
+    mutate(expression = 1L) |> 
     pivot_wider(id_cols = cell_id, names_from = gene_symbol, values_from = expression, values_fill = 0) |> 
     ComplexHeatmap::make_comb_mat()
   
   ComplexHeatmap::UpSet(
     m,
-    top_annotation = ComplexHeatmap::upset_top_annotation(m, add_numbers = TRUE, numbers_rot = 0),
+    top_annotation = ComplexHeatmap::upset_top_annotation(m, add_numbers = TRUE, numbers_rot = 90, numbers_offset = grid::unit(1, "mm")),
     right_annotation = ComplexHeatmap::upset_right_annotation(m, add_numbers = TRUE),
-    comb_col = c("black", "brown", "darkblue", "darkgreen", "darkorchid3")[ComplexHeatmap::comb_degree(m)]
+    comb_col = c("black", "brown", "darkblue", "darkgreen", "darkorchid3", "darkgoldenrod")[ComplexHeatmap::comb_degree(m)]
   )
 }
 

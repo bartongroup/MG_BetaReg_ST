@@ -1469,7 +1469,7 @@ tar_read(fig_seg_hormone_overlap_1)
 
 ### Sample 1
 
- - [Clustering and cell types for Loupe Browser](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/clusters_1.csv)
+ - [Clustering and cell types for Loupe Browser](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/clusters_integ_1.csv)
  - [Correlation with key markers](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/correlation_1.csv)
  - [Enrichment for key marker co-correlated sets ](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/keycorr_enrichment_1.csv)
  - [Modules](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/spatial_modules_1.csv)
@@ -1479,7 +1479,7 @@ tar_read(fig_seg_hormone_overlap_1)
 
 ### Sample 2
 
- - [Clustering and cell types for Loupe Browser](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/clusters_2.csv)
+ - [Clustering and cell types for Loupe Browser](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/clusters_integ_2.csv)
  - [Correlation with key markers](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/correlation_2.csv)
  - [Enrichment for key marker co-correlated sets ](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/keycorr_enrichment_2.csv)
  - [Modules](https://www.compbio.dundee.ac.uk/user/mgierlinski/betareg_st/tab/spatial_modules_2.csv)

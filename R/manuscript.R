@@ -1,5 +1,6 @@
 mn_plot_spatial_clustering <- function(seu, res = NULL, meta_column = "cluster", swap_xy = FALSE) {
-  plot_one_xy(seu, resolution = res, meta_column = meta_column, what = "spatial", swap_xy = swap_xy) +
+  plot_one_xy(seu, resolution = res, meta_column = meta_column, what = "spatial", swap_xy = swap_xy,
+             discrete_palette = modified_brewer_paired) +
     theme(
       legend.position = "right",
       legend.text = element_text(size = 8),
@@ -64,7 +65,7 @@ mn_plot_cell_type_dots <- function(seu_mark, tissue_markers) {
 }
 
 
-mn_plot_hormone_overlap <- function(seu, fname, width, height, genes = c("INS", "SST", "GCG", "GHRL", "PPY")) {
+mn_plot_hormone_overlap <- function(seu, fname, width, height, genes = c("INS", "SST", "GCG", "GHRL", "PPY", "NEUROG3")) {
   up <- plot_upset_expressed_cells(seu, genes) 
 
   pdf(fname, width = width, height = height)
