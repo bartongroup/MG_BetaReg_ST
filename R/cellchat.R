@@ -365,9 +365,13 @@ plot_cellchat_bubble_sel <- function(cellchat, prob_limit = 0.01, point_size = 2
 }
 
 
-plot_cellchat_chord <- function(cellchat, pathway, pfile) {
+plot_cellchat_chord <- function(cellchat, pathway, pfile, type = "png") {
 
-  png(filename = file.path("doc", "images", pfile), width = 800, height = 800)
+  if(type == "png") {
+    png(filename = file.path("doc", "images", pfile), width = 800, height = 800)
+  } else {
+    pdf(file = file.path("manuscript", "fig", pfile), width = 8, height = 8)
+  }
   par(mfrow = c(1, 1))
 
   CellChat::netVisual_chord_cell(
@@ -380,10 +384,10 @@ plot_cellchat_chord <- function(cellchat, pathway, pfile) {
   dev.off()
 }
 
-plot_cellchat_chords <- function(cellchat, sample, paths, prefix = "cellchat_chord") {
+plot_cellchat_chords <- function(cellchat, sample, paths, prefix = "cellchat_chord", type = "png") {
   for(path in paths) {
-    pfile = str_glue("{prefix}_{sample}_{path}.png")
-    plot_cellchat_chord(cellchat, path, pfile)
+    pfile = str_glue("{prefix}_{sample}_{path}.{type}")
+    plot_cellchat_chord(cellchat, path, pfile, type)
   }
 }
 
