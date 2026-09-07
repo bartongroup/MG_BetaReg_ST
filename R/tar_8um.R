@@ -240,7 +240,9 @@ targets_8um <- function() {
       mn_insulin_gradient_expression = plot_binned_expression(seu, "INS", c("NEUROG3", "GCG", "SST"), bins = 6) |> gp("insulin_expression", sample = NAME, width = 6, height = 3, path = "manuscript/fig"),
       mn_metadata = write_meta_for_archive(seu_integ, paste0("manuscript/data_submit/metadata_", NAME, ".csv")),
       mn_wgcna_modules_expr_score = mn_plot_wgcna_modules_expr_score(seu_hdwgcna, n_genes = "all") |> gp("wgcna_modules_score", sample = NAME, width = 8, height = 24, path = "manuscript/fig"),
-      mn_cellchat_flrt_chords = plot_cellchat_chord(cellchat_comp, paste0("cellchat_chord_", NAME, ".pdf"), pathway = "FLRT", type = "pdf")
+      mn_hub_genes = readr::write_csv(tbl_hub_genes, file.path("manuscript/tab", paste0("hub_genes_", NAME, ".csv"))),
+      mn_cellchat_flrt_chords = plot_cellchat_chord(cellchat_comp, paste0("cellchat_chord_FLRT_", NAME, ".pdf"), pathway = "FLRT", type = "pdf"),
+      mn_cellchat_notch_chords = plot_cellchat_chord(cellchat_comp, paste0("cellchat_chord_NOTCH_", NAME, ".pdf"), pathway = "NOTCH", type = "pdf")
     )
   )
 
