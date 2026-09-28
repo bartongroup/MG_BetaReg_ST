@@ -835,3 +835,23 @@ plot_seurat_clusters <- function(seu_clust, resolutions = NULL, with_legend = FA
   })
   plot_grid(plotlist = P)
 }
+
+get_assay_data <- function(seu, layer = "counts") {
+  GetAssayData(seu, layer = layer) |> 
+    t() |> 
+    as_tibble(rownames = "cell_id") |> 
+    pivot_longer(-cell_id, names_to = "gene_symbol", values_to = "expression") |> 
+    filter(expression > 0)
+}
+
+get_seurat_comparison <- function(seu_1, seu_2, layer = "counts") {
+  d1 <- get_assay_data(seu_1, layer = layer) |>
+    rename(expr_1 = expression) 
+  d2 <- get_assay_data(seu_2, layer = layer) |> 
+    rename(expr_2 = expression)
+  full_join(d1, d2, by = join_by(cell_id, gene_symbol)) |> 
+    mutate(
+      expr_1 = replace_na(expr_1, 0),
+      expr_2 = replace_na(expr_2, 0)
+    )
+}

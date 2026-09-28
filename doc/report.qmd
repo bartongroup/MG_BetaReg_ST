@@ -219,6 +219,29 @@ Samples 1 and 2 come from male and female donors. We confirm this by looking at 
 
 # Sample 1
 
+## Removing ambient RNA
+
+We attempted a few tools to remove ambient RNA contamination.
+
+### SpotClean
+
+*SpotClean* is an obvious choice as it is an R package and would fit neatly in the existing pipeline. Alas, this package was specifically written for Visium data, not Visium HD. While it is possible to feed it with the Visium HD data, the package is not optimised for a much large size of the HD data set and crashes with out of memory error when run on HD data. After inspecting the source code I have discovered that the package creates a dense distance matrix
+
+```
+# line 430 of R/decontamination.R
+# Calculate Euclidean distances
+  d_mat <- dist(x, method = "euclidean", diag = TRUE)
+  d_mat <- as.matrix(d_mat)
+```
+
+In out data (sample 1) the matrix x has 312,506 columns (corresponding to 312,506 spatial bins), so this code attempts to create a 312,506x312,506 matrix. This would require ~780 GB of memory, and the code creates two such matrices at the same time. Therefore, it would require at least ~1.6 TB of memory to run it. This is not feasible on our cluster.
+
+### SpaceBender
+
+*SpaceBender* is a Python script that removes estimated ambient RNA contamination from spatial transcriptomics counts using a probabilistic model adapted from *CellBender*. It estimates a local background expression profile for each spatial bin from neighbouring bins, then uses a variational autoencoder to distinguish biological expression from contamination. The fitted model estimates contaminating counts for each gene and bin and subtracts them from the observed counts, producing a non-negative integer count matrix for downstream analysis. In our 8-µm Visium HD data, we defined neighbourhoods using the eight nearest bins. Because this application has not been validated specifically for Visium HD, we treat the corrected data as a sensitivity analysis rather than as ground truth.
+
+*SpaceBender* can include ont-of-tissue spots to improve background estimation, however a bug in the code cause it to crash when it encounters spots with no counts at all. We could remove these spots and keep out-of-tissue spots with some counts, but it would affect the background distribution in an unpredictable way (effectively creating gaps in spatial data). Therefore we decided to use only in-tissue data and ignore the background. This forces *SpaceBender* to its fallback background prior.
+
 ## Clustering {#sec-clustering}
 
 Clustering in *Seurat* is done using the following approach:

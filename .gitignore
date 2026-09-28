@@ -18,6 +18,7 @@ doc/*
 !doc/_targets.yaml
 !doc/report.scss
 info/Spartan_059 clustering report/
+spacebender_data/
 ModuleNetworks/
 TOM/
 commot/my_env/
