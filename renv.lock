@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "4.6.0",
+    "Version": "4.6.1",
     "Repositories": [
       {
         "Name": "BioCsoft",
@@ -810,7 +810,7 @@
       "VignetteBuilder": "knitr",
       "Collate": "compress_atomic_vector.R makeCappedVolumeBox.R AutoBlock-global-settings.R AutoGrid.R blockApply.R DelayedOp-class.R DelayedSubset-class.R DelayedAperm-class.R DelayedUnaryIsoOpStack-class.R DelayedUnaryIsoOpWithArgs-class.R DelayedSubassign-class.R DelayedSetDimnames-class.R DelayedNaryIsoOp-class.R DelayedAbind-class.R showtree.R simplify.R DelayedArray-class.R DelayedArray-subsetting.R chunkGrid.R RealizationSink-class.R realize.R DelayedArray-utils.R DelayedArray-stats.R matrixStats-methods.R DelayedMatrix-rowsum.R DelayedMatrix-mult.R ConstantArray-class.R RleArraySeed-class.R RleArray-class.R compat.R zzz.R",
       "Config/pak/sysreqs": "zlib1g-dev",
-      "Repository": "https://bioc-release.r-universe.dev",
+      "Repository": "Bioconductor 3.23",
       "NeedsCompilation": "no",
       "Author": "Hervé Pagès [aut, cre] (ORCID: <https://orcid.org/0009-0002-8272-4522>), Aaron Lun [ctb], Peter Hickey [ctb]",
       "RemoteType": "repository",
@@ -2020,6 +2020,45 @@
       "Maintainer": "Georgi N. Boshnakov <georgi.boshnakov@manchester.ac.uk>",
       "Repository": "CRAN"
     },
+    "Rhdf5lib": {
+      "Package": "Rhdf5lib",
+      "Version": "2.0.0",
+      "Source": "Bioconductor",
+      "Type": "Package",
+      "Title": "hdf5 library as an R package",
+      "Authors@R": "c( person( \"Mike\", \"Smith\", role = \"ctb\", comment = c(ORCID = \"0000-0002-7800-3848\") ), person( \"Hugo\", \"Gruson\", role = \"cre\", email = \"hugo.gruson@embl.de\", comment = c(ORCID = \"0000-0002-4094-1476\")) , person( given = \"The HDF Group\", role = \"cph\" ) )",
+      "Description": "Provides C and C++ hdf5 libraries.",
+      "License": "Artistic-2.0",
+      "Copyright": "vendor/hdf5/COPYING",
+      "LazyLoad": "true",
+      "VignetteBuilder": "knitr",
+      "Depends": [
+        "R (>= 4.2.0)"
+      ],
+      "Suggests": [
+        "BiocStyle",
+        "knitr",
+        "rmarkdown",
+        "tinytest",
+        "mockery"
+      ],
+      "URL": "https://github.com/Huber-group-EMBL/Rhdf5lib",
+      "BugReports": "https://github.com/Huber-group-EMBL/Rhdf5lib/issues",
+      "LinkingTo": [
+        "biocmake"
+      ],
+      "NeedsCompilation": "yes",
+      "Encoding": "UTF-8",
+      "biocViews": "Infrastructure",
+      "RoxygenNote": "7.3.3",
+      "git_url": "https://git.bioconductor.org/packages/Rhdf5lib",
+      "git_branch": "RELEASE_3_23",
+      "git_last_commit": "21f3087",
+      "git_last_commit_date": "2026-04-28",
+      "Repository": "Bioconductor 3.23",
+      "Author": "Mike Smith [ctb] (ORCID: <https://orcid.org/0000-0002-7800-3848>), Hugo Gruson [cre] (ORCID: <https://orcid.org/0000-0002-4094-1476>), The HDF Group [cph]",
+      "Maintainer": "Hugo Gruson <hugo.gruson@embl.de>"
+    },
     "RhpcBLASctl": {
       "Package": "RhpcBLASctl",
       "Version": "0.23-42",
@@ -2066,7 +2105,7 @@
     },
     "S4Arrays": {
       "Package": "S4Arrays",
-      "Version": "1.12.0",
+      "Version": "1.12.1",
       "Source": "Bioconductor",
       "Title": "Foundation of array-like containers in Bioconductor",
       "Description": "The S4Arrays package defines the Array virtual class to be extended by other S4 classes that wish to implement a container with an array-like semantic. It also provides: (1) low-level functionality meant to help the developer of such container to implement basic operations like display, subsetting, or coercion of their array-like objects to an ordinary matrix or array, and (2) a framework that facilitates block processing of array-like objects (typically on-disk objects).",
@@ -2105,8 +2144,8 @@
       "Collate": "utils.R rowsum.R abind.R aperm2.R array_selection.R Nindex-utils.R arep.R array_recycling.R Array-class.R dim-tuning-utils.R Array-subsetting.R Array-subassignment.R ArrayGrid-class.R mapToGrid.R extract_array.R type.R is_sparse.R read_block.R write_block.R show-utils.R Array-kronecker-methods.R zzz.R",
       "git_url": "https://git.bioconductor.org/packages/S4Arrays",
       "git_branch": "RELEASE_3_23",
-      "git_last_commit": "b1246fd",
-      "git_last_commit_date": "2026-04-28",
+      "git_last_commit": "fd4e6c3",
+      "git_last_commit_date": "2026-09-22",
       "Repository": "Bioconductor 3.23",
       "NeedsCompilation": "yes",
       "Author": "Hervé Pagès [aut, cre] (ORCID: <https://orcid.org/0009-0002-8272-4522>), Jacques Serizay [ctb]",
@@ -2147,7 +2186,7 @@
       ],
       "VignetteBuilder": "knitr",
       "Collate": "S4-utils.R show-utils.R utils.R normarg-utils.R bindROWS.R LLint-class.R isSorted.R subsetting-utils.R vector-utils.R integer-utils.R character-utils.R raw-utils.R eval-utils.R map_ranges_to_runs.R RectangularData-class.R Annotated-class.R DataFrame_OR_NULL-class.R Vector-class.R Vector-comparison.R Vector-setops.R Vector-merge.R Hits-class.R Hits-comparison.R Hits-setops.R Rle-class.R Rle-utils.R Factor-class.R List-class.R List-comparison.R splitAsList.R List-utils.R SimpleList-class.R HitsList-class.R DataFrame-class.R DataFrame-combine.R DataFrame-comparison.R DataFrame-utils.R DataFrameFactor-class.R TransposedDataFrame-class.R Pairs-class.R FilterRules-class.R stack-methods.R expand-methods.R aggregate-methods.R shiftApply-methods.R zzz.R",
-      "Repository": "https://bioc-release.r-universe.dev",
+      "Repository": "Bioconductor 3.23",
       "NeedsCompilation": "yes",
       "Author": "Hervé Pagès [aut, cre], Michael Lawrence [aut], Patrick Aboyoun [aut], Aaron Lun [ctb], Beryl Kanali [ctb] (Converted vignettes from Sweave to RMarkdown)",
       "Maintainer": "Hervé Pagès <hpages.on.github@gmail.com>",
@@ -2559,6 +2598,110 @@
       "Author": "Roger Koenker [cre, aut], Pin Tian Ng [ctb] (Contributions to Sparse QR code), Yousef Saad [ctb] (author of sparskit2), Ben Shaby [ctb] (author of chol2csr), Martin Maechler [ctb] (chol() tweaks; S4, <https://orcid.org/0000-0002-8685-9910>)",
       "Repository": "CRAN"
     },
+    "SpatialExperiment": {
+      "Package": "SpatialExperiment",
+      "Version": "1.22.0",
+      "Source": "Bioconductor",
+      "Title": "S4 Class for Spatially Resolved -omics Data",
+      "Description": "Defines an S4 class for storing data from spatial -omics experiments.  The class extends SingleCellExperiment to  support storage and retrieval of additional information from spot-based and  molecule-based platforms, including spatial coordinates, images, and  image metadata. A specialized constructor function is included for data  from the 10x Genomics Visium platform.",
+      "Authors@R": "c( person(\"Dario\", \"Righelli\", role=c(\"aut\", \"cre\"),  email=\"dario.righelli@gmail.com\", comment=c(ORCID=\"0000-0003-1504-3583\")), person(\"Davide\", \"Risso\", role=c(\"aut\"),  email=\"risso.davide@gmail.com\", comment=c(ORCID=\"0000-0001-8508-5012\")), person(\"Helena L.\", \"Crowell\", role=c(\"aut\"),  email=\"helena.crowell@cnag.eu\", comment=c(ORCID=\"0000-0002-4801-1767\")),  person(\"Lukas M.\", \"Weber\", role=c(\"aut\"),  email=\"lmweb012@gmail.com\", comment=c(ORCID=\"0000-0002-3282-1730\")),  person(\"Nicholas J.\", \"Eagles\", role=c(\"ctb\"), email=\"nickeagles77@gmail.com\"))",
+      "URL": "https://github.com/drighelli/SpatialExperiment",
+      "BugReports": "https://github.com/drighelli/SpatialExperiment/issues",
+      "License": "GPL-3",
+      "Encoding": "UTF-8",
+      "biocViews": "DataRepresentation, DataImport, Infrastructure, ImmunoOncology, GeneExpression, Transcriptomics, SingleCell, Spatial",
+      "Depends": [
+        "R (>= 4.1.0)",
+        "methods",
+        "SingleCellExperiment"
+      ],
+      "Imports": [
+        "rjson",
+        "grDevices",
+        "magick",
+        "utils",
+        "S4Vectors",
+        "SummarizedExperiment",
+        "BiocGenerics",
+        "BiocFileCache"
+      ],
+      "Suggests": [
+        "knitr",
+        "rmarkdown",
+        "testthat",
+        "BiocStyle",
+        "BumpyMatrix",
+        "DropletUtils",
+        "VisiumIO"
+      ],
+      "VignetteBuilder": "knitr",
+      "RoxygenNote": "7.3.1",
+      "git_url": "https://git.bioconductor.org/packages/SpatialExperiment",
+      "git_branch": "RELEASE_3_23",
+      "git_last_commit": "90e092a",
+      "git_last_commit_date": "2026-04-28",
+      "Repository": "Bioconductor 3.23",
+      "NeedsCompilation": "no",
+      "Author": "Dario Righelli [aut, cre] (ORCID: <https://orcid.org/0000-0003-1504-3583>), Davide Risso [aut] (ORCID: <https://orcid.org/0000-0001-8508-5012>), Helena L. Crowell [aut] (ORCID: <https://orcid.org/0000-0002-4801-1767>), Lukas M. Weber [aut] (ORCID: <https://orcid.org/0000-0002-3282-1730>), Nicholas J. Eagles [ctb]",
+      "Maintainer": "Dario Righelli <dario.righelli@gmail.com>"
+    },
+    "SpotClean": {
+      "Package": "SpotClean",
+      "Version": "1.14.0",
+      "Source": "Bioconductor",
+      "Date": "2024/06/08",
+      "Title": "SpotClean adjusts for spot swapping in spatial transcriptomics data",
+      "Authors@R": "c( person(\"Zijian\", \"Ni\", email=\"zni25@wisc.edu\", role = c(\"aut\", \"cre\"),  comment = c(ORCID = \"0000-0003-1181-8337\")), person(\"Christina\", \"Kendziorski\", role = \"ctb\") )",
+      "Depends": [
+        "R (>= 4.2.0)"
+      ],
+      "Imports": [
+        "stats",
+        "methods",
+        "utils",
+        "dplyr",
+        "S4Vectors",
+        "SummarizedExperiment",
+        "SpatialExperiment",
+        "Matrix",
+        "rhdf5",
+        "ggplot2",
+        "grid",
+        "readbitmap",
+        "rjson",
+        "tibble",
+        "viridis",
+        "grDevices",
+        "RColorBrewer",
+        "Seurat",
+        "rlang"
+      ],
+      "Suggests": [
+        "testthat (>= 2.1.0)",
+        "knitr",
+        "BiocStyle",
+        "rmarkdown",
+        "R.utils",
+        "spelling"
+      ],
+      "biocViews": "DataImport, RNASeq, Sequencing, GeneExpression, Spatial, SingleCell, Transcriptomics, Preprocessing",
+      "Description": "SpotClean is a computational method to adjust for spot swapping in spatial  transcriptomics data. Recent spatial transcriptomics experiments utilize  slides containing thousands of spots with spot-specific barcodes that bind  mRNA. Ideally, unique molecular identifiers at a spot measure spot-specific  expression, but this is often not the case due to bleed from nearby spots,  an artifact we refer to as spot swapping. SpotClean is able to estimate the  contamination rate in observed data and decontaminate the spot swapping  effect, thus increase the sensitivity and precision of downstream analyses.",
+      "License": "GPL-3",
+      "NeedsCompilation": "yes",
+      "VignetteBuilder": "knitr",
+      "Encoding": "UTF-8",
+      "RoxygenNote": "7.3.3",
+      "URL": "https://github.com/zijianni/SpotClean",
+      "BugReports": "https://github.com/zijianni/SpotClean/issues",
+      "Language": "en-US",
+      "git_url": "https://git.bioconductor.org/packages/SpotClean",
+      "git_branch": "RELEASE_3_23",
+      "git_last_commit": "fbf937f",
+      "git_last_commit_date": "2026-04-28",
+      "Repository": "Bioconductor 3.23",
+      "Author": "Zijian Ni [aut, cre] (ORCID: <https://orcid.org/0000-0003-1181-8337>), Christina Kendziorski [ctb]",
+      "Maintainer": "Zijian Ni <zni25@wisc.edu>"
+    },
     "SummarizedExperiment": {
       "Package": "SummarizedExperiment",
       "Version": "1.42.0",
@@ -2924,6 +3067,67 @@
       "Author": "Tony Plate [aut, cre], Richard Heiberger [aut]",
       "Repository": "CRAN"
     },
+    "anndataR": {
+      "Package": "anndataR",
+      "Version": "1.2.2",
+      "Source": "Bioconductor",
+      "Title": "AnnData interoperability in R",
+      "Authors@R": "c( person(\"Robrecht\", \"Cannoodt\", , \"rcannood@gmail.com\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0003-3641-729X\", github = \"rcannood\")), person(\"Luke\", \"Zappia\", , \"luke@lazappi.id.au\", role = \"aut\", comment = c(ORCID = \"0000-0001-7744-8565\", github = \"lazappi\")), person(\"Martin\", \"Morgan\", , \"mtmorgan.bioc@gmail.com\", role = \"aut\", comment = c(ORCID = \"0000-0002-5874-8148\", github = \"mtmorgan\")), person(\"Louise\", \"Deconinck\", , \"louise.deconinck@gmail.com\", role = \"aut\", comment = c(ORCID = \"0000-0001-8100-6823\", github = \"LouiseDck\")), person(\"Danila\", \"Bredikhin\", , \"danila.bredikhin@embl.de\", role = \"ctb\", comment = c(ORCID = \"0000-0001-8089-6983\", github = \"gtca\")), person(\"Isaac\", \"Virshup\", role = \"ctb\", comment = c(ORCID = \"0000-0002-1710-8945\", github = \"ivirshup\")), person(\"Brian\", \"Schilder\", , \"brian_schilder@alumni.brown.edu\", role = \"ctb\", comment = c(ORCID = \"0000-0001-5949-2191\", github = \"bschilder\")), person(\"Chananchida\", \"Sang-aram\", role = \"ctb\", comment = c(ORCID = \"0000-0002-0922-0822\", github = \"csangara\")), person(\"Artür\", \"Manukyan\", role = \"ctb\", comment = c(ORCID = \"0000-0002-0441-9517\", github = \"Artur-man\")), person(\"Hugo\", \"Gruson\", role = \"ctb\", comment = c(ORCID = \"0000-0002-4094-1476\", github = \"Bisaloo\")), person(\"Data Intuitive\", , , \"info@data-intuitive.com\", role = \"fnd\"), person(\"Chan Zuckerberg Initiative\", role = \"fnd\"), person(\"scverse consortium\", role = \"spn\") )",
+      "Description": "Bring the power and flexibility of AnnData to the R ecosystem, allowing you to effortlessly manipulate and analyse your single-cell data. This package lets you work with backed h5ad and zarr files, directly access various slots (e.g. X, obs, var), or convert the data into SingleCellExperiment and Seurat objects.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://anndataR.scverse.org/, https://github.com/scverse/anndataR",
+      "BugReports": "https://github.com/scverse/anndataR/issues",
+      "Depends": [
+        "R (>= 4.5.0)"
+      ],
+      "Imports": [
+        "cli",
+        "lifecycle",
+        "Matrix",
+        "methods",
+        "purrr",
+        "R6 (>= 2.4.0)",
+        "reticulate (>= 1.41.1)",
+        "rlang",
+        "stats"
+      ],
+      "Suggests": [
+        "BiocFileCache",
+        "BiocStyle",
+        "knitr",
+        "processx",
+        "rhdf5 (>= 2.52.1)",
+        "Rarr (>= 1.11.12)",
+        "rmarkdown",
+        "S4Vectors",
+        "Seurat",
+        "SeuratObject",
+        "SingleCellExperiment",
+        "spelling",
+        "SummarizedExperiment",
+        "testthat (>= 3.0.0)",
+        "vctrs",
+        "withr",
+        "yaml"
+      ],
+      "VignetteBuilder": "knitr",
+      "biocViews": "SingleCell, DataImport, DataRepresentation",
+      "Config/Needs/website": "pkgdown, tibble, knitr, rprojroot, stringr, readr, purrr, dplyr, tidyr, rmarkdown",
+      "Config/testthat/edition": "3",
+      "Encoding": "UTF-8",
+      "Roxygen": "list(markdown = TRUE, r6 = TRUE)",
+      "RoxygenNote": "7.3.3",
+      "Language": "en-GB",
+      "Config/pak/sysreqs": "libpng-dev python3",
+      "Repository": "Bioconductor 3.23",
+      "NeedsCompilation": "no",
+      "Author": "Robrecht Cannoodt [aut, cre] (ORCID: <https://orcid.org/0000-0003-3641-729X>, github: rcannood), Luke Zappia [aut] (ORCID: <https://orcid.org/0000-0001-7744-8565>, github: lazappi), Martin Morgan [aut] (ORCID: <https://orcid.org/0000-0002-5874-8148>, github: mtmorgan), Louise Deconinck [aut] (ORCID: <https://orcid.org/0000-0001-8100-6823>, github: LouiseDck), Danila Bredikhin [ctb] (ORCID: <https://orcid.org/0000-0001-8089-6983>, github: gtca), Isaac Virshup [ctb] (ORCID: <https://orcid.org/0000-0002-1710-8945>, github: ivirshup), Brian Schilder [ctb] (ORCID: <https://orcid.org/0000-0001-5949-2191>, github: bschilder), Chananchida Sang-aram [ctb] (ORCID: <https://orcid.org/0000-0002-0922-0822>, github: csangara), Artür Manukyan [ctb] (ORCID: <https://orcid.org/0000-0002-0441-9517>, github: Artur-man), Hugo Gruson [ctb] (ORCID: <https://orcid.org/0000-0002-4094-1476>, github: Bisaloo), Data Intuitive [fnd], Chan Zuckerberg Initiative [fnd], scverse consortium [spn]",
+      "Maintainer": "Robrecht Cannoodt <rcannood@gmail.com>",
+      "RemoteType": "repository",
+      "RemoteUrl": "https://github.com/bioc/anndataR",
+      "RemoteRef": "RELEASE_3_23",
+      "RemoteSha": "e4f2b98203c19bfcd07264afb7c7009ed91f61b8"
+    },
     "arrow": {
       "Package": "arrow",
       "Version": "24.0.0",
@@ -3238,6 +3442,41 @@
       "Maintainer": "Richard Iannone <rich@posit.co>",
       "Repository": "CRAN"
     },
+    "biocmake": {
+      "Package": "biocmake",
+      "Version": "1.4.0",
+      "Source": "Bioconductor",
+      "Date": "2025-11-22",
+      "Title": "CMake for Bioconductor",
+      "Description": "Manages the installation of CMake for building Bioconductor packages. This avoids the need for end-users to manually install CMake on their system. No action is performed if a suitable version of CMake is already available.",
+      "Authors@R": "person(\"Aaron\", \"Lun\", role=c(\"cre\", \"aut\"), email=\"infinite.monkeys.with.keyboards@gmail.com\")",
+      "License": "MIT + file LICENSE",
+      "Encoding": "UTF-8",
+      "VignetteBuilder": "knitr",
+      "Imports": [
+        "utils",
+        "tools",
+        "dir.expiry"
+      ],
+      "Suggests": [
+        "knitr",
+        "rmarkdown",
+        "BiocStyle",
+        "testthat"
+      ],
+      "biocViews": "Infrastructure",
+      "URL": "https://github.com/LTLA/biocmake",
+      "BugReports": "https://github.com/LTLA/biocmake/issues",
+      "RoxygenNote": "7.3.2",
+      "git_url": "https://git.bioconductor.org/packages/biocmake",
+      "git_branch": "RELEASE_3_23",
+      "git_last_commit": "6b43087",
+      "git_last_commit_date": "2026-04-28",
+      "Repository": "Bioconductor 3.23",
+      "NeedsCompilation": "no",
+      "Author": "Aaron Lun [cre, aut]",
+      "Maintainer": "Aaron Lun <infinite.monkeys.with.keyboards@gmail.com>"
+    },
     "biomaRt": {
       "Package": "biomaRt",
       "Version": "2.68.0",
@@ -3404,6 +3643,28 @@
       "NeedsCompilation": "no",
       "Author": "Hadley Wickham [aut], Kirill Müller [cre], RStudio [cph, fnd]",
       "Maintainer": "Kirill Müller <kirill@cynkra.com>",
+      "Repository": "CRAN"
+    },
+    "bmp": {
+      "Package": "bmp",
+      "Version": "0.3.1",
+      "Source": "Repository",
+      "Maintainer": "Gregory Jefferis <jefferis@gmail.com>",
+      "License": "GPL (>= 2)",
+      "Title": "Read Windows Bitmap (BMP) Images",
+      "Authors@R": "c(person(given = \"Gregory\", family = \"Jefferis\", role = c(\"aut\", \"cre\"), email = \"jefferis@gmail.com\", comment = c(ORCID = \"0000-0002-0587-9355\")) )",
+      "Description": "Reads Windows BMP format images. Currently limited to 8 bit greyscale images and 24,32 bit (A)RGB images. Pure R implementation without external dependencies.",
+      "Suggests": [
+        "pixmap",
+        "testthat"
+      ],
+      "Collate": "'read-bmp.R'",
+      "RoxygenNote": "7.3.2",
+      "Encoding": "UTF-8",
+      "URL": "https://github.com/jefferis/bmp",
+      "BugReports": "https://github.com/jefferis/bmp/issues",
+      "NeedsCompilation": "no",
+      "Author": "Gregory Jefferis [aut, cre] (ORCID: <https://orcid.org/0000-0002-0587-9355>)",
       "Repository": "CRAN"
     },
     "boot": {
@@ -4822,6 +5083,38 @@
       "Author": "Dirk Eddelbuettel [aut, cre] (ORCID: <https://orcid.org/0000-0001-6419-907X>), Antoine Lucas [ctb] (ORCID: <https://orcid.org/0000-0002-8059-9767>), Jarek Tuszynski [ctb], Henrik Bengtsson [ctb] (ORCID: <https://orcid.org/0000-0002-7579-5165>), Simon Urbanek [ctb] (ORCID: <https://orcid.org/0000-0003-2297-1732>), Mario Frasca [ctb], Bryan Lewis [ctb], Murray Stokely [ctb], Hannes Muehleisen [ctb] (ORCID: <https://orcid.org/0000-0001-8552-0029>), Duncan Murdoch [ctb], Jim Hester [ctb] (ORCID: <https://orcid.org/0000-0002-2739-7082>), Wush Wu [ctb] (ORCID: <https://orcid.org/0000-0001-5180-0567>), Qiang Kou [ctb] (ORCID: <https://orcid.org/0000-0001-6786-5453>), Thierry Onkelinx [ctb] (ORCID: <https://orcid.org/0000-0001-8804-4216>), Michel Lang [ctb] (ORCID: <https://orcid.org/0000-0001-9754-0393>), Viliam Simko [ctb], Kurt Hornik [ctb] (ORCID: <https://orcid.org/0000-0003-4198-9911>), Radford Neal [ctb] (ORCID: <https://orcid.org/0000-0002-2473-3407>), Kendon Bell [ctb] (ORCID: <https://orcid.org/0000-0002-9093-8312>), Matthew de Queljoe [ctb], Dmitry Selivanov [ctb] (ORCID: <https://orcid.org/0000-0003-0492-6647>), Ion Suruceanu [ctb] (ORCID: <https://orcid.org/0009-0005-6446-4909>), Bill Denney [ctb] (ORCID: <https://orcid.org/0000-0002-5759-428X>), Dirk Schumacher [ctb], András Svraka [ctb] (ORCID: <https://orcid.org/0009-0008-8480-1329>), Sergey Fedorov [ctb] (ORCID: <https://orcid.org/0000-0002-5970-7233>), Will Landau [ctb] (ORCID: <https://orcid.org/0000-0003-1878-3253>), Floris Vanderhaeghe [ctb] (ORCID: <https://orcid.org/0000-0002-6378-6229>), Kevin Tappe [ctb], Harris McGehee [ctb], Tim Mastny [ctb], Aaron Peikert [ctb] (ORCID: <https://orcid.org/0000-0001-7813-818X>), Mark van der Loo [ctb] (ORCID: <https://orcid.org/0000-0002-9807-4686>), Chris Muir [ctb] (ORCID: <https://orcid.org/0000-0003-2555-3878>), Moritz Beller [ctb] (ORCID: <https://orcid.org/0000-0003-4852-0526>), Sebastian Campbell [ctb] (ORCID: <https://orcid.org/0009-0000-5948-4503>), Winston Chang [ctb] (ORCID: <https://orcid.org/0000-0002-1576-2126>), Dean Attali [ctb] (ORCID: <https://orcid.org/0000-0002-5645-3493>), Michael Chirico [ctb] (ORCID: <https://orcid.org/0000-0003-0787-087X>), Kevin Ushey [ctb] (ORCID: <https://orcid.org/0000-0003-2880-7407>), Carl Pearson [ctb] (ORCID: <https://orcid.org/0000-0003-0701-7860>)",
       "Maintainer": "Dirk Eddelbuettel <edd@debian.org>",
       "Repository": "CRAN"
+    },
+    "dir.expiry": {
+      "Package": "dir.expiry",
+      "Version": "1.20.0",
+      "Source": "Bioconductor",
+      "Date": "2024-10-17",
+      "Title": "Managing Expiration for Cache Directories",
+      "Description": "Implements an expiration system for access to versioned directories. Directories that have not been accessed by a registered function within a certain time frame are deleted. This aims to reduce disk usage by eliminating obsolete caches generated by old versions of packages.",
+      "Authors@R": "person(\"Aaron\", \"Lun\", role=c(\"aut\", \"cre\"), email=\"infinite.monkeys.with.keyboards@gmail.com\")",
+      "License": "GPL-3",
+      "Imports": [
+        "utils",
+        "filelock"
+      ],
+      "Suggests": [
+        "rmarkdown",
+        "knitr",
+        "testthat",
+        "BiocStyle"
+      ],
+      "biocViews": "Software, Infrastructure",
+      "VignetteBuilder": "knitr",
+      "RoxygenNote": "7.3.2",
+      "Encoding": "UTF-8",
+      "git_url": "https://git.bioconductor.org/packages/dir.expiry",
+      "git_branch": "RELEASE_3_23",
+      "git_last_commit": "b9df09a",
+      "git_last_commit_date": "2026-04-28",
+      "Repository": "Bioconductor 3.23",
+      "NeedsCompilation": "no",
+      "Author": "Aaron Lun [aut, cre]",
+      "Maintainer": "Aaron Lun <infinite.monkeys.with.keyboards@gmail.com>"
     },
     "doBy": {
       "Package": "doBy",
@@ -7020,6 +7313,45 @@
       "RemoteRef": "dev",
       "RemoteSha": "afa09abb890f5be087b63e510a7346e8e1952ecc"
     },
+    "hdf5r": {
+      "Package": "hdf5r",
+      "Version": "1.3.12",
+      "Source": "Repository",
+      "Type": "Package",
+      "Title": "Interface to the 'HDF5' Binary Data Format",
+      "Authors@R": "c( person(\"Holger\", \"Hoefling\", email = \"hhoeflin@gmail.com\", role = c(\"aut\", \"cre\")), person(\"Mario\", \"Annau\", email = \"mario.annau@gmail.com\", role = \"aut\"), person(\"Novartis Institute for BioMedical Research (NIBR)\", role = \"cph\") )",
+      "Description": "'HDF5' is a data model, library and file format for storing and managing large amounts of data. This package provides a nearly feature complete, object oriented  wrapper for the 'HDF5' API <https://support.hdfgroup.org/documentation/hdf5/latest/_r_m.html> using R6 classes. Additionally, functionality is added so that 'HDF5' objects behave very similar to their corresponding R counterparts.",
+      "URL": "https://hhoeflin.github.io/hdf5r/, https://github.com/hhoeflin/hdf5r/",
+      "BugReports": "https://github.com/hhoeflin/hdf5r/issues",
+      "License": "Apache License 2.0 | file LICENSE",
+      "Copyright": "For the hdf5r package: Novartis Institute for BioMedical Research Inc. For HDF5: see the HDF5_COPYRIGHTS file.",
+      "LazyLoad": "true",
+      "Depends": [
+        "R (>= 3.2.2)",
+        "methods"
+      ],
+      "Imports": [
+        "R6",
+        "bit64",
+        "utils"
+      ],
+      "Suggests": [
+        "testthat",
+        "knitr",
+        "rmarkdown",
+        "nycflights13",
+        "reshape2",
+        "formatR"
+      ],
+      "SystemRequirements": "HDF5 (>= 1.8.13)",
+      "VignetteBuilder": "knitr",
+      "NeedsCompilation": "yes",
+      "RoxygenNote": "6.1.1.9000",
+      "Collate": "'Common_functions.R' 'Compound.R' 'H5constants.R' 'Helper_functions.R' 'Misc.R' 'R6Classes.R' 'R6Classes_H5A.R' 'R6Classes_H5D.R' 'R6Classes_H5File.R' 'R6Classes_H5Group.R' 'R6Classes_H5P.R' 'R6Classes_H5R.R' 'R6Classes_H5S.R' 'R6Classes_H5T.R' 'adapt_during_onLoad.R' 'convert.R' 'factor_ext.R' 'globalVariables.R' 'h5errorHandling.R' 'h5wrapper.R' 'hdf5r.R' 'high_level_UI.R' 'open_objs.R' 'zzz.R'",
+      "Author": "Holger Hoefling [aut, cre], Mario Annau [aut], Novartis Institute for BioMedical Research (NIBR) [cph]",
+      "Maintainer": "Holger Hoefling <hhoeflin@gmail.com>",
+      "Repository": "CRAN"
+    },
     "here": {
       "Package": "here",
       "Version": "1.0.2",
@@ -7632,6 +7964,25 @@
       "Maintainer": "Sam Firke <samuel.firke@gmail.com>",
       "Repository": "CRAN"
     },
+    "jpeg": {
+      "Package": "jpeg",
+      "Version": "0.1-11",
+      "Source": "Repository",
+      "Title": "Read and write JPEG images",
+      "Author": "Simon Urbanek [aut, cre, cph] (https://urbanek.org, <https://orcid.org/0000-0003-2297-1732>)",
+      "Authors@R": "person(\"Simon\", \"Urbanek\", role=c(\"aut\",\"cre\",\"cph\"), email=\"Simon.Urbanek@r-project.org\", comment=c(\"https://urbanek.org\", ORCID=\"0000-0003-2297-1732\"))",
+      "Maintainer": "Simon Urbanek <Simon.Urbanek@r-project.org>",
+      "Depends": [
+        "R (>= 2.9.0)"
+      ],
+      "Description": "This package provides an easy and simple way to read, write and display bitmap images stored in the JPEG format. It can read and write both files and in-memory raw vectors.",
+      "License": "GPL-2 | GPL-3",
+      "SystemRequirements": "libjpeg",
+      "URL": "https://www.rforge.net/jpeg/",
+      "BugReports": "https://github.com/s-u/jpeg/issues",
+      "NeedsCompilation": "yes",
+      "Repository": "CRAN"
+    },
     "jquerylib": {
       "Package": "jquerylib",
       "Version": "0.1.4",
@@ -8210,6 +8561,54 @@
       "Collate": "'Dates.r' 'POSIXt.r' 'util.r' 'parse.r' 'timespans.r' 'intervals.r' 'difftimes.r' 'durations.r' 'periods.r' 'accessors-date.R' 'accessors-day.r' 'accessors-dst.r' 'accessors-hour.r' 'accessors-minute.r' 'accessors-month.r' 'accessors-quarter.r' 'accessors-second.r' 'accessors-tz.r' 'accessors-week.r' 'accessors-year.r' 'am-pm.r' 'time-zones.r' 'numeric.r' 'coercion.r' 'constants.r' 'cyclic_encoding.r' 'data.r' 'decimal-dates.r' 'deprecated.r' 'format_ISO8601.r' 'guess.r' 'hidden.r' 'instants.r' 'leap-years.r' 'ops-addition.r' 'ops-compare.r' 'ops-division.r' 'ops-integer-division.r' 'ops-m+.r' 'ops-modulo.r' 'ops-multiplication.r' 'ops-subtraction.r' 'package.r' 'pretty.r' 'round.r' 'stamp.r' 'tzdir.R' 'update.r' 'vctrs.R' 'zzz.R'",
       "NeedsCompilation": "yes",
       "Author": "Vitalie Spinu [aut, cre], Garrett Grolemund [aut], Hadley Wickham [aut], Davis Vaughan [ctb], Ian Lyttle [ctb], Imanuel Costigan [ctb], Jason Law [ctb], Doug Mitarotonda [ctb], Joseph Larmarange [ctb], Jonathan Boiser [ctb], Chel Hee Lee [ctb]",
+      "Repository": "CRAN"
+    },
+    "magick": {
+      "Package": "magick",
+      "Version": "2.9.1",
+      "Source": "Repository",
+      "Type": "Package",
+      "Title": "Advanced Graphics and Image-Processing in R",
+      "Authors@R": "person(\"Jeroen\", \"Ooms\", role = c(\"aut\", \"cre\"), email = \"jeroenooms@gmail.com\", comment = c(ORCID = \"0000-0002-4035-0289\"))",
+      "Description": "Bindings to 'ImageMagick': the most comprehensive open-source image processing library available. Supports many common formats (png, jpeg, tiff, pdf, etc) and manipulations (rotate, scale, crop, trim, flip, blur, etc). All operations are vectorized via the Magick++ STL meaning they operate either on a single frame or a series of frames for working with layers, collages, or animation. In RStudio images are automatically previewed when printed to the console, resulting in an interactive editing environment. Also includes a graphics device for creating drawing onto images using pixel coordinates.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://docs.ropensci.org/magick/ https://ropensci.r-universe.dev/magick",
+      "BugReports": "https://github.com/ropensci/magick/issues",
+      "SystemRequirements": "ImageMagick++: ImageMagick-c++-devel (rpm) or libmagick++-dev (deb)",
+      "VignetteBuilder": "knitr",
+      "Depends": [
+        "R (>= 4.1.0)"
+      ],
+      "Imports": [
+        "Rcpp (>= 0.12.12)",
+        "magrittr",
+        "curl"
+      ],
+      "LinkingTo": [
+        "Rcpp"
+      ],
+      "Suggests": [
+        "av",
+        "spelling",
+        "jsonlite",
+        "methods",
+        "knitr",
+        "rmarkdown",
+        "rsvg",
+        "webp",
+        "pdftools",
+        "ggplot2",
+        "gapminder",
+        "IRdisplay",
+        "tesseract",
+        "gifski"
+      ],
+      "Encoding": "UTF-8",
+      "RoxygenNote": "7.3.3",
+      "Language": "en-US",
+      "NeedsCompilation": "yes",
+      "Author": "Jeroen Ooms [aut, cre] (ORCID: <https://orcid.org/0000-0002-4035-0289>)",
+      "Maintainer": "Jeroen Ooms <jeroenooms@gmail.com>",
       "Repository": "CRAN"
     },
     "magrittr": {
@@ -9719,6 +10118,33 @@
       "Maintainer": "Greg Lin <glin@glin.io>",
       "Repository": "CRAN"
     },
+    "readbitmap": {
+      "Package": "readbitmap",
+      "Version": "0.1.5",
+      "Source": "Repository",
+      "License": "GPL (>= 2)",
+      "Title": "Simple Unified Interface to Read Bitmap Images (BMP,JPEG,PNG,TIFF)",
+      "Authors@R": "c( person(\"Gregory\",\"Jefferis\", email=\"jefferis@gmail.com\",  role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0002-0587-9355\")), person(\"Derek\", \"Ogle\", role = c(\"ctb\")), person(\"Simon\", \"Barthelme\", role = c(\"ctb\")) )",
+      "Description": "Identifies and reads Windows BMP, JPEG, PNG, and TIFF format bitmap images. Identification defaults to the use of the magic number embedded in the file rather than the file extension. Reading of JPEG and PNG image depends on libjpg and libpng libraries. See file INSTALL for details if necessary.",
+      "URL": "https://github.com/jefferis/readbitmap",
+      "BugReports": "https://github.com/jefferis/readbitmap/issues",
+      "SystemRequirements": "libjpeg, libpng",
+      "Imports": [
+        "bmp",
+        "jpeg",
+        "png",
+        "tiff"
+      ],
+      "Suggests": [
+        "pixmap",
+        "testthat"
+      ],
+      "RoxygenNote": "6.0.1",
+      "NeedsCompilation": "no",
+      "Author": "Gregory Jefferis [aut, cre] (<https://orcid.org/0000-0002-0587-9355>), Derek Ogle [ctb], Simon Barthelme [ctb]",
+      "Maintainer": "Gregory Jefferis <jefferis@gmail.com>",
+      "Repository": "CRAN"
+    },
     "readr": {
       "Package": "readr",
       "Version": "2.2.0",
@@ -10027,6 +10453,93 @@
       "Maintainer": "Tomasz Kalinowski <tomasz@posit.co>",
       "Repository": "CRAN"
     },
+    "rhdf5": {
+      "Package": "rhdf5",
+      "Version": "2.56.0",
+      "Source": "Bioconductor",
+      "Type": "Package",
+      "Title": "R Interface to HDF5",
+      "Authors@R": "c( person(\"Bernd\", \"Fischer\", role = \"aut\"), person(\"Mike\", \"Smith\", role = \"aut\", comment = c(ORCID = \"0000-0002-7800-3848\", \"Maintainer from 2017 to 2025\")), person(\"Gregoire\", \"Pau\", role = \"aut\"), person(\"Martin\", \"Morgan\", role = \"ctb\"), person(\"Daniel\", \"van Twisk\", role = \"ctb\"), person(\"Hugo\", \"Gruson\", , \"hugo.gruson@embl.de\", role = \"cre\", comment = c(ORCID = \"0000-0002-4094-1476\")), person(\"German Network for Bioinformatics Infrastructure - de.NBI\", role = \"fnd\") )",
+      "Description": "This package provides an interface between HDF5 and R. HDF5's main features are the ability to store and access very large and/or complex datasets and a wide variety of metadata on mass storage (disk) through a completely portable file format. The rhdf5 package is thus suited for the exchange of large and/or complex datasets between R and other software package, and for letting R applications work on datasets that are larger than the available RAM.",
+      "License": "Artistic-2.0",
+      "URL": "https://huber-group-embl.github.io/rhdf5/, https://github.com/Huber-group-EMBL/rhdf5",
+      "BugReports": "https://github.com/Huber-group-EMBL/rhdf5/issues",
+      "Depends": [
+        "methods",
+        "R (>= 4.0.0)"
+      ],
+      "Imports": [
+        "rhdf5filters (>= 1.15.5)",
+        "Rhdf5lib (>= 1.33.3)"
+      ],
+      "Suggests": [
+        "bench",
+        "BiocParallel",
+        "BiocStyle",
+        "bit64",
+        "curl",
+        "dplyr",
+        "ggplot2",
+        "knitr",
+        "rmarkdown",
+        "testthat",
+        "withr"
+      ],
+      "LinkingTo": [
+        "Rhdf5lib"
+      ],
+      "VignetteBuilder": "knitr",
+      "biocViews": "Infrastructure, DataImport",
+      "Encoding": "UTF-8",
+      "LazyLoad": "true",
+      "Roxygen": "list(markdown = TRUE)",
+      "RoxygenNote": "7.3.3",
+      "SystemRequirements": "GNU make",
+      "git_url": "https://git.bioconductor.org/packages/rhdf5",
+      "git_branch": "RELEASE_3_23",
+      "git_last_commit": "cef3c44",
+      "git_last_commit_date": "2026-04-28",
+      "Repository": "Bioconductor 3.23",
+      "NeedsCompilation": "yes",
+      "Author": "Bernd Fischer [aut], Mike Smith [aut] (ORCID: <https://orcid.org/0000-0002-7800-3848>, Maintainer from 2017 to 2025), Gregoire Pau [aut], Martin Morgan [ctb], Daniel van Twisk [ctb], Hugo Gruson [cre] (ORCID: <https://orcid.org/0000-0002-4094-1476>), German Network for Bioinformatics Infrastructure - de.NBI [fnd]",
+      "Maintainer": "Hugo Gruson <hugo.gruson@embl.de>"
+    },
+    "rhdf5filters": {
+      "Package": "rhdf5filters",
+      "Version": "1.24.0",
+      "Source": "Bioconductor",
+      "Type": "Package",
+      "Title": "HDF5 Compression Filters",
+      "Authors@R": "c( person(\"Mike\", \"Smith\", role = c(\"aut\", \"ccp\"), comment = c(ORCID = \"0000-0002-7800-3848\") ), person(\"Hugo\", \"Gruson\", role = \"cre\", email = \"hugo.gruson@embl.de\", comment = c(ORCID = \"0000-0002-4094-1476\") ) )",
+      "Description": "Provides a collection of additional compression filters for HDF5 datasets. The package is intended to provide seamless integration with rhdf5, however the compiled filters can also be used with external applications.",
+      "License": "BSD_2_clause + file LICENSE",
+      "LazyLoad": "true",
+      "VignetteBuilder": "knitr",
+      "Suggests": [
+        "BiocStyle",
+        "knitr",
+        "rmarkdown",
+        "testthat",
+        "rhdf5 (>= 2.47.7)"
+      ],
+      "SystemRequirements": "GNU make",
+      "URL": "https://github.com/Huber-group-EMBL/rhdf5filters",
+      "BugReports": "https://github.com/Huber-group-EMBL/rhdf5filters/issues",
+      "LinkingTo": [
+        "Rhdf5lib"
+      ],
+      "RoxygenNote": "7.3.2",
+      "Encoding": "UTF-8",
+      "biocViews": "Infrastructure, DataImport",
+      "git_url": "https://git.bioconductor.org/packages/rhdf5filters",
+      "git_branch": "RELEASE_3_23",
+      "git_last_commit": "e8e69ae",
+      "git_last_commit_date": "2026-04-28",
+      "Repository": "Bioconductor 3.23",
+      "NeedsCompilation": "yes",
+      "Author": "Mike Smith [aut, ccp] (ORCID: <https://orcid.org/0000-0002-7800-3848>), Hugo Gruson [cre] (ORCID: <https://orcid.org/0000-0002-4094-1476>)",
+      "Maintainer": "Hugo Gruson <hugo.gruson@embl.de>"
+    },
     "rjson": {
       "Package": "rjson",
       "Version": "0.2.23",
@@ -10046,14 +10559,14 @@
     },
     "rlang": {
       "Package": "rlang",
-      "Version": "1.2.0",
+      "Version": "1.3.0",
       "Source": "Repository",
       "Title": "Functions for Base Types and Core R and 'Tidyverse' Features",
+      "Authors@R": "c( person(\"Lionel\", \"Henry\", , \"lionel@posit.co\", role = c(\"aut\", \"cre\")), person(\"Hadley\", \"Wickham\", , \"hadley@posit.co\", role = \"aut\"), person(\"mikefc\", , , \"mikefc@coolbutuseless.com\", role = \"cph\", comment = \"Hash implementation based on Mike's xxhashlite\"), person(\"Yann\", \"Collet\", role = \"cph\", comment = \"Author of the embedded xxHash library\"), person(\"Posit, PBC\", role = c(\"cph\", \"fnd\")) )",
       "Description": "A toolbox for working with base types, core R features like the condition system, and core 'Tidyverse' features like tidy evaluation.",
-      "Authors@R": "c( person(\"Lionel\", \"Henry\", ,\"lionel@posit.co\", c(\"aut\", \"cre\")), person(\"Hadley\", \"Wickham\", ,\"hadley@posit.co\", \"aut\"), person(given = \"mikefc\", email = \"mikefc@coolbutuseless.com\", role = \"cph\", comment = \"Hash implementation based on Mike's xxhashlite\"), person(given = \"Yann\", family = \"Collet\", role = \"cph\", comment = \"Author of the embedded xxHash library\"), person(given = \"Posit, PBC\", role = c(\"cph\", \"fnd\")) )",
       "License": "MIT + file LICENSE",
-      "ByteCompile": "true",
-      "Biarch": "true",
+      "URL": "https://rlang.r-lib.org, https://github.com/r-lib/rlang",
+      "BugReports": "https://github.com/r-lib/rlang/issues",
       "Depends": [
         "R (>= 4.0.0)"
       ],
@@ -10083,13 +10596,14 @@
       "Enhances": [
         "winch"
       ],
-      "Encoding": "UTF-8",
-      "RoxygenNote": "7.3.3",
-      "URL": "https://rlang.r-lib.org, https://github.com/r-lib/rlang",
-      "BugReports": "https://github.com/r-lib/rlang/issues",
+      "Biarch": "true",
+      "ByteCompile": "true",
       "Config/build/compilation-database": "true",
-      "Config/testthat/edition": "3",
       "Config/Needs/website": "dplyr, tidyverse/tidytemplate",
+      "Config/roxygen2/version": "8.0.0",
+      "Config/testthat/edition": "3",
+      "Config/testthat/parallel": "true",
+      "Encoding": "UTF-8",
       "NeedsCompilation": "yes",
       "Author": "Lionel Henry [aut, cre], Hadley Wickham [aut], mikefc [cph] (Hash implementation based on Mike's xxhashlite), Yann Collet [cph] (Author of the embedded xxHash library), Posit, PBC [cph, fnd]",
       "Maintainer": "Lionel Henry <lionel@posit.co>",
@@ -11222,9 +11736,9 @@
     },
     "spatstat.geom": {
       "Package": "spatstat.geom",
-      "Version": "3.8-1",
+      "Version": "3.8-3",
       "Source": "Repository",
-      "Date": "2026-05-23",
+      "Date": "2026-09-18",
       "Title": "Geometrical Functionality of the 'spatstat' Family",
       "Authors@R": "c(person(\"Adrian\", \"Baddeley\",  role = c(\"aut\", \"cre\", \"cph\"), email = \"Adrian.Baddeley@curtin.edu.au\", comment = c(ORCID=\"0000-0001-9499-8382\")), person(\"Rolf\", \"Turner\",  role = c(\"aut\", \"cph\"), email=\"rolfturner@posteo.net\", comment=c(ORCID=\"0000-0001-5521-5218\")), person(\"Ege\",   \"Rubak\",  role = c(\"aut\", \"cph\"), email = \"rubak@math.aau.dk\", comment=c(ORCID=\"0000-0002-6675-533X\")), person(\"Warick\",    \"Brown\" ,        role = \"ctb\"), person(\"Tilman\",    \"Davies\",        role = \"ctb\"), person(\"Ute\",       \"Hahn\",          role = \"ctb\"), person(\"Martin\",    \"Hazelton\",      role = \"ctb\"), person(\"Abdollah\",  \"Jalilian\",      role = \"ctb\"), person(\"Greg\",      \"McSwiggan\",     role = c(\"ctb\", \"cph\")), person(\"Sebastian\", \"Meyer\",         role = c(\"ctb\", \"cph\")), person(\"Jens\",      \"Oehlschlaegel\", role = c(\"ctb\", \"cph\")), person(\"Suman\",     \"Rakshit\",       role = \"ctb\"), person(\"Dominic\",   \"Schuhmacher\",   role = \"ctb\"), person(\"Rasmus\",    \"Waagepetersen\", role = \"ctb\"))",
       "Maintainer": "Adrian Baddeley <Adrian.Baddeley@curtin.edu.au>",
@@ -11239,12 +11753,12 @@
         "methods"
       ],
       "Imports": [
-        "spatstat.utils (>= 3.2-3)",
-        "deldir (>= 1.0-2)",
+        "spatstat.utils (>= 3.2-5)",
+        "deldir (>= 2.0-2)",
         "polyclip (>= 1.10)"
       ],
       "Suggests": [
-        "spatstat.random (>= 3.4-5)",
+        "spatstat.random (>= 3.5)",
         "spatstat.explore (>= 3.8)",
         "spatstat.model (>= 3.7)",
         "spatstat.linnet (>= 3.5)",
@@ -11263,9 +11777,9 @@
     },
     "spatstat.random": {
       "Package": "spatstat.random",
-      "Version": "3.5-0",
+      "Version": "3.5-2",
       "Source": "Repository",
-      "Date": "2026-05-24",
+      "Date": "2026-09-21",
       "Title": "Random Generation Functionality for the 'spatstat' Family",
       "Authors@R": "c(person(\"Adrian\", \"Baddeley\",  role = c(\"aut\", \"cre\", \"cph\"), email = \"Adrian.Baddeley@curtin.edu.au\", comment = c(ORCID=\"0000-0001-9499-8382\")), person(\"Rolf\", \"Turner\",  role = c(\"aut\", \"cph\"), email=\"rolfturner@posteo.net\", comment=c(ORCID=\"0000-0001-5521-5218\")), person(\"Ege\",   \"Rubak\",  role = c(\"aut\", \"cph\"), email = \"rubak@math.aau.dk\", comment=c(ORCID=\"0000-0002-6675-533X\")), person(\"Tilman\", \"Davies\", role = c(\"aut\", \"cph\"), comment=c(ORCID=\"0000-0003-0565-1825\")), person(\"Kasper\", \"Klitgaard Berthelsen\", role = c(\"ctb\", \"cph\")), person(\"David\", \"Bryant\", role = c(\"ctb\", \"cph\")), person(\"Ya-Mei\", \"Chang\", role = c(\"ctb\", \"cph\"), email = \"yamei628@gmail.com\"), person(\"Ute\", \"Hahn\", role = \"ctb\"), person(\"Abdollah\", \"Jalilian\",  role = \"ctb\"), person(\"Dominic\", \"Schuhmacher\", role = c(\"ctb\", \"cph\")), person(\"Rasmus\", \"Plenge Waagepetersen\", role = c(\"ctb\", \"cph\")))",
       "Maintainer": "Adrian Baddeley <Adrian.Baddeley@curtin.edu.au>",
@@ -11273,7 +11787,7 @@
         "R (>= 3.5.0)",
         "spatstat.data (>= 3.1-9)",
         "spatstat.univar (>= 3.2-0)",
-        "spatstat.geom (>= 3.8-1)",
+        "spatstat.geom (>= 3.8-2)",
         "stats",
         "utils",
         "methods",
@@ -11281,7 +11795,7 @@
       ],
       "Imports": [
         "Matrix",
-        "spatstat.utils (>= 3.2-3)",
+        "spatstat.utils (>= 3.2-5)",
         "spatstat.sparse (>= 3.2-0)"
       ],
       "Suggests": [
@@ -11357,9 +11871,9 @@
     },
     "spatstat.utils": {
       "Package": "spatstat.utils",
-      "Version": "3.2-3",
+      "Version": "3.2-5",
       "Source": "Repository",
-      "Date": "2026-05-10",
+      "Date": "2026-09-11",
       "Title": "Utility Functions for 'spatstat'",
       "Authors@R": "c(person(\"Adrian\", \"Baddeley\",  role = c(\"aut\", \"cre\"), email = \"Adrian.Baddeley@curtin.edu.au\", comment = c(ORCID=\"0000-0001-9499-8382\")), person(\"Rolf\", \"Turner\",  role = \"aut\", email=\"rolfturner@posteo.net\", comment=c(ORCID=\"0000-0001-5521-5218\")), person(\"Ege\",   \"Rubak\",  role = \"aut\", email = \"rubak@math.aau.dk\", comment=c(ORCID=\"0000-0002-6675-533X\")))",
       "Maintainer": "Adrian Baddeley <Adrian.Baddeley@curtin.edu.au>",
@@ -12102,6 +12616,23 @@
       "NeedsCompilation": "yes",
       "Author": "Lionel Henry [aut, cre], Hadley Wickham [aut], Posit Software, PBC [cph, fnd]",
       "Maintainer": "Lionel Henry <lionel@posit.co>",
+      "Repository": "CRAN"
+    },
+    "tiff": {
+      "Package": "tiff",
+      "Version": "0.1-12",
+      "Source": "Repository",
+      "Title": "Read and Write TIFF Images",
+      "Author": "Simon Urbanek <Simon.Urbanek@r-project.org> [aut, cre], Kent Johnson <kjohnson@akoyabio.com> [ctb]",
+      "Maintainer": "Simon Urbanek <Simon.Urbanek@r-project.org>",
+      "Depends": [
+        "R (>= 2.9.0)"
+      ],
+      "Description": "Functions to read, write and display bitmap images stored in the TIFF format. It can read and write both files and in-memory raw vectors, including native image representation.",
+      "License": "GPL-2 | GPL-3",
+      "SystemRequirements": "tiff and jpeg libraries",
+      "URL": "https://www.rforge.net/tiff/",
+      "NeedsCompilation": "yes",
       "Repository": "CRAN"
     },
     "timeDate": {

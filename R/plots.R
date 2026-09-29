@@ -391,7 +391,8 @@ plot_spatial_selection_genes <- function(seu, genes, box = list(x1 = -Inf, x2 = 
     facet_wrap(~gene_symbol, ncol = ncol)
 
   if(is.null(percentile)) {
-    pl <- pl + scale_fill_viridis_c(option = "cividis")
+    #pl <- pl + scale_fill_viridis_c(option = "cividis")
+    pl <- pl + scale_fill_distiller(palette = "Purples", direction = 1)
   } else {
     pl <- pl + scale_fill_manual(values = c("beige", "darkseagreen", "black")) +
       theme(legend.position = "none")
@@ -2130,7 +2131,7 @@ plot_top_cluster_features <- function(seu_clust, conserved_markers, genes, max_n
 
 
 plot_gene_segmentation <- function(seu, genes, box = list(x1 = -Inf, x2 = Inf, y1 = -Inf, y2 = Inf),
-                                   seu_grid = NULL, with_centroids = FALSE) {
+                                   seu_grid = NULL, with_centroids = FALSE, ncol = 2) {
   poly <- get_polygons(seu)
   ex <- get_gene_expression(seu, genes)
 
@@ -2146,10 +2147,10 @@ plot_gene_segmentation <- function(seu, genes, box = list(x1 = -Inf, x2 = Inf, y
   d <- inner_join(poly, ex, by = "cell_id", relationship = "many-to-many") 
   pl <- d |> 
     ggplot() +
-    thm +
+    th +
     geom_polygon(aes(x = x, y = y, group = cell_id, fill = expression), colour = NA, linewidth = 0) +
     scale_fill_distiller(palette = "Purples", direction = 1) +
-    facet_wrap(~gene_symbol) +
+    facet_wrap(~gene_symbol, ncol = ncol) +
     coord_cartesian(xlim = c(box$x1, box$x2), ylim = c(box$y1, box$y2)) +
     labs(x = NULL, y = NULL)  
   if(!is.null(seu_grid)) {
@@ -2177,3 +2178,30 @@ plot_cell_area_distribution <- function(seu, bins = 160) {
     scale_x_continuous(expand = expansion(mult = c(0, 0.03))) +
     labs(x = "Cell area (µm²)", y = "Count")
 }
+
+
+plot_cmp_genes <- function(cmp, genes, what = "counts") {
+  d <- cmp |> 
+    filter(gene_symbol %in% genes)
+  if(what == "counts") {
+    d <- d |>
+      select(cell_id, gene_symbol, ori = counts_1, clean = counts_2)
+  } else {
+    d <- d |>
+      select(cell_id, gene_symbol, ori = norm_1, clean = norm_2)
+  }
+  env <- new.env(parent = globalenv())
+  env$d <- d
+  env$what <- what
+
+  with(env, {    
+    d |> 
+      mutate(x = ori, y = log2(clean / ori)) |> 
+      ggplot(aes(x = x, y = y)) +
+      th +
+      geom_point(colour = "grey40", size = 0.4) +
+      geom_hline(yintercept = 0, colour = "brown", alpha = 0.3) +
+      facet_wrap(~gene_symbol, scales = "free") +
+      labs(x = str_glue("Original {what}"), y = "log2 (cleaned / original)")
+  })
+  }

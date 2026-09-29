@@ -844,14 +844,12 @@ get_assay_data <- function(seu, layer = "counts") {
     filter(expression > 0)
 }
 
-get_seurat_comparison <- function(seu_1, seu_2, layer = "counts") {
-  d1 <- get_assay_data(seu_1, layer = layer) |>
-    rename(expr_1 = expression) 
-  d2 <- get_assay_data(seu_2, layer = layer) |> 
-    rename(expr_2 = expression)
-  full_join(d1, d2, by = join_by(cell_id, gene_symbol)) |> 
-    mutate(
-      expr_1 = replace_na(expr_1, 0),
-      expr_2 = replace_na(expr_2, 0)
-    )
+get_seurat_comparison <- function(seu, seu_clean) {
+  c1 <- get_assay_data(seu, layer = "counts") |> rename(counts_1 = expression) 
+  c2 <- get_assay_data(seu_clean, layer = "counts") |> rename(counts_2 = expression)
+  d1 <- get_assay_data(seu, layer = "data") |> rename(norm_1 = expression) 
+  d2 <- get_assay_data(seu_clean, layer = "data") |> rename(norm_2 = expression)
+  list(c1, c2, d1, d2) |>
+    reduce(full_join, by = join_by(cell_id, gene_symbol)) |> 
+    mutate(across(c(counts_1, counts_2, norm_1, norm_2), ~replace_na(.x, 0)))
 }

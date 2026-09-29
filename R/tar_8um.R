@@ -13,6 +13,23 @@ targets_8um <- function() {
         relabel_clusters(RELABEL_CLUSTERS, RESOLUTION),
       seu_mark = annotate_cells_page(seu, tissue_markers, n_boot = 1000, p_val_limit = 0.05),
 
+      # Spacebender
+      # This bit needs to be done on a cluster node.
+      # First, save data for spacebender, copy the files from spacebender_data
+      # to the cluster node, run spacebender on the cluster (script "scripts/run_spacebender.py"),
+      # and copy the results back to the local machine. Then, you can run "seu_sb".
+      sav_sb = save_data_for_spacebender(DATA_PATH, NAME),
+      seu_sb = read_spacebender_clean_file(seu, NAME) |> NormalizeData(),
+      sb_cmp = get_seurat_comparison(seu, seu_sb),
+      cmp_genes = c("INS", "SST", "GCG", "GHRL", "PPY", "SOX9", "PTF1A", "NKX6-1", "PDX1", "PAX4", "PAX6", "NEUROD1", "NEUROG3"),
+      fig_cmp_count = plot_cmp_genes(sb_cmp, cmp_genes, what = "counts"),
+      fig_cmp_data = plot_cmp_genes(sb_cmp, cmp_genes, what = "data"),
+      fig_hormone_overlap_sb = plot_upset_expressed_cells(seu_sb, c("INS", "SST", "GCG", "GHRL", "PPY")),
+      fig_binned_expression_sb = plot_binned_expression(seu_sb, "INS", genes_for_binned, bins = n_insulin_bins),
+      fig_binned_ins_prop_sb = plot_binned_xy_expression(seu_sb, "INS", genes_for_binned, bins = n_insulin_bins, what = "proportion", include_x_zeroes = TRUE),
+      fig_binned_ins_spatial_sb = plot_binned_spatial(seu_sb, "INS", bins = n_insulin_bins) |> gs("binned_ins_spatial_sb", NAME, 8, 6),
+      png_spatial_selection_genes_sb = plot_spatial_selection_genes(seu_sb, c("SOX9", "NEUROG3", "INS", "SST", "GCG", "GHRL"), box_1) |> gs("spatial_selection_hormones_sb", NAME, width = 8, height = 12),
+
       # Save seurat for shiny
       sav_seu = save_for_shiny(seu_mark, NAME),
 
@@ -226,6 +243,10 @@ targets_8um <- function() {
       fig_seg_hormneu_overlap = plot_upset_expressed_cells(seu_seg, c("INS", "SST", "GCG", "GHRL", "NEUROG3")),
       seu_seg_mark = annotate_cells_page(seu_seg, tissue_markers, n_boot = 1000, p_val_limit = 0.05),
 
+      # SPARKLE
+      sparkle_path = file.path("data/sparkle", NAME),
+      seu_seg_sparkle = read_sparkle(seu_seg, sparkle_path),
+
       # For the manuscript
       mn_clust_integ = mn_plot_spatial_clustering(seu_integ, meta_column = "cluster_integ") |> gp("clustering_integ", sample = NAME, width = 3.3, height = 3, path = "manuscript/fig"),
       mn_clust_jaccard = mn_plot_cluster_cell_type_jaccard(seu_integ, cluster_col = "cluster_integ") |> gp("jaccard_integ", sample = NAME, width = 3.5, height = 2.7, path = "manuscript/fig"),
@@ -300,8 +321,9 @@ targets_8um <- function() {
     png_section_ins_ghrl = plot_spatial_section(seu_1, "INS", "GHRL", sct_1) |> gs("spatial_section_ins_ghrl", width = 8, height = 8),
 
     box_1 = list(x1 = 4300, x2 = 5600, y1 = -5300, y2 = -3600),
+    box_1a = list(x1 = 4900, x2 = 5200, y1 = -4200, y2 = -3900),
     ins_spots = read_sx_sy("info/insulin_spots.csv", seu_1),
-    png_spatial_selection_genes = plot_spatial_selection_genes(seu_1, c("SOX9", "NEUROG3", "INS", "SST", "GCG", "GHRL"), box_1, spots = ins_spots) |> gs("spatial_selection_hormones", width = 8, height = 12),
+    png_spatial_selection_genes = plot_spatial_selection_genes(seu_1, c("SOX9", "NEUROG3", "INS", "SST", "GCG", "GHRL"), box_1) |> gs("spatial_selection_hormones", width = 8, height = 12),
     png_spatial_selection_meta = plot_spatial_selection_meta(seu_mark_1, "cell_type", box_1) |> gs("spatial_selection_cell_type", width = 5, height = 4),
 
     box_2 = list(x1 = 4900, x2 = 5200, y1 = -4500, y2 = -4150),
@@ -315,7 +337,14 @@ targets_8um <- function() {
     gif_spatial_neurog3_dbh = animate_spatial_genes(seu_1, c("NEUROG3", "DBH"), box_1),
     gif_spatial_full = animate_spatial_genes(seu_1, c("PTF1A", "PDX1", "SOX9", "PAX4", "NEUROD1", "NEUROG3", "INS"), box_1),
 
-    seu_2um = load_visium_data(EXPERIMENTS$DATA_PATH[1], mito_genes, bin_size = 2),
+    seg_genes = c("INS", "SST", "GCG", "GHRL", "SOX9", "NEUROG3"),
+    png_seg_genes = plot_gene_segmentation(seu_seg_1, seg_genes, box = box_1) |> gs("seg_genes", "1", width = 8, height = 12),
+    png_seg_sparkle_genes = plot_gene_segmentation(seu_seg_sparkle_1, seg_genes, box = box_1) |> gs("seg_genes_sparkle", "1", width = 8, height = 12),
+    png_seg_ins = plot_gene_segmentation(seu_seg_1, "INS", box = box_1a, with_centroids = TRUE) |> gs("seg_ins", "1", width = 9, height = 8),
+    png_seg_sparkle_ins = plot_gene_segmentation(seu_seg_sparkle_1, "INS", box = box_1a, with_centroids = TRUE) |> gs("seg_ins_sparkle", "1", width = 9, height = 8),
+    png_spatial_2um_ins = plot_spatial_selection_genes(seu_2um, "INS", box = box_1a) |> gs("spa2um_ins", width = 9, height = 8),
+
+    seu_2um = load_visium_data(EXPERIMENTS$DATA_PATH[1], mito_genes, bin_size = 2) |> NormalizeData(),
     box_coords = list(x = 5154, y = -4196, size = 28),
     fig_box_ins = plot_spatial_box(seu_1, "INS", x_cen = box_coords$x, y_cen = box_coords$y, size = box_coords$size),
     res_comp = combine_resolution_area(seu_1, seu_2um, c("INS", "SST", "GCG", "GHRL"), x_cen = box_coords$x, y_cen = box_coords$y, size = box_coords$size),

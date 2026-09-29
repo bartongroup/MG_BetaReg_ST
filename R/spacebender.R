@@ -13,7 +13,7 @@
 #' @param overwrite Whether to replace an existing H5AD export.
 #' @return Written H5AD path, invisibly (suitable for a file target).
 save_data_for_spacebender <- function(data_path, sample, bin_size = 8,
-                                     overwrite = FALSE) {
+                                     overwrite = TRUE) {
   if (length(bin_size) != 1L || !is.numeric(bin_size) || is.na(bin_size) ||
       !is.finite(bin_size) || bin_size < 1 || bin_size != floor(bin_size)) {
     stop("bin_size must be a positive integer.")
