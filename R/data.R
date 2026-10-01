@@ -8,6 +8,12 @@ EXPERIMENTS_ALL <- tibble::tibble(
   SAMPLE = c("1_18191", "2_17961", "3_18171", "4_17966"),
   NAME = c("1", "2", "3", "4"),
   NAME2 = c("2um_1", "2um_2", "2um_3", "2um_4"),
+  BOX = list(
+    list(x1 = 3200, x2 = 6300, y1 = -1300, y2 = -6050),
+    list(x1 = 2200, x2 = 6600, y1 = -5500, y2 = -100),
+    list(x1 = NA, x2 = NA, y1 = NA, y2 = NA),
+    list(x1 = NA, x2 = NA, y1 = NA, y2 = NA)
+  ),
   RESOLUTIONS = list(
     c(0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5),
     c(0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5),
@@ -320,31 +326,45 @@ save_for_shiny <- function(seu, suffix) {
 }
 
 
-jaccard_clusters_cell_types <- function(seu, cluster_col = "cluster") {
-  meta <- seu@meta.data |>
-    as_tibble(rownames = "cell_id") |> 
-    mutate(cluster = get(cluster_col)) |> 
-    select(cell_id, cluster, cell_type)
-  m_cl <- meta |>
-    group_by(cluster) |> 
+jaccard_meta <- function(seu, col_1, col_2) {
+  meta <- seu |> 
+    get_cell_data() |> 
+    mutate(
+      col_1 = get(col_1),
+      col_2 = get(col_2)
+    ) |> 
+    select(cell_id, col_1, col_2) |> 
+    droplevels()
+  
+  m_1 <- meta |>
+    group_by(col_1) |> 
     summarize(ids = list(cell_id), .groups = "drop") |> 
     deframe()    
-  m_ct <- meta |>
-    group_by(cell_type) |> 
+  m_2 <- meta |>
+    group_by(col_2) |> 
     summarize(ids = list(cell_id), .groups = "drop") |> 
     deframe()    
 
-  expand_grid(cluster = levels(meta$cluster), cell_type = levels(meta$cell_type)) |> 
+  expand_grid(c1 = levels(meta$col_1), c2 = levels(meta$col_2)) |> 
     mutate(
-      cluster = factor(cluster, levels = levels(meta$cluster)),
-      cell_type = factor(cell_type, levels = levels(meta$cell_type))
+      c1 = factor(c1, levels = levels(meta$col_1)),
+      c2 = factor(c2, levels = levels(meta$col_2))
     ) |> 
     rowwise() |> 
     mutate(
-      n_un = union(m_cl[[cluster]], m_ct[[cell_type]]) |> length(),
-      n_int = intersect(m_cl[[cluster]], m_ct[[cell_type]]) |> length(),
+      n_un = union(m_1[[c1]], m_2[[c2]]) |> length(),
+      n_int = intersect(m_1[[c1]], m_2[[c2]]) |> length(),
       j = n_int / n_un
+    ) |> 
+    rename(
+      !!col_1 := c1,
+      !!col_2 := c2
     )
+}
+
+
+jaccard_clusters_cell_types <- function(seu, cluster_col = "cluster") {
+  jaccard_meta(seu, cluster_col, "cell_type")
 }
 
 jaccard_cluster_cluster <- function(markers_1, markers_2, n_top = 30) {

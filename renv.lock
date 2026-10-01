@@ -675,6 +675,45 @@
       "Author": "Zuguang Gu [aut, cre] (ORCID: <https://orcid.org/0000-0002-7395-8709>)",
       "Maintainer": "Zuguang Gu <guzuguang@suat-sz.edu.cn>"
     },
+    "CytoTRACE2": {
+      "Package": "CytoTRACE2",
+      "Version": "1.1.0",
+      "Source": "GitHub",
+      "Type": "Package",
+      "Title": "Prediction of absolute developmental potential of single cells",
+      "Authors@R": "c( person(\"Minji\", \"Kang\", role = \"aut\"), person(\"Jose Juan\", \"Almagro Armenteros\", role = \"aut\"), person(\"Gunsagar\", \"Gulati\", role = \"aut\"), person(\"Rachel\", \"Gleyzer\", role = \"aut\"), person(\"Erin\", \"Brown\", role = \"aut\"), person(\"Susanna\", \"Avagyan\", role = \"aut\"), person(\"CytoTRACE 2, Team\", email = \"cytotrace2team@gmail.com\", role = \"cre\"))",
+      "Description": "CytoTRACE 2 is a computational method for predicting cellular potency categories and absolute developmental potential from single-cell RNA-sequencing data.",
+      "License": "STANFORD NON-COMMERCIAL SOFTWARE LICENSE AGREEMENT",
+      "Encoding": "UTF-8",
+      "LazyData": "true",
+      "RoxygenNote": "7.2.3",
+      "Depends": [
+        "R (>= 3.5.0)",
+        "data.table",
+        "doParallel",
+        "dplyr",
+        "ggplot2",
+        "HiClimR",
+        "magrittr",
+        "Matrix",
+        "parallel",
+        "plyr",
+        "Rfast",
+        "RSpectra",
+        "Seurat",
+        "SeuratObject",
+        "stringr"
+      ],
+      "Author": "Minji Kang [aut], Jose Juan Almagro Armenteros [aut], Gunsagar Gulati [aut], Rachel Gleyzer [aut], Erin Brown [aut], Susanna Avagyan [aut], CytoTRACE 2, Team [cre]",
+      "Maintainer": "\"CytoTRACE 2, Team\" <cytotrace2team@gmail.com>",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "digitalcytometry",
+      "RemoteRepo": "cytotrace2",
+      "RemoteSubdir": "cytotrace2_r",
+      "RemoteRef": "main",
+      "RemoteSha": "33b9c6bbb0f8591ae7c5f7799e19d6ce5fec9789"
+    },
     "DBI": {
       "Package": "DBI",
       "Version": "1.3.0",
@@ -1097,6 +1136,50 @@
       "NeedsCompilation": "no",
       "Author": "Zuguang Gu [aut, cre] (ORCID: <https://orcid.org/0000-0002-7395-8709>)",
       "Maintainer": "Zuguang Gu <guzuguang@suat-sz.edu.cn>",
+      "Repository": "CRAN"
+    },
+    "HiClimR": {
+      "Package": "HiClimR",
+      "Version": "2.2.1",
+      "Source": "Repository",
+      "Type": "Package",
+      "Title": "Hierarchical Climate Regionalization",
+      "Authors@R": "c( person(given = \"Hamada S.\", family = \"Badr\", email = \"badr@jhu.edu\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0002-9808-2344\")), person(given = \"Benjamin F.\", family = \"Zaitchik\", email = \"zaitchik@jhu.edu\", role = c(\"aut\"), comment = c(ORCID = \"0000-0002-0698-0658\")), person(given = \"Amin K.\", family = \"Dezfuli\", email = \"amin.dezfuli@nasa.gov\", role = c(\"aut\"), comment = c(ORCID = \"0000-0003-3274-8542\")))",
+      "Description": "A tool for Hierarchical Climate Regionalization applicable to any correlation-based clustering. It adds several features and a new clustering method (called, 'regional' linkage) to hierarchical clustering in R ('hclust' function in 'stats' library): data regridding, coarsening spatial resolution, geographic masking, contiguity-constrained clustering, data filtering by mean and/or variance thresholds, data preprocessing (detrending, standardization, and PCA), faster correlation function with preliminary big data support, different clustering methods, hybrid hierarchical clustering, multivariate clustering (MVC), cluster validation, visualization of regionalization results, and exporting region map and mean timeseries into NetCDF-4 file. The technical details are described in Badr et al. (2015) <doi:10.1007/s12145-015-0221-7>.",
+      "License": "GPL-3",
+      "URL": "https://hsbadr.github.io/HiClimR/, https://github.com/hsbadr/HiClimR",
+      "BugReports": "https://github.com/hsbadr/HiClimR/issues",
+      "Depends": [
+        "R (>= 2.10)"
+      ],
+      "Imports": [
+        "graphics",
+        "grDevices",
+        "stats",
+        "utils",
+        "ncdf4"
+      ],
+      "Suggests": [
+        "covr",
+        "devtools",
+        "knitr",
+        "rmarkdown",
+        "roxygen2",
+        "spelling",
+        "testthat"
+      ],
+      "VignetteBuilder": "knitr",
+      "Encoding": "UTF-8",
+      "RoxygenNote": "7.1.2",
+      "LazyData": "yes",
+      "LazyLoad": "yes",
+      "Biarch": "yes",
+      "ByteCompile": "yes",
+      "NeedsCompilation": "yes",
+      "SystemRequirements": "NetCDF (>= 4.1)",
+      "Language": "en-US",
+      "Author": "Hamada S. Badr [aut, cre] (<https://orcid.org/0000-0002-9808-2344>), Benjamin F. Zaitchik [aut] (<https://orcid.org/0000-0002-0698-0658>), Amin K. Dezfuli [aut] (<https://orcid.org/0000-0003-3274-8542>)",
+      "Maintainer": "Hamada S. Badr <badr@jhu.edu>",
       "Repository": "CRAN"
     },
     "Hmisc": {
@@ -2018,6 +2101,39 @@
       "NeedsCompilation": "no",
       "Author": "Georgi N. Boshnakov [aut, cre] (ORCID: <https://orcid.org/0000-0003-2839-346X>), Duncan Murdoch [ctb]",
       "Maintainer": "Georgi N. Boshnakov <georgi.boshnakov@manchester.ac.uk>",
+      "Repository": "CRAN"
+    },
+    "Rfast": {
+      "Package": "Rfast",
+      "Version": "2.1.5.2",
+      "Source": "Repository",
+      "Type": "Package",
+      "Title": "A Collection of Efficient and Extremely Fast R Functions",
+      "Date": "2025-10-10",
+      "Authors@R": "c( person(\"Manos Papadakis\", email = \"rfastofficial@gmail.com\", role = c(\"aut\", \"cre\", \"cph\")),  person(\"Michail Tsagris\", role = c(\"aut\")),  person(\"Marios Dimitriadis\", role = c(\"aut\")),  person(\"Stefanos Fafalios\", role = c(\"aut\")),  person(\"Matteo Fasiolo\", role = c(\"aut\")),  person(\"Morgan Jacob\", role = c(\"ctb\")),  person(\"Giorgos Borboudakis\", role = c(\"aut\")),  person(\"John Burkardt\", role = c(\"aut\")),  person(\"Changliang Zou\", role = c(\"aut\"))  )",
+      "Maintainer": "Manos Papadakis <rfastofficial@gmail.com>",
+      "Depends": [
+        "R (>= 3.5.0)",
+        "Rcpp (>= 0.12.3)",
+        "zigg",
+        "RcppParallel"
+      ],
+      "LinkingTo": [
+        "Rcpp (>= 0.12.3)",
+        "RcppArmadillo",
+        "RcppParallel",
+        "zigg"
+      ],
+      "Suggests": [
+        "philentropy"
+      ],
+      "SystemRequirements": "C++17",
+      "BugReports": "https://github.com/RfastOfficial/Rfast/issues",
+      "URL": "https://github.com/RfastOfficial/Rfast",
+      "Description": "A collection of fast (utility) functions for data analysis. Column and row wise means, medians, variances, minimums, maximums, many t, F and G-square tests, many regressions (normal, logistic, Poisson), are some of the many fast functions. References: a) Tsagris M., Papadakis M. (2018). Taking R to its limits: 70+ tips. PeerJ Preprints 6:e26605v1 <doi:10.7287/peerj.preprints.26605v1>. b) Tsagris M. and Papadakis M. (2018). Forward regression in R: from the extreme slow to the extreme fast. Journal of Data Science, 16(4): 771--780. <doi:10.6339/JDS.201810_16(4).00006>. c) Chatzipantsiou C., Dimitriadis M., Papadakis M. and Tsagris M. (2020). Extremely Efficient Permutation and Bootstrap Hypothesis Tests Using Hypothesis Tests Using R. Journal of Modern Applied Statistical Methods, 18(2), eP2898. <doi:10.48550/arXiv.1806.10947>. d) Tsagris M., Papadakis M., Alenazi A. and Alzeley O. (2024). Computationally Efficient Outlier Detection for High-Dimensional Data Using the MDP Algorithm. Computation, 12(9): 185. <doi:10.3390/computation12090185>. e) Tsagris M. and Papadakis M. (2025). Fast and light-weight energy statistics using the R package Rfast. <doi:10.48550/arXiv.2501.02849>.",
+      "License": "GPL (>= 2.0)",
+      "NeedsCompilation": "yes",
+      "Author": "Manos Papadakis [aut, cre, cph], Michail Tsagris [aut], Marios Dimitriadis [aut], Stefanos Fafalios [aut], Matteo Fasiolo [aut], Morgan Jacob [ctb], Giorgos Borboudakis [aut], John Burkardt [aut], Changliang Zou [aut]",
       "Repository": "CRAN"
     },
     "Rhdf5lib": {
@@ -8903,6 +9019,22 @@
       "Maintainer": "Hadley Wickham <hadley@posit.co>",
       "Repository": "CRAN"
     },
+    "ncdf4": {
+      "Package": "ncdf4",
+      "Version": "1.24",
+      "Source": "Repository",
+      "Date": "2025-03-25",
+      "Title": "Interface to Unidata netCDF (Version 4 or Earlier) Format Data Files",
+      "Authors@R": "person(given=\"David\", family=\"Pierce\", email=\"dpierce@ucsd.edu\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0002-2453-9030\"))",
+      "Description": "Provides a high-level R interface to data files written using Unidata's netCDF library (version 4 or earlier), which are binary data files that are portable across platforms and include metadata information in addition to the data sets.  Using this package, netCDF files (either version 4 or \"classic\" version 3) can be opened and data sets read in easily.  It is also easy to create new netCDF dimensions, variables, and files, in either version 3 or 4 format, and manipulate existing netCDF files.  This package replaces the former ncdf package, which only worked with netcdf version 3 files.  For various reasons the names of the functions have had to be changed from the names in the ncdf package.  The old ncdf package is still available at the URL given below, if you need to have backward compatibility.  It should be possible to have both the ncdf and ncdf4 packages installed simultaneously without a problem.  However, the ncdf package does not provide an interface for netcdf version 4 files.",
+      "SystemRequirements": "netcdf library version 4.1 or later",
+      "License": "GPL (>= 3)",
+      "URL": "https://cirrus.ucsd.edu/~pierce/ncdf/",
+      "NeedsCompilation": "yes",
+      "Author": "David Pierce [aut, cre] (<https://orcid.org/0000-0002-2453-9030>)",
+      "Maintainer": "David Pierce <dpierce@ucsd.edu>",
+      "Repository": "CRAN"
+    },
     "network": {
       "Package": "network",
       "Version": "1.20.0",
@@ -13394,6 +13526,25 @@
       "NeedsCompilation": "yes",
       "Author": "Hadley Wickham [cre] (ORCID: <https://orcid.org/0000-0003-4757-117X>), Shawn Garbett [ctb] (ORCID: <https://orcid.org/0000-0003-4079-5621>), Jeremy Stephens [aut, ctb], Kirill Simonov [aut], Yihui Xie [ctb] (ORCID: <https://orcid.org/0000-0003-0645-5666>), Zhuoer Dong [ctb], Jeffrey Horner [ctb], reikoch [ctb], Will Beasley [ctb] (ORCID: <https://orcid.org/0000-0002-5613-5006>), Brendan O'Connor [ctb], Michael Quinn [ctb], Charlie Gao [ctb], Gregory R. Warnes [ctb], Zhian N. Kamvar [ctb]",
       "Maintainer": "Hadley Wickham <hadley@posit.co>",
+      "Repository": "CRAN"
+    },
+    "zigg": {
+      "Package": "zigg",
+      "Version": "0.0.2",
+      "Source": "Repository",
+      "Type": "Package",
+      "Title": "Lightweight Interfaces to the 'Ziggurat' Pseudo Random Number Generator",
+      "Date": "2025-02-07",
+      "Authors@R": "person(\"Dirk\", \"Eddelbuettel\", role = c(\"aut\", \"cre\"), email = \"edd@debian.org\", comment = c(ORCID = \"0000-0001-6419-907X\"))",
+      "Description": "The 'Ziggurat' pseudo-random number generator (or PRNG), introduced by Marsaglia and Tsang (2000, <doi:10.18637/jss.v005.i08>) and further improved by Leong et al (2005, <doi:10.18637/jss.v012.i07>), offers a lightweight and very fast PRNG for the normal, exponential, and uniform distributions. It is provided here in a small zero-dependency package. It can be used from R as well as from 'C/C++' code in other packages as is demonstrated by four included sample packages using four distinct methods to use the PRNG presented here in client package. The implementation is influenced by our package 'RcppZiggurat' which offers a comparison among multiple alternative implementations but presented here in a lighter-weight implementation that is easier to use by other packages. The PRNGs provided are generally faster than the ones in base R: on our machine, the relative gains for normal, exponential and uniform are on the order of 7.4, 5.2 and 4.7 times faster than base R. However, these generators are of potentially lesser quality and shorter period so if in doubt use of the base R functions remains the general recommendation.",
+      "URL": "https://github.com/eddelbuettel/zigg",
+      "BugReports": "https://github.com/eddelbuettel/zigg/issues",
+      "License": "GPL (>= 2)",
+      "Encoding": "UTF-8",
+      "RoxygenNote": "6.0.1",
+      "NeedsCompilation": "yes",
+      "Author": "Dirk Eddelbuettel [aut, cre] (<https://orcid.org/0000-0001-6419-907X>)",
+      "Maintainer": "Dirk Eddelbuettel <edd@debian.org>",
       "Repository": "CRAN"
     },
     "zoo": {

@@ -22,13 +22,14 @@ targets_8um <- function() {
       seu_sb = read_spacebender_clean_file(seu, NAME) |> NormalizeData(),
       sb_cmp = get_seurat_comparison(seu, seu_sb),
       cmp_genes = c("INS", "SST", "GCG", "GHRL", "PPY", "SOX9", "PTF1A", "NKX6-1", "PDX1", "PAX4", "PAX6", "NEUROD1", "NEUROG3"),
-      fig_cmp_count = plot_cmp_genes(sb_cmp, cmp_genes, what = "counts"),
-      fig_cmp_data = plot_cmp_genes(sb_cmp, cmp_genes, what = "data"),
+      fig_cmp_count_sb = plot_cmp_genes(sb_cmp, cmp_genes, what = "counts"),
+      fig_cmp_data_sb = plot_cmp_genes(sb_cmp, cmp_genes, what = "data"),
       fig_hormone_overlap_sb = plot_upset_expressed_cells(seu_sb, c("INS", "SST", "GCG", "GHRL", "PPY")),
       fig_binned_expression_sb = plot_binned_expression(seu_sb, "INS", genes_for_binned, bins = n_insulin_bins),
       fig_binned_ins_prop_sb = plot_binned_xy_expression(seu_sb, "INS", genes_for_binned, bins = n_insulin_bins, what = "proportion", include_x_zeroes = TRUE),
-      fig_binned_ins_spatial_sb = plot_binned_spatial(seu_sb, "INS", bins = n_insulin_bins) |> gs("binned_ins_spatial_sb", NAME, 8, 6),
+      png_binned_ins_spatial_sb = plot_binned_spatial(seu_sb, "INS", bins = n_insulin_bins) |> gs("binned_ins_spatial_sb", NAME, 8, 6),
       png_spatial_selection_genes_sb = plot_spatial_selection_genes(seu_sb, c("SOX9", "NEUROG3", "INS", "SST", "GCG", "GHRL"), box_1) |> gs("spatial_selection_hormones_sb", NAME, width = 8, height = 12),
+      png_binned_expression_sb = plot_binned_expression(seu_sb, "INS", genes_for_binned, bins = n_insulin_bins) |> gs("binned_expression_sb", NAME, 8, 8),
 
       # Save seurat for shiny
       sav_seu = save_for_shiny(seu_mark, NAME),
@@ -75,7 +76,7 @@ targets_8um <- function() {
       tbl_best_insulin_gradient_negative_markers = find_best_markers(tbls_binned_enrichment$markers, max_per_cluster = max_best_insulin, negative = TRUE),
       fig_enrichment_gradient = plot_enrichment_gradient(tbls_binned_enrichment$enrichment),
       genes_for_binned = c("PTF1A", "PDX1", "NKX6-1", "SOX9", "PAX4", "PAX6", "NKX2-2", "NEUROD1", "NEUROG3", "GCG", "SST", "GHRL"),
-      fig_binned_expression = plot_binned_expression(seu, "INS", genes_for_binned, bins = n_insulin_bins),
+      png_binned_expression = plot_binned_expression(seu, "INS", genes_for_binned, bins = n_insulin_bins) |> gs("binned_expression", NAME, 8, 8),
       fig_binned_ins_prop = plot_binned_xy_expression(seu, "INS", genes_for_binned, bins = n_insulin_bins, what = "proportion", include_x_zeroes = TRUE),
       fig_binned_ins_spatial = plot_binned_spatial(seu, "INS", bins = n_insulin_bins) |> gs("binned_ins_spatial", NAME, 8, 6),
 
@@ -243,27 +244,44 @@ targets_8um <- function() {
       fig_seg_hormneu_overlap = plot_upset_expressed_cells(seu_seg, c("INS", "SST", "GCG", "GHRL", "NEUROG3")),
       seu_seg_mark = annotate_cells_page(seu_seg, tissue_markers, n_boot = 1000, p_val_limit = 0.05),
 
+      # CytoTRACE
+      seu_seg_cyto = run_cytotrace(seu_seg_mark),
+      png_cyto_score = plot_cyto_score(seu_seg_cyto) |> gs("cyto_score", NAME, 6, 4),
+      fig_cyto_cell_type_jaccard = plot_jaccard_meta(seu_seg_cyto, "cell_type", "CytoTRACE2_Potency"),
+      fig_cyto_cell_type_stacked = plot_stacked_meta(seu_seg_cyto, "cell_type", "CytoTRACE2_Potency"),
+      fig_spatial_cyto = plot_meta_segmentation(seu_seg_cyto, meta_col = "CytoTRACE2_Potency"),
+      mpc_cells = seu_seg_cyto |> get_cell_data() |> dplyr::filter(cell_type == "MPC") |> pull(cell_id),
+      fig_spatial_cyto_mpc = plot_meta_segmentation(seu_seg_cyto, meta_col = "CytoTRACE2_Potency", cell_sel = mpc_cells),
+
       # SPARKLE
+      # For this part scirpts/run_sparkle.R needs to be run separately first. It uses 
+      # SpaceRanger output directly and creates files in data/sparkle/<NAME> folder.
+      # Then, the results can be read in here.
       sparkle_path = file.path("data/sparkle", NAME),
       seu_seg_sparkle = read_sparkle(seu_seg, sparkle_path),
+      sparkle_cmp = get_seurat_comparison(seu_seg, seu_seg_sparkle),
+      fig_cmp_count_sparkle = plot_cmp_genes(sparkle_cmp, cmp_genes, what = "counts"),
+      fig_cmp_data_sparkle = plot_cmp_genes(sparkle_cmp, cmp_genes, what = "data"),
+      fig_hormone_overlap_sparkle = plot_upset_expressed_cells(seu_seg_sparkle, c("INS", "SST", "GCG", "GHRL", "PPY")),
+      png_binned_expression_sparkle = plot_binned_expression(seu_seg_sparkle, "INS", genes_for_binned, bins = n_insulin_bins) |> gs("binned_expression_sparkle", NAME, 8, 8),
 
       # For the manuscript
-      mn_clust_integ = mn_plot_spatial_clustering(seu_integ, meta_column = "cluster_integ") |> gp("clustering_integ", sample = NAME, width = 3.3, height = 3, path = "manuscript/fig"),
-      mn_clust_jaccard = mn_plot_cluster_cell_type_jaccard(seu_integ, cluster_col = "cluster_integ") |> gp("jaccard_integ", sample = NAME, width = 3.5, height = 2.7, path = "manuscript/fig"),
-      mn_clust = mn_plot_spatial_clustering(seu_mark, RESOLUTION) |> gp("clustering", sample = NAME, width = 3.3, height = 3, path = "manuscript/fig"),
-      mn_all_markers = mn_plot_marker_spatial(seu_mark, tissue_markers, label_size = 2.5) |> gp("all_markers", sample = NAME, width = 8, height = 8, path = "manuscript/fig"),
-      mn_endoc_markers = mn_plot_marker_spatial(seu_mark, tissue_markers_endoc, label_size = 2.5) |> gp("endoc_markers", sample = NAME, width = 8, height = 8, path = "manuscript/fig"),
-      mn_cell_types = mn_plot_cell_type(seu_mark) |> gp("cell_type", sample = NAME, width = 3.55, height = 3, path = "manuscript/fig"),
-      mn_cell_type_dots = mn_plot_cell_type_dots(seu_mark, tissue_markers) |> gp("cell_type_dots", sample = NAME, width = 4.5, height = 7.5, path = "manuscript/fig"),
-      mn_hormone_overlap_8um = mn_plot_hormone_overlap(seu_mark, file.path("manuscript/fig", paste0("hormone_overlap_", NAME, "_8um.pdf")), 8, 3),
-      mn_hormone_overlap_seg = mn_plot_hormone_overlap(seu_seg, file.path("manuscript/fig", paste0("hormone_overlap_", NAME, "_seg.pdf")), 8, 3),
-      mn_insulin_bins_spatial = mn_plot_binned_spatial(seu_mark) |> gp("insulin_bins", sample = NAME, width = 3.8, height = 3, path = "manuscript/fig"),
-      mn_insulin_gradient_expression = plot_binned_expression(seu, "INS", c("NEUROG3", "GCG", "SST"), bins = 6) |> gp("insulin_expression", sample = NAME, width = 6, height = 3, path = "manuscript/fig"),
-      mn_metadata = write_meta_for_archive(seu_integ, paste0("manuscript/data_submit/metadata_", NAME, ".csv")),
-      mn_wgcna_modules_expr_score = mn_plot_wgcna_modules_expr_score(seu_hdwgcna, n_genes = "all") |> gp("wgcna_modules_score", sample = NAME, width = 8, height = 24, path = "manuscript/fig"),
-      mn_hub_genes = readr::write_csv(tbl_hub_genes, file.path("manuscript/tab", paste0("hub_genes_", NAME, ".csv"))),
-      mn_cellchat_flrt_chords = plot_cellchat_chord(cellchat_comp, paste0("cellchat_chord_FLRT_", NAME, ".pdf"), pathway = "FLRT", type = "pdf"),
-      mn_cellchat_notch_chords = plot_cellchat_chord(cellchat_comp, paste0("cellchat_chord_NOTCH_", NAME, ".pdf"), pathway = "NOTCH", type = "pdf")
+      #mn_clust_integ = mn_plot_spatial_clustering(seu_integ, meta_column = "cluster_integ") |> gp("clustering_integ", sample = NAME, width = 3.3, height = 3, path = "manuscript/fig"),
+      #mn_clust_jaccard = mn_plot_cluster_cell_type_jaccard(seu_integ, cluster_col = "cluster_integ") |> gp("jaccard_integ", sample = NAME, width = 3.5, height = 2.7, path = "manuscript/fig"),
+      #mn_clust = mn_plot_spatial_clustering(seu_mark, RESOLUTION) |> gp("clustering", sample = NAME, width = 3.3, height = 3, path = "manuscript/fig"),
+      #mn_all_markers = mn_plot_marker_spatial(seu_mark, tissue_markers, label_size = 2.5) |> gp("all_markers", sample = NAME, width = 8, height = 8, path = "manuscript/fig"),
+      #mn_endoc_markers = mn_plot_marker_spatial(seu_mark, tissue_markers_endoc, label_size = 2.5) |> gp("endoc_markers", sample = NAME, width = 8, height = 8, path = "manuscript/fig"),
+      #mn_cell_types = mn_plot_cell_type(seu_mark) |> gp("cell_type", sample = NAME, width = 3.55, height = 3, path = "manuscript/fig"),
+      #mn_cell_type_dots = mn_plot_cell_type_dots(seu_mark, tissue_markers) |> gp("cell_type_dots", sample = NAME, width = 4.5, height = 7.5, path = "manuscript/fig"),
+      #mn_hormone_overlap_8um = mn_plot_hormone_overlap(seu_mark, file.path("manuscript/fig", paste0("hormone_overlap_", NAME, "_8um.pdf")), 8, 3),
+      #mn_hormone_overlap_seg = mn_plot_hormone_overlap(seu_seg, file.path("manuscript/fig", paste0("hormone_overlap_", NAME, "_seg.pdf")), 8, 3),
+      #mn_insulin_bins_spatial = mn_plot_binned_spatial(seu_mark) |> gp("insulin_bins", sample = NAME, width = 3.8, height = 3, path = "manuscript/fig"),
+      #mn_insulin_gradient_expression = plot_binned_expression(seu, "INS", c("NEUROG3", "GCG", "SST"), bins = 6) |> gp("insulin_expression", sample = NAME, width = 6, height = 3, path = "manuscript/fig"),
+      #mn_metadata = write_meta_for_archive(seu_integ, paste0("manuscript/data_submit/metadata_", NAME, ".csv")),
+      #mn_wgcna_modules_expr_score = mn_plot_wgcna_modules_expr_score(seu_hdwgcna, n_genes = "all") |> gp("wgcna_modules_score", sample = NAME, width = 8, height = 24, path = "manuscript/fig"),
+      #mn_hub_genes = readr::write_csv(tbl_hub_genes, file.path("manuscript/tab", paste0("hub_genes_", NAME, ".csv"))),
+      #mn_cellchat_flrt_chords = plot_cellchat_chord(cellchat_comp, paste0("cellchat_chord_FLRT_", NAME, ".pdf"), pathway = "FLRT", type = "pdf"),
+      #mn_cellchat_notch_chords = plot_cellchat_chord(cellchat_comp, paste0("cellchat_chord_NOTCH_", NAME, ".pdf"), pathway = "NOTCH", type = "pdf")
     )
   )
 
@@ -322,12 +340,13 @@ targets_8um <- function() {
 
     box_1 = list(x1 = 4300, x2 = 5600, y1 = -5300, y2 = -3600),
     box_1a = list(x1 = 4900, x2 = 5200, y1 = -4200, y2 = -3900),
+    box_2 = list(x1 = 3000, x2 = 4300, y1 = -4000, y2 = -2700),
     ins_spots = read_sx_sy("info/insulin_spots.csv", seu_1),
     png_spatial_selection_genes = plot_spatial_selection_genes(seu_1, c("SOX9", "NEUROG3", "INS", "SST", "GCG", "GHRL"), box_1) |> gs("spatial_selection_hormones", width = 8, height = 12),
     png_spatial_selection_meta = plot_spatial_selection_meta(seu_mark_1, "cell_type", box_1) |> gs("spatial_selection_cell_type", width = 5, height = 4),
 
-    box_2 = list(x1 = 4900, x2 = 5200, y1 = -4500, y2 = -4150),
-    png_segmentation_grid = plot_gene_segmentation(seu_seg_1, c("INS", "SST"), box_2, seu_grid = seu_1) |> gs("segmentation_grid", width = 8, height = 4.5),
+    box_1b = list(x1 = 4900, x2 = 5200, y1 = -4500, y2 = -4150),
+    png_segmentation_grid = plot_gene_segmentation(seu_seg_1, c("INS", "SST"), box_1b, seu_grid = seu_1) |> gs("segmentation_grid", width = 8, height = 4.5),
 
     gif_spatial_ins_gcg = animate_spatial_genes(seu_1, c("INS", "GCG"), box_1),
     gif_spatial_ins_sst = animate_spatial_genes(seu_1, c("INS", "SST"), box_1),
@@ -337,12 +356,20 @@ targets_8um <- function() {
     gif_spatial_neurog3_dbh = animate_spatial_genes(seu_1, c("NEUROG3", "DBH"), box_1),
     gif_spatial_full = animate_spatial_genes(seu_1, c("PTF1A", "PDX1", "SOX9", "PAX4", "NEUROD1", "NEUROG3", "INS"), box_1),
 
-    seg_genes = c("INS", "SST", "GCG", "GHRL", "SOX9", "NEUROG3"),
-    png_seg_genes = plot_gene_segmentation(seu_seg_1, seg_genes, box = box_1) |> gs("seg_genes", "1", width = 8, height = 12),
-    png_seg_sparkle_genes = plot_gene_segmentation(seu_seg_sparkle_1, seg_genes, box = box_1) |> gs("seg_genes_sparkle", "1", width = 8, height = 12),
+    # Illustration of ambient RNA removal
+    sel_genes = c("INS", "SST", "GCG", "GHRL", "SOX9", "NEUROG3"),
+    png_seg_genes_1 = plot_gene_segmentation(seu_seg_1, sel_genes, box = box_1) |> gs("seg_genes", "1", width = 8, height = 12),
+    png_seg_sparkle_genes_1 = plot_gene_segmentation(seu_seg_sparkle_1, sel_genes, box = box_1) |> gs("seg_genes_sparkle", "1", width = 8, height = 12),
+    png_seg_genes_2 = plot_gene_segmentation(seu_seg_2, sel_genes, box = box_2) |> gs("seg_genes", "2", width = 8, height = 12),
+    png_seg_sparkle_genes_2 = plot_gene_segmentation(seu_seg_sparkle_2, sel_genes, box = box_2) |> gs("seg_genes_sparkle", "2", width = 8, height = 12),
     png_seg_ins = plot_gene_segmentation(seu_seg_1, "INS", box = box_1a, with_centroids = TRUE) |> gs("seg_ins", "1", width = 9, height = 8),
     png_seg_sparkle_ins = plot_gene_segmentation(seu_seg_sparkle_1, "INS", box = box_1a, with_centroids = TRUE) |> gs("seg_ins_sparkle", "1", width = 9, height = 8),
     png_spatial_2um_ins = plot_spatial_selection_genes(seu_2um, "INS", box = box_1a) |> gs("spa2um_ins", width = 9, height = 8),
+    
+    png_sel_genes_1 = plot_spatial_selection_genes(seu_1, sel_genes, box = box_1) |> gs("sel_genes", "1", width = 8, height = 12),
+    png_sb_genes_1 = plot_spatial_selection_genes(seu_sb_1, sel_genes, box = box_1) |> gs("sel_genes_sb", "1", width = 8, height = 12),
+    png_sel_genes_2 = plot_spatial_selection_genes(seu_2, sel_genes, box = box_2) |> gs("sel_genes", "2", width = 8, height = 12),
+    png_sb_genes_2 = plot_spatial_selection_genes(seu_sb_2, sel_genes, box = box_2) |> gs("sel_genes_sb", "2", width = 8, height = 12),
 
     seu_2um = load_visium_data(EXPERIMENTS$DATA_PATH[1], mito_genes, bin_size = 2) |> NormalizeData(),
     box_coords = list(x = 5154, y = -4196, size = 28),

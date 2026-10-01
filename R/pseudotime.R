@@ -58,3 +58,22 @@ plot_slingshot_lineage <- function(sl, lineage = 1, point_size = 0.6) {
       labs(x = axes[1], y = axes[2])
   })
 }
+
+
+run_cytotrace <- function(seu, assay = "Spatial.Polygons", seed = 42) {
+  # CytoTRACE assumes RNA assay
+  seu <- SeuratObject::RenameAssays(seu, assay.name = assay, new.assay.name = "RNA")
+
+  CytoTRACE2::cytotrace2(
+    seu,
+    species = "human",
+    is_seurat = TRUE,
+    slot_type = "counts",
+    parallelize_models = TRUE,
+    parallelize_smoothing = TRUE,
+    ncores = 3,
+    batch_size = 10000,
+    smooth_batch_size = 1000,
+    seed = seed
+  )
+}

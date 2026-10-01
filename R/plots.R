@@ -2026,6 +2026,27 @@ plot_cluster_match_samples <- function(cluster_markers_1, cluster_markers_2, n_t
 }
 
 
+plot_jaccard_meta <- function(seu, col_1, col_2) {
+  env <- new.env(parent = globalenv())
+
+  env$d <- seu |>
+    jaccard_meta(col_1, col_2) |> 
+    mutate(x = get(col_1), y = get(col_2)) 
+  env$col_1 <- col_1
+  env$col_2 <- col_2
+  with(env, {
+    d |> 
+      ggplot(aes(x = x, y = y, fill = j)) +
+      th +
+      theme(
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)
+      ) +
+      geom_tile() +
+      scale_fill_viridis_c(option = "cividis") +
+      labs(x = col_1, y = col_2, fill = "Jaccard")
+  })
+}
+
 plot_cluster_cell_type_jaccard <- function(seu) {
   env <- new.env(parent = globalenv())
 
@@ -2041,6 +2062,33 @@ plot_cluster_cell_type_jaccard <- function(seu) {
   })
 }
 
+
+plot_stacked_meta <- function(seu, col_x, col_y) {
+  d <- seu |> 
+    get_cell_data() |> 
+    group_by(across(all_of(c(col_x, col_y)))) |> 
+    summarise(n = n()) |> 
+    group_by(across(all_of(col_x))) |> 
+    mutate(prop = n / sum(n))
+
+  env <- new.env(parent = globalenv())
+  env$d <- d
+  env$col_x <- col_x
+  env$col_y <- col_y
+
+  with(env, {
+    d |> 
+      ggplot(aes(x = get(col_x), y = prop, fill = get(col_y))) +
+      th +
+      theme(
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)
+      ) +
+      geom_col() +
+      scale_y_continuous(expand = c(0, 0)) +
+      scale_fill_manual(values = okabe_ito_palette) +
+      labs(x = col_x, y = "Proportion", fill = col_y)
+  })
+}
 
 
 
@@ -2128,6 +2176,47 @@ plot_top_cluster_features <- function(seu_clust, conserved_markers, genes, max_n
 }
 
 
+plot_meta_segmentation <- function(seu, meta_col, box = list(x1 = NA, x2 = NA, y1 = NA, y2 = NA),
+                                   with_centroids = FALSE, cell_sel = NULL) {
+  poly <- get_polygons(seu)
+  meta <- seu |> 
+    get_cell_data() |>
+    mutate(col = get(meta_col)) |> 
+    select(cell_id, col)
+
+  if(with_centroids) {
+    centroids <- get_spatial_coordinates(seu, swap_xy = FALSE)
+  }
+
+  d <- inner_join(poly, meta, by = "cell_id", relationship = "many-to-many") 
+  if(!is.null(cell_sel)) {
+    d <- d |> 
+      filter(cell_id %in% cell_sel)
+  }
+
+  env <- new.env(parent = globalenv())
+  env$d <- d
+  env$box <- box
+  env$meta_col <- meta_col
+  env$with_centroids <- with_centroids
+  
+  with(env, {
+    pl <- d |> 
+      ggplot() +
+      thm +
+      geom_polygon(aes(x = x, y = y, group = cell_id, fill = col), colour = NA, linewidth = 0) +
+      scale_fill_brewer(palette = "Paired") +
+      coord_cartesian(xlim = c(box$x1, box$x2), ylim = c(box$y1, box$y2)) +
+      labs(x = NULL, y = NULL, fill = meta_col)
+    if(with_centroids) {
+     pl <- pl +
+       geom_point(data = centroids, aes(x = x, y = y), colour = "black", size = 0.5)
+    }
+    pl
+  })
+}
+
+
 
 
 plot_gene_segmentation <- function(seu, genes, box = list(x1 = -Inf, x2 = Inf, y1 = -Inf, y2 = Inf),
@@ -2147,7 +2236,7 @@ plot_gene_segmentation <- function(seu, genes, box = list(x1 = -Inf, x2 = Inf, y
   d <- inner_join(poly, ex, by = "cell_id", relationship = "many-to-many") 
   pl <- d |> 
     ggplot() +
-    th +
+    thm +
     geom_polygon(aes(x = x, y = y, group = cell_id, fill = expression), colour = NA, linewidth = 0) +
     scale_fill_distiller(palette = "Purples", direction = 1) +
     facet_wrap(~gene_symbol, ncol = ncol) +
@@ -2205,3 +2294,22 @@ plot_cmp_genes <- function(cmp, genes, what = "counts") {
       labs(x = str_glue("Original {what}"), y = "log2 (cleaned / original)")
   })
   }
+
+
+plot_cyto_score <- function(seu) {
+  d <- seu |> 
+    get_cell_data() |> 
+    select(cell_type, CytoTRACE2_Score)
+  env <- new.env(parent = globalenv())
+  env$d <- d
+
+  with(env, {
+    d |> 
+      ggplot(aes(x = cell_type, y = CytoTRACE2_Score)) +
+      th +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+      geom_quasirandom(size = 0.4) +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.03))) +
+      labs(x = "Cell type", y = "CytoTRACE2 score")
+  })
+}

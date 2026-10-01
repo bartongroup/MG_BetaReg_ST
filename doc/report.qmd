@@ -217,13 +217,11 @@ tar_load(c(sry_expression_count_1, sry_expression_count_2))
 
 Samples 1 and 2 come from male and female donors. We confirm this by looking at expression of the sex-determining gene SRY. This gene is expressed in `r sry_expression_count_1` and `r sry_expression_count_2` spots in samples 1 and 2, respectively.
 
-# Sample 1
-
-## Removing ambient RNA
+# Removing ambient RNA
 
 We attempted a few tools to remove ambient RNA contamination.
 
-### SpotClean
+## SpotClean
 
 *SpotClean* is an obvious choice as it is an R package and would fit neatly in the existing pipeline. Alas, this package was specifically written for Visium data, not Visium HD. While it is possible to feed it with the Visium HD data, the package is not optimised for a much large size of the HD data set and crashes with out of memory error when run on HD data. After inspecting the source code I have discovered that the package creates a dense distance matrix
 
@@ -236,11 +234,46 @@ We attempted a few tools to remove ambient RNA contamination.
 
 In out data (sample 1) the matrix x has 312,506 columns (corresponding to 312,506 spatial bins), so this code attempts to create a 312,506x312,506 matrix. This would require ~780 GB of memory, and the code creates two such matrices at the same time. Therefore, it would require at least ~1.6 TB of memory to run it. This is not feasible on our cluster.
 
-### SpaceBender
+## SpaceBender
 
 *SpaceBender* is a Python script that removes estimated ambient RNA contamination from spatial transcriptomics counts using a probabilistic model adapted from *CellBender*. It estimates a local background expression profile for each spatial bin from neighbouring bins, then uses a variational autoencoder to distinguish biological expression from contamination. The fitted model estimates contaminating counts for each gene and bin and subtracts them from the observed counts, producing a non-negative integer count matrix for downstream analysis. In our 8-µm Visium HD data, we defined neighbourhoods using the eight nearest bins. Because this application has not been validated specifically for Visium HD, we treat the corrected data as a sensitivity analysis rather than as ground truth.
 
 *SpaceBender* can include ont-of-tissue spots to improve background estimation, however a bug in the code cause it to crash when it encounters spots with no counts at all. We could remove these spots and keep out-of-tissue spots with some counts, but it would affect the background distribution in an unpredictable way (effectively creating gaps in spatial data). Therefore we decided to use only in-tissue data and ignore the background. This forces *SpaceBender* to its fallback background prior.
+
+### Results
+
+```{r}
+#| label: fig-cmp-count-sb
+#| fig-cap: Correction applied to raw counts by SpaceBender for selected genes (sample 1).
+#| fig-width: 8
+#| fig-height: 8
+tar_read(fig_cmp_count_sb_1)
+```
+
+```{r}
+#| label: fig-hormone-overlap-sb
+#| fig-cap: Hormone overlap after SpaceBender corrections (sample 1).
+#| fig-width: 6
+#| fig-height: 3.5
+tar_read(fig_hormone_overlap_sb_1)
+```
+
+
+```{r}
+#| label: fig-insulin-gradient-sb
+#| fig-cap: Expression of selected genes in the insulin gradients, in SpaceBender-corrected data (sample 1).
+#| out.width: 100%
+knitr::include_graphics("images/binned_expression_sb_1.png")
+```
+
+## SPARKLE
+
+SPARKLE (Spatial Ambient RNA Kernel-based Leakage Estimator) estimates and subtracts local RNA contamination using expression outside segmented cell boundaries. For our Visium HD data, unassigned 2 × 2 μm capture squares within the tissue mask are aggregated into background bins. Each background bin is connected to segmented cells within a specified radius (200 μm here). For each gene, the model predicts the bin’s RNA count by summing contributions from these neighbouring cells, weighted by their expression per unit area and an exponential distance kernel, exp(−d/λ), and scaling by the bin’s effective capture area. Thus, cell–background pairs contribute to a prediction aggregated at the background-bin level, rather than being fitted as independent observations. SPARKLE evaluates candidate decay lengths λ, fitting gene-specific leakage coefficients by weighted least squares at each candidate, and selects the λ that minimizes the summed fitting error across the 50 genes with the highest background expression. This single sample-level λ is then used to estimate leakage coefficients and goodness-of-fit scores for all genes. For genes passing the fit threshold, the same spatial model predicts contamination between neighbouring cells; predicted counts are subtracted with additional protection for strongly expressing cells, and negative results are truncated to zero. The correction therefore assumes that the spatial relationship estimated from out-of-cell background also applies to contamination captured within segmented cells.
+
+The Visium HD loader in SPARKLE’s Python package (stambient version 0.1.3) allocated its coordinate lookup using the extent of the filtered tissue mask. Our feature-slice files also contained capture coordinates outside that extent, causing an out-of-bounds indexing error. We therefore ignored SPARKLE's `load_visiumhd()` function and implemented a compatibility loader using the full slide dimensions. It also retains all capture squares assigned to segmented cells, including those crossing the tissue-mask boundary, while restricting unassigned background squares to the filtered tissue mask. The resulting cell-level counts were verified to match the Space Ranger segmented count matrices exactly for both samples.
+
+
+# Sample 1
 
 ## Clustering {#sec-clustering}
 
@@ -526,9 +559,8 @@ We can, perhaps, see the drop in the proportion of the expressed spots for NEURO
 ```{r}
 #| label: fig-binned-ins-exp
 #| fig-cap: Insulin expressing spots were divided into 6 bins, according to normalised insulin expression in each spot plus a bin containing all spots where insulin is not expressed  For each bin (group of spots with similar insulin expression), the expression  is shown in the top panels, with one grey dot indicating one spot, together with the median (only expressing spots are included, zeroes are omitted). The bottom panels show the percentage of cells expressing a given gene, together with 95% confidence intervals of a proportion.
-#| fig-width: 8
-#| fig-height: 8
-tar_read(fig_binned_expression_1) 
+#| out.width: 100%
+knitr::include_graphics("images/binned_expression_1.png") 
 ```
 
 
@@ -999,6 +1031,45 @@ knitr::include_graphics("images/modules_dots_1.png")
 ### Module enrichment
 
 Functional enrichment for several ontologies (GO, KEGG, Reactome and WikiPathways) has been calculated for all genes assigned to the module with the kME score greater than 0. The full results are available for download from @sec-downloads.
+
+
+## CytoTRACE2
+
+[CytoTRACE 2](https://www.nature.com/articles/s41592-025-02857-2) is a deep-learning method that estimates developmental potential from single-cell gene-expression data. It uses interpretable gene-set binary networks to assign each cell to one of six potency categories, ranging from differentiated to totipotent, and provides a continuous potency score between 0 and 1. The model was trained on diverse human and mouse scRNA-seq datasets and successfully validated on a held-out mouse embryonic pancreas dataset containing multipotent pancreatic progenitors, endocrine progenitors and differentiated endocrine cells. Here, CytoTRACE 2 was applied to cell-segmented Visium HD data as an exploratory measure of developmental potential.
+
+```{r}
+#| label: fig-cyto-score
+#| fig-cap: Distribution of potency score across detected cell types.
+#| out.width: 80%
+knitr::include_graphics("images/cyto_score_1.png")
+```
+
+```{r}
+#| label: fig-cyto-cell-type-stacked
+#| fig-cap: Distribution of potency category across detected cell types.
+#| fig-width: 8
+#| fig-height: 4
+tar_read(fig_cyto_cell_type_stacked_1) 
+```
+
+
+```{r}
+#| label: fig-cyto-spatial
+#| fig-cap: Potency category across sample 1.
+#| fig-width: 8
+#| fig-height: 6
+tar_read(fig_spatial_cyto_1)
+```
+
+
+```{r}
+#| label: fig-cyto-spatial-mpc
+#| fig-cap: Potency category across sample 1 for MPC cells only.
+#| fig-width: 5
+#| fig-height: 6
+tar_read(fig_spatial_cyto_mpc_1)
+```
+
 
 
 ## Pseudo-time
