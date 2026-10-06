@@ -12,21 +12,6 @@ mn_plot_spatial_clustering <- function(seu, res = NULL, meta_column = "cluster",
 
 
 
-mn_plot_marker_spatial <- function(seu, markers, label_size = 2.5, ncol = NULL) {
-  plts <- map2(markers$gene_symbol, markers$cell_type, function(gene, ct) {
-    pl <- plot_one_xy(seu, genes = gene, what = "spatial")
-
-    # Right-aligning a label is a pain. Need to do this in original x-y coordinates.
-    xmax <- max(pl$data$x)
-    ymax <- max(pl$data$y)
-
-    pl +
-      theme(plot.margin = margin(2, 2, 2, 2)) +
-      annotate("text", x = xmax, y = ymax, label = gene, hjust = 1, vjust = 1, size = label_size) +
-      annotate("text", x = xmax, y = ymax, label = ct, hjust = 1, vjust = 3, size = label_size * 0.8, colour = "grey60")
-  }) 
-  plot_grid(plotlist = plts, ncol = ncol)
-}
 
 
 
@@ -43,14 +28,6 @@ mn_plot_cell_type <- function(seu, label_size = 3) {
 }
 
 
-
-mn_plot_hormone_overlap <- function(seu, fname, width, height, genes = c("INS", "SST", "GCG", "GHRL", "PPY", "NEUROG3")) {
-  up <- plot_upset_expressed_cells(seu, genes) 
-
-  pdf(fname, width = width, height = height)
-  on.exit(dev.off(), add = TRUE)  
-  ComplexHeatmap::draw(up)
-}
 
 
 # Needs object calculated on the cluster and retrieved
@@ -79,7 +56,6 @@ mn_plot_hormone_overlap_ma <- function(pcw, fname, width, height) {
   on.exit(dev.off(), add = TRUE)  
   ComplexHeatmap::draw(up)
 }
-
 
 
 mn_plot_binned_spatial <- function(seu, gene_x = "INS", bins = 6) {
@@ -251,9 +227,3 @@ mn_plot_wgcna_modules_expr_score <- function(seu, n_genes = "all", ncol = 2) {
 }
 
 
-mn_plot_cellchat_rank <- function(cellchat) {
-
-  d2 <- CellChat::rankNet(cellchat, mode = "single", measure = "weight", return.data = TRUE)$signaling.contribution |> as_tibble()
-  
-  plot_one_rank(d2, "Information flow")
-}

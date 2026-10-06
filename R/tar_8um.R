@@ -398,7 +398,7 @@ targets_8um <- function() {
 
     cellchat_ins = cellchat_insulin_gradient(seu_mark_1, bins = 6),
     fig_cellchat_ins = plot_cellchat_insulin_gradient_ranks(cellchat_ins),
-    png_cellchat_ins_insulin = plot_cellchat_chord(cellchat_ins$`(2.94,3.95]`, "INSULIN", "insulin_chord_2.94_3.95.png"),
+    png_cellchat_ins_insulin = plot_cellchat_chord(cellchat_ins$`3 (2.94,3.95]`, "INSULIN", "insulin_chord_2.94_3.95.png"),
 
     tbl_clust_clust_jaccard = jaccard_cluster_cluster(cluster_markers_1, cluster_markers_2, n_top = 50),
     fig_clust_clust_jaccard = plot_cluster_match_samples(cluster_markers_1, cluster_markers_2, n_top = 50)

@@ -23,7 +23,7 @@ SETTINGS = {
     # Filtering/crop edges can make these neighbours more distant.
     "k_neighbors": 8,
     # Coordinate units may be pixels; do not assume a physical radius.
-    "ambient_radius": None,
+    "ambient_radius": 44,       # With 0.4556 µm per pixel in our data, this corresponds to 20 µm
     "n_epochs": 150,            # Upstream default; inspect loss in the run log.
     "batch_size": 64,           # Smaller than default to limit temporary memory.
     "learning_rate": 1e-3,      # Upstream default optimiser step size.

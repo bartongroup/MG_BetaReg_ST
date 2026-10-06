@@ -126,7 +126,7 @@ save_data_for_spacebender <- function(data_path, sample, bin_size = 8,
 #' @param overwrite Whether to overwrite an existing export.
 #' @return Path to the written H5AD file, invisibly.
 save_data_for_spacebender_from_seurat <- function(seu, sample, assay = "Spatial.008um",
-                                     image = NULL, overwrite = FALSE) {
+                                     image = NULL, overwrite = TRUE) {
   h5ad_file <- file.path("spacebender_data", paste0(sample, ".h5ad"))
   if (file.exists(h5ad_file) && !overwrite) {
     stop("File already exists: ", h5ad_file, ". Use overwrite = TRUE to replace it.")

@@ -9,10 +9,16 @@ EXPERIMENTS_ALL <- tibble::tibble(
   NAME = c("1", "2", "3", "4"),
   NAME2 = c("2um_1", "2um_2", "2um_3", "2um_4"),
   BOX = list(
-    list(x1 = 3200, x2 = 6300, y1 = -1300, y2 = -6050),
+    list(x1 = 3200, x2 = 6300, y1 = -6050, y2 = -1300),
     list(x1 = 2200, x2 = 6600, y1 = -5500, y2 = -100),
     list(x1 = NA, x2 = NA, y1 = NA, y2 = NA),
     list(x1 = NA, x2 = NA, y1 = NA, y2 = NA)
+  ),
+  ZOOM = list(
+    list(x1 = 4350, x2 = 5600, y1 = -5200, y2 = -3600),
+    list(x1 = 3100, x2 = 4350, y1 = -3950, y2 = -2350),
+    list(x1 = NA, x2 = NA, y1 = NA, y2 = NA),
+    list(x1 = NA, x2 = NA, y1 = NA, y2 = NA)    
   ),
   RESOLUTIONS = list(
     c(0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5),
@@ -484,21 +490,26 @@ read_sx_sy <- function(fname, seu) {
   left_join(xy, by = c("sx", "sy"))
 }
 
-
 gene_binned_gradient <- function(seu, gene, bins, include_zeroes = TRUE) {
   gx <- get_gene_expression(seu, gene)
   g1 <- gx |> 
     filter(expression > 0) |> 
-    mutate(bin = cut_interval(expression, n = bins) |> fct_expand("0", after = 0))
+    mutate(sbin = cut_interval(expression, n = bins) |> fct_expand("0", after = 0))
   g0 <- gx |> 
     filter(expression == 0) |> 
-    mutate(bin = factor("0", levels = levels(g1$bin)))
+    mutate(sbin = factor("0", levels = levels(g1$sbin)))
   
   if(include_zeroes) {
     gx <- bind_rows(g0, g1)
   } else {
     gx <- g1
   }
+  
+  gx <- gx |> 
+    mutate(ibin = as.integer(sbin) - 1) |> 
+    unite(bin, c(ibin, sbin), sep = " ", remove = FALSE) |> 
+    mutate(bin = str_remove(bin, " 0")) |> 
+    mutate(bin = fct_reorder(bin, ibin))
 
   # reorder to match metadata
   tibble(cell_id = colnames(seu)) |> 
@@ -732,4 +743,13 @@ write_meta_for_archive <- function(seu, fname) {
       starts_with("p_val_")
     ) |> 
     write_csv(fname)
+}
+
+
+top_n_cluster_markers <- function(markers, n_top = 50) {
+  markers |> 
+    filter(p_val_adj < 0.01 & avg_log2FC > 1 & cluster != "0") |> 
+    group_by(cluster) |> 
+    slice_max(order_by = avg_log2FC, n = n_top) |> 
+    ungroup()
 }
