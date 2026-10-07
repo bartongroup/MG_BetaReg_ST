@@ -518,13 +518,10 @@ gene_binned_gradient <- function(seu, gene, bins, include_zeroes = TRUE) {
 }
 
 
-enrichment_gradient <- function(seu, fterms, gene = "INS", bins = 6, fdr_limit = 0.01, logfc_limit = 1, pct_limit = 0.1) {
+insulin_enrichment_gradient <- function(seu, fterms, fdr_limit = 0.01, logfc_limit = 1, pct_limit = 0.1) {
   all_genes <- rownames(seu)
   
-  gx <- gene_binned_gradient(seu, gene, bins, include_zeroes = TRUE)
-  seu$bin <- gx$bin
-
-  mrk <- find_group_markers(seu, group_by = "bin")
+  mrk <- find_group_markers(seu, group_by = "insulin_bin")
 
   enr <- mrk |> 
     filter(p_val_adj < fdr_limit & avg_log2FC > logfc_limit & pct.1 > pct_limit) |> 
@@ -646,35 +643,6 @@ get_highest_expressors <- function(seu, n_top = 19) {
     pull(gene_symbol)
 }
 
-
-# Written by ChatGPT
-fetch_uniprot_fasta_ <- function(genes, reviewed = TRUE, canonical_only = TRUE, chunk_size = 100) {
-  q_parts <- sprintf("gene_exact:%s", genes)
-  filters <- c("organism_id:9606")
-  if (reviewed)      filters <- c(filters, "reviewed:true")
-  if (canonical_only) filters <- c(filters, "is_isoform:false")  # canonical entry per gene
-
-  # Split into chunks to keep URLs reasonable
-  q_parts <- sprintf("gene_exact:%s", genes)
-  chunks <- split(q_parts, ceiling(seq_along(q_parts) / chunk_size))
-
-  fas <- character()
-  for (ch in chunks) {
-    # THIS is the important bit: collapse with OR, don't pass the vector itself
-    core <- paste(ch, collapse = " OR ")
-    q <- sprintf("(%s) AND %s", core, paste(filters, collapse = " AND "))
-
-    url <- paste0("https://rest.uniprot.org/uniprotkb/stream?format=fasta&query=",
-                  URLencode(q, reserved = TRUE))
-
-    resp <- request(url) |> req_perform()
-    fas <- c(fas, resp_body_string(resp))
-  }
-
-  fas
-}
-
-
 reorder_clusters <- function(seu, clust_order, clust_col_name = "cluster") {
   cl2cl <- tibble(
     old_clust = clust_order |> as.character(),
@@ -752,4 +720,26 @@ top_n_cluster_markers <- function(markers, n_top = 50) {
     group_by(cluster) |> 
     slice_max(order_by = avg_log2FC, n = n_top) |> 
     ungroup()
+}
+
+
+correlate_markers <- function(markers, min_pct = 0.25, min_n_bin = 5) {
+  good <- markers |> 
+    group_by(gene_symbol) |>
+    summarise(
+      n_bin = n(),
+      max_pct = max(pct.1, na.rm = TRUE)
+    ) |> 
+    filter(n_bin >= min_n_bin & max_pct >= min_pct) |> 
+    pull(gene_symbol)
+
+  d <- markers |>
+    filter(gene_symbol %in% good) |>
+    pivot_wider(id_cols = gene_symbol, names_from = cluster, values_from = avg_log2FC) |>
+    column_to_rownames("gene_symbol") |>
+    t() |>
+    cor(use = "pairwise.complete.obs") |>
+    as_tibble(rownames = "gene_1") |> 
+    pivot_longer(-gene_1, names_to = "gene_2", values_to = "correlation") |> 
+    filter(gene_1 < gene_2)
 }

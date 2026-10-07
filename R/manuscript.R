@@ -280,3 +280,25 @@ mn_plot_modules_expr_score <- function(seu, box, n_genes = "all", ncol = 2, sel_
     coord_fixed(xlim = c(box$x1, box$x2), ylim = c(box$y1, box$y2)) +
     labs(x = NULL, y = NULL, fill = "Expr. score")  
 }
+
+
+mn_plot_genes_group_mean <- function(seu, genes, assay = "Spatial.008um", group_var = "cluster", layer = "data", remove_g = TRUE) {
+  tab <- get_average_expression(seu, assay = assay, group_var = group_var, layer = layer) |> 
+    filter(gene_symbol %in% genes) |>
+    pivot_wider(id_cols = gene_symbol, names_from = {{group_var}}, values_from = data) |>
+    column_to_rownames("gene_symbol") |>
+    as.matrix()
+  tab <- log2(tab / rowMeans(tab))
+
+  mn <- min(tab[is.finite(tab)])
+  mx <- max(tab[is.finite(tab)])
+
+  tab[is.infinite(tab) & tab < 0] <- mn 
+  tab[is.infinite(tab) & tab > 0] <- mx
+
+  # AverageExpression adds "g" to group names if they are numeric; remove it for clarity
+  if (remove_g) {
+    colnames(tab) <- gsub("g", "", colnames(tab))
+  }
+  ggheatmap(tab, order.col = FALSE, with.y.text = TRUE, palette = "div", legend.name = expression(log[2]~(expr/mean)))  
+}

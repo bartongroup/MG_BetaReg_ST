@@ -2016,6 +2016,40 @@ plot_enrichment_gradient <- function(enr) {
 }
 
 
+plot_markers_heatmap <- function(markers, genes, max_fc = 8) {
+  tab <- markers |> 
+    filter(gene_symbol %in% genes) |> 
+    select(cluster, gene_symbol, avg_log2FC) |> 
+    pivot_wider(id_cols = gene_symbol, names_from = cluster, values_from = avg_log2FC, values_fill = 0) |> 
+    column_to_rownames("gene_symbol") |>
+    as.matrix() |> 
+    t()
+  tab[tab > max_fc] <- max_fc
+  tab[tab < -max_fc] <- -max_fc
+
+ ggheatmap(tab, order.row = FALSE, with.y.text = TRUE, palette = "div", legend.name = "avg log2FC")
+}
+
+plot_genes_group_mean <- function(seu, genes, group = "cluster", layer = "data", remove_g = TRUE) {
+  ex <- AverageExpression(seu, features = genes, group.by = group, layer = layer)
+  tab <- ex[[1]] |> 
+    as.matrix()
+  tab <- log2(tab / rowMeans(tab))
+
+  mn <- min(tab[is.finite(tab)])
+  mx <- max(tab[is.finite(tab)])
+
+  tab[is.infinite(tab) & tab < 0] <- mn 
+  tab[is.infinite(tab) & tab > 0] <- mx
+
+  # AverageExpression adds "g" to group names if they are numeric; remove it for clarity
+  if (remove_g) {
+    colnames(tab) <- gsub("g", "", colnames(tab))
+  }
+  ggheatmap(tab, order.col = FALSE, with.y.text = TRUE, palette = "div", legend.name = expression(log[2]~(expr/mean)))  
+}
+
+
 plot_cluster_match_samples <- function(cluster_markers_1, cluster_markers_2, n_top = 50) {
   jaccard_cluster_cluster(cluster_markers_1, cluster_markers_2, n_top) |> 
     ggplot(aes(x = cluster_1, y = cluster_2, fill = j)) +

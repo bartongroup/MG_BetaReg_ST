@@ -9,15 +9,17 @@ targets_seg <- function() {
       seus = load_visium_data(SEG_DATA_PATH, mito_genes, bin_size = "polygons") |>
         NormalizeData() |> 
         cluster_seurat(ident_res = RESOLUTION, resolutions = RESOLUTIONS, nfeatures = 2000, res_suffix = "Spatial.Polygons") |> 
-        annotate_cells_page(tissue_markers, n_boot = 1000, p_val_limit = 0.05),
+        annotate_cells_page(tissue_markers, n_boot = 1000, p_val_limit = 0.05) |> 
+        add_insulin_bin(bins = 6),
 
       # Integration
       seus_integ = add_clusters_integ(seus, integ_seg_clust, NAME),
       seg_cluster_markers_integ = find_group_markers(seus_integ, group_by = "cluster_integ"),
 
       # Insulin gradient
-      ins_binned_enrichment = enrichment_gradient(seus, fterms, "INS", bins = 6),
-      top_50_ins_markers = top_n_cluster_markers(ins_binned_enrichment$markers, n_top = 50),
+      insbin_enrichment = insulin_enrichment_gradient(seus, fterms),
+      insbin_cor = get_insulin_bin_correlation(seus, assay = "Spatial.Polygons"),
+      insbin_top = select_correlated_markers(insbin_enrichment$markers, insbin_cor, n_top = 30, min_n_bin = 3, min_pct = 0.25),
 
       # CellChat
       cellchat_seg = create_cellchat(seus) |> preprocess_cellchat(),
@@ -32,7 +34,13 @@ targets_seg <- function() {
       # to the cluster node, run spacebender on the cluster (script "scripts/run_spacebender.py"),
       # and copy the results back to the local machine. Then, you can create "seus_sb".
       sav_seus_sb = save_data_for_spacebender_from_seurat(seus, NAME, assay = "Spatial.Polygons"),
-      #seus_sb = read_spacebender_clean_file(seus, NAME) |> NormalizeData(),
+      seus_sb = read_spacebender_clean_file(seus, NAME, assay = "Spatial.Polygons") |> NormalizeData(),
+      sb_comp = get_seurat_comparison(seus, seus_sb),
+      mn_hormone_overlap_sb = mn_plot_hormone_overlap(seus_sb, file.path("manuscript/fig", paste0("hormone_overlap_sb_", NAME, ".pdf")), 8, 3),
+      mn_ins_neurog3_sb = mn_plot_gene_segmentation(seus_sb, genes = c("INS", "NEUROG3"), box = ZOOM, add_grid = TRUE) |> 
+        gp("ins_neurog3_sb", sample = NAME, width = 7, height = 4, path = "manuscript/fig"),
+      mn_insulin_gradient_expression_sb = mn_plot_binned_expression(seus_sb, "INS", c("NEUROG3", "GCG", "SST"), bins = 6) |>
+        gp("insulin_expression_sb", sample = NAME, width = 6, height = 3, path = "manuscript/fig"),
 
       # Create figures
       mn_cell_type = mn_plot_meta_segmentation(seus, meta_col = "cell_type", box = BOX, palette = cell_type_pal, fill_lab = "Cell state") |> 
@@ -45,10 +53,13 @@ targets_seg <- function() {
         gp("clustering_integ_jaccard", sample = NAME, width = 4, height = 4, path = "manuscript/fig"),
       mn_hormone_overlap = mn_plot_hormone_overlap(seus, file.path("manuscript/fig", paste0("hormone_overlap_", NAME, ".pdf")), 8, 3),
 
-      mn_insulin_bins_spatial = mn_plot_binned_segmentation(seus, box = BOX) |> gp("insulin_bins", sample = NAME, width = 3.8, height = 3, path = "manuscript/fig"),
-      mn_insulin_gradient_expression = mn_plot_binned_expression(seus, "INS", c("NEUROG3", "GCG", "SST"), bins = 6) |> gp("insulin_expression", sample = NAME, width = 6, height = 3, path = "manuscript/fig"),
-      mn_enrichment_gradient = mn_plot_enrichment_gradient(ins_binned_enrichment$enrichment) |> 
+      mn_insulin_bins_spatial = mn_plot_binned_segmentation(seus, box = BOX) |>
+        gp("insulin_bins", sample = NAME, width = 3.8, height = 3, path = "manuscript/fig"),
+      mn_insulin_gradient_expression = mn_plot_binned_expression(seus, "INS", c("NEUROG3", "GCG", "SST"), bins = 6) |>
+        gp("insulin_expression", sample = NAME, width = 6, height = 3, path = "manuscript/fig"),
+      mn_enrichment_gradient = mn_plot_enrichment_gradient(insbin_enrichment$enrichment) |> 
         gp("enrichment_gradient", sample = NAME, width = 6.7, height = 10, path = "manuscript/fig"),
+      
       mn_ins_neurog3 = mn_plot_gene_segmentation(seus, genes = c("INS", "NEUROG3"), box = ZOOM, add_grid = TRUE) |> 
         gp("ins_neurog3", sample = NAME, width = 7, height = 4, path = "manuscript/fig"),
       mn_ins_neurog3_dlk = mn_plot_gene_segmentation(seus, genes = c("INS", "DLK1", "NEUROG3"), box = BOX, ncol = 3) |> 

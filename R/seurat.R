@@ -853,3 +853,51 @@ get_seurat_comparison <- function(seu, seu_clean) {
     reduce(full_join, by = join_by(cell_id, gene_symbol)) |> 
     mutate(across(c(counts_1, counts_2, norm_1, norm_2), ~replace_na(.x, 0)))
 }
+
+
+get_group_correlation <- function(seu, assay = "Spatial.008um", group = "cluster", layer = "data") {
+  ex <- get_average_expression(seu, assay, group_var = group)
+  ex |> 
+    pivot_wider(id_cols = gene_symbol, names_from = {{group}}, values_from = data) |> 
+    column_to_rownames("gene_symbol") |>
+    as.matrix() |> 
+    t() |> 
+    cor()
+}
+
+
+add_insulin_bin <- function(seu, bins = 6) {
+  gx <- gene_binned_gradient(seu, "INS", bins, include_zeroes = TRUE)
+  seu$insulin_bin <- gx$bin
+  seu
+}
+
+get_insulin_bin_correlation <- function(seu, assay = "Spatial.008um") {
+  cr <- get_group_correlation(seu, assay = assay, group = "insulin_bin", layer = "data")
+  cr <- cr["INS", ]
+
+  tibble(
+    gene_symbol = names(cr),
+    correlation = cr
+  )
+}
+
+select_correlated_markers <- function(markers, bincor, n_top = 30, min_n_bin = 5, min_pct = 0.25) {
+  good <- markers |> 
+    group_by(gene_symbol) |>
+    summarise(
+      n_bin = n(),
+      max_pct = max(pct.1, na.rm = TRUE)
+    ) |> 
+    filter(n_bin >= min_n_bin & max_pct >= min_pct) |> 
+    pull(gene_symbol)
+
+  b <- bincor |> 
+    filter(gene_symbol %in% good)
+  b1 <- b |> 
+    slice_max(order_by = correlation, n = n_top)
+  b2 <- b |> 
+    slice_min(order_by = correlation, n = n_top)
+  bind_rows(b1, b2) |> 
+    arrange(desc(correlation))
+}

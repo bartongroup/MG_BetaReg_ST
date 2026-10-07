@@ -127,76 +127,244 @@ prepare_terms_fenr <- function(terms, all_features, feature_name = "gene_symbol"
   }) |>
     set_names(ontologies)
 }
-
-
-
-
-# Written by ChatGPT
+#' Fetch UniProt protein sequences for SignalP
+#'
+#' Fetch canonical/displayed UniProt sequences in batches, verify that every
+#' requested gene maps to exactly one entry, and create SignalP-safe FASTA
+#' records. Ambiguous, missing, or invalid records are never selected
+#' arbitrarily.
+#'
+#' @param genes Gene symbols to retrieve.
+#' @param organism_id NCBI taxonomy identifier. Defaults to human (9606).
+#' @param reviewed Restrict results to reviewed UniProtKB/Swiss-Prot entries.
+#' @param chunk_size Maximum number of gene symbols in each UniProt request.
+#' @param strict If `TRUE`, stop when any gene is missing, ambiguous, or has a
+#'   sequence that SignalP cannot accept. If `FALSE`, warn and omit such genes.
+#'
+#' @return A list containing `fasta`, a single SignalP-ready FASTA string;
+#'   `mapping`, one row per selected gene; `missing`, a character vector;
+#'   `ambiguous`, all matches for genes with multiple entries; and `invalid`,
+#'   entries whose sequences do not satisfy SignalP input requirements.
 fetch_uniprot_fasta <- function(
   genes,
-  organism_id = 9606,
+  organism_id = 9606L,
   reviewed = TRUE,
-  max_hits_per_gene = 5
+  chunk_size = 100L,
+  strict = TRUE
 ) {
-  genes <- unique(as.character(genes))
-  base_url <- "https://rest.uniprot.org/uniprotkb/search"
+  if (!requireNamespace("httr2", quietly = TRUE)) {
+    stop("Package `httr2` is required to query UniProt.", call. = FALSE)
+  }
 
-  one_gene <- function(gene) {
+  genes <- unique(trimws(as.character(genes)))
+  if (!length(genes) || anyNA(genes) || any(genes == "")) {
+    stop("`genes` must contain non-empty, non-NA gene symbols.", call. = FALSE)
+  }
+  if (
+    length(organism_id) != 1L ||
+      is.na(organism_id) ||
+      !grepl("^[0-9]+$", as.character(organism_id))
+  ) {
+    stop("`organism_id` must be a single NCBI taxonomy identifier.", call. = FALSE)
+  }
+  if (!is.logical(reviewed) || length(reviewed) != 1L || is.na(reviewed)) {
+    stop("`reviewed` must be TRUE or FALSE.", call. = FALSE)
+  }
+  if (
+    !is.numeric(chunk_size) ||
+      length(chunk_size) != 1L ||
+      is.na(chunk_size) ||
+      !is.finite(chunk_size) ||
+      chunk_size < 1L ||
+      chunk_size != floor(chunk_size) ||
+      chunk_size > .Machine$integer.max
+  ) {
+    stop("`chunk_size` must be a positive integer.", call. = FALSE)
+  }
+  if (!is.logical(strict) || length(strict) != 1L || is.na(strict)) {
+    stop("`strict` must be TRUE or FALSE.", call. = FALSE)
+  }
+
+  chunk_size <- as.integer(chunk_size)
+  chunks <- split(genes, ceiling(seq_along(genes) / chunk_size))
+  fields <- paste(
+    c("accession", "id", "gene_primary", "gene_names", "protein_name", "length", "sequence"),
+    collapse = ","
+  )
+
+  quote_query_value <- function(x) {
+    x <- gsub("\\\\", "\\\\\\\\", x, fixed = TRUE)
+    x <- gsub("\"", "\\\\\"", x, fixed = TRUE)
+    paste0("\"", x, "\"")
+  }
+
+  fetch_chunk <- function(chunk) {
+    gene_query <- paste0(
+      "gene_exact:",
+      vapply(chunk, quote_query_value, character(1)),
+      collapse = " OR "
+    )
     query <- sprintf(
-      "gene_exact:%s AND organism_id:%s%s",
-      gene,
+      "(%s) AND organism_id:%s%s",
+      gene_query,
       organism_id,
       if (reviewed) " AND reviewed:true" else ""
     )
 
-    url <- paste0(
-      base_url,
-      "?query=", utils::URLencode(query, reserved = TRUE),
-      "&format=tsv",
-      "&fields=accession,id,gene_primary,protein_name,organism_name,length,sequence",
-      "&size=", max_hits_per_gene
+    response <- httr2::request("https://rest.uniprot.org/uniprotkb/stream") |>
+      httr2::req_url_query(query = query, format = "tsv", fields = fields) |>
+      httr2::req_retry(max_tries = 3) |>
+      httr2::req_timeout(60) |>
+      httr2::req_perform()
+
+    body <- httr2::resp_body_string(response)
+    tab <- utils::read.delim(
+      text = body,
+      sep = "\t",
+      quote = "",
+      comment.char = "",
+      check.names = FALSE,
+      stringsAsFactors = FALSE
     )
 
-    tab <- tryCatch(
-      utils::read.delim(url, sep = "\t", quote = "", stringsAsFactors = FALSE),
-      error = function(e) NULL
+    required_columns <- c(
+      "Entry", "Entry Name", "Gene Names", "Protein names", "Length", "Sequence"
     )
-
-    if (is.null(tab) || nrow(tab) == 0) {
-      warning(sprintf("No UniProt match found for gene symbol: %s", gene))
+    absent_columns <- setdiff(required_columns, names(tab))
+    if (length(absent_columns)) {
+      stop(
+        "Unexpected UniProt response; missing column(s): ",
+        paste(absent_columns, collapse = ", "),
+        call. = FALSE
+      )
+    }
+    if (!nrow(tab)) {
       return(NULL)
     }
 
-    if (nrow(tab) > 1) {
-      warning(sprintf(
-        "Multiple UniProt matches found for %s; using first accession: %s",
-        gene, tab$Entry[1]
-      ))
-    }
-
-    hit <- tab[1, ]
-
-    header <- sprintf(
-      ">%s|%s|%s OS=%s GN=%s PE=canonical",
-      hit$Entry,
-      hit$`Entry.Name`,
-      hit$`Protein.names`,
-      hit$Organism,
-      hit$`Gene.Names..primary.`
-    )
-
-    seq_wrapped <- paste(
-      substring(
-        hit$Sequence,
-        seq(1, nchar(hit$Sequence), by = 60),
-        pmin(seq(60, nchar(hit$Sequence) + 59, by = 60), nchar(hit$Sequence))
-      ),
-      collapse = "\n"
-    )
-
-    paste(header, seq_wrapped, sep = "\n")
+    gene_names <- strsplit(tab[["Gene Names"]], "[[:space:]]+")
+    mapped <- lapply(seq_len(nrow(tab)), function(i) {
+      requested <- chunk[
+        toupper(chunk) %in% toupper(gene_names[[i]])
+      ]
+      if (!length(requested)) {
+        return(NULL)
+      }
+      data.frame(
+        gene_symbol = requested,
+        accession = tab[["Entry"]][i],
+        entry_name = tab[["Entry Name"]][i],
+        protein_name = tab[["Protein names"]][i],
+        length = tab[["Length"]][i],
+        sequence = tab[["Sequence"]][i],
+        stringsAsFactors = FALSE
+      )
+    })
+    mapped <- Filter(Negate(is.null), mapped)
+    if (!length(mapped)) NULL else do.call(rbind, mapped)
   }
 
-  records <- Filter(Negate(is.null), lapply(genes, one_gene))
-  paste(records, collapse = "\n")
+  matches <- Filter(Negate(is.null), lapply(chunks, fetch_chunk))
+  if (length(matches)) {
+    matches <- unique(do.call(rbind, matches))
+  } else {
+    matches <- data.frame(
+      gene_symbol = character(),
+      accession = character(),
+      entry_name = character(),
+      protein_name = character(),
+      length = integer(),
+      sequence = character(),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  hit_count <- table(factor(matches$gene_symbol, levels = genes))
+  missing <- genes[hit_count == 0L]
+  ambiguous_genes <- genes[hit_count > 1L]
+  ambiguous <- matches[matches$gene_symbol %in% ambiguous_genes, , drop = FALSE]
+  selected_genes <- genes[hit_count == 1L]
+  mapping <- matches[
+    match(selected_genes, matches$gene_symbol),
+    ,
+    drop = FALSE
+  ]
+
+  allowed_amino_acids <- "^[ACDEFGHIKLMNPQRSTVWYXUBZO]+$"
+  invalid_reason <- ifelse(
+    mapping$length < 10L,
+    "shorter than 10 amino acids",
+    ifelse(
+      mapping$length > 10000L,
+      "longer than 10,000 amino acids",
+      ifelse(
+        !grepl(allowed_amino_acids, mapping$sequence),
+        "contains characters not accepted by SignalP",
+        NA_character_
+      )
+    )
+  )
+  invalid <- mapping[!is.na(invalid_reason), , drop = FALSE]
+  invalid$reason <- invalid_reason[!is.na(invalid_reason)]
+  mapping <- mapping[is.na(invalid_reason), , drop = FALSE]
+
+  summarize_genes <- function(x, n = 10L) {
+    shown <- paste(utils::head(x, n), collapse = ", ")
+    if (length(x) > n) paste0(shown, sprintf(" (+%d more)", length(x) - n)) else shown
+  }
+
+  problems <- character()
+  if (length(missing)) {
+    problems <- c(problems, paste0("missing: ", summarize_genes(missing)))
+  }
+  if (length(ambiguous_genes)) {
+    problems <- c(problems, paste0("ambiguous: ", summarize_genes(ambiguous_genes)))
+  }
+  if (nrow(invalid)) {
+    problems <- c(problems, paste0("invalid for SignalP: ", summarize_genes(invalid$gene_symbol)))
+  }
+  if (length(problems)) {
+    message <- paste(problems, collapse = "; ")
+    if (strict) {
+      stop(
+        "UniProt retrieval did not produce one valid sequence per gene (",
+        message,
+        "). Re-run with `strict = FALSE` to return valid records and inspect the report.",
+        call. = FALSE
+      )
+    }
+    warning("Omitting UniProt records (", message, ").", call. = FALSE)
+  }
+
+  wrap_sequence <- function(sequence, width = 60L) {
+    starts <- seq.int(1L, nchar(sequence), by = width)
+    paste0(substring(sequence, starts, starts + width - 1L), collapse = "\n")
+  }
+  safe_header_component <- function(x) {
+    gsub("[^A-Za-z0-9_.:-]", "_", x)
+  }
+
+  if (nrow(mapping)) {
+    headers <- paste(
+      safe_header_component(mapping$accession),
+      safe_header_component(mapping$entry_name),
+      safe_header_component(mapping$gene_symbol),
+      sep = "|"
+    )
+    records <- paste0(
+      ">", headers, "\n",
+      vapply(mapping$sequence, wrap_sequence, character(1))
+    )
+    fasta <- paste(records, collapse = "\n")
+  } else {
+    fasta <- ""
+  }
+
+  list(
+    fasta = fasta,
+    mapping = mapping,
+    missing = missing,
+    ambiguous = ambiguous,
+    invalid = invalid
+  )
 }
