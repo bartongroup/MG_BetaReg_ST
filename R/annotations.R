@@ -368,3 +368,33 @@ fetch_uniprot_fasta <- function(
     invalid = invalid
   )
 }
+
+
+download_full_uniprot_fasta <- function() {
+  url <- "https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/Eukaryota/UP000005640/UP000005640_9606.fasta.gz"
+  Biostrings::readAAStringSet(url)
+}
+
+parse_uniprot_names <- function(aaset) {
+  header <- names(aaset)
+
+  protein_info <- tibble(
+    index = seq_along(aaset),
+    database = sub("\\|.*$", "", header),
+    accession = sub("^[^|]+\\|([^|]+)\\|.*$", "\\1", header),
+    entry_name = sub(
+      "^[^|]+\\|[^|]+\\|([^ ]+).*$",
+      "\\1",
+      header
+    ),
+    gene_symbol = ifelse(
+      grepl(" GN=", header, fixed = TRUE),
+      sub("^.* GN=([^ ]+).*$", "\\1", header),
+      NA_character_
+    ),
+    length = Biostrings::width(aaset)
+  )
+
+  protein_info$reviewed <- protein_info$database == "sp"
+  protein_info
+}

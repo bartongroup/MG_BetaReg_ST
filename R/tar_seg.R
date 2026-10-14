@@ -1,3 +1,9 @@
+# Annoyingly, needed to make go-to-definition work in Positron
+if(FALSE) {
+  source("R/seurat.R")
+  source("R/data.R")
+}
+
 targets_seg <- function() {
 
   map_experiments <- tar_map(
@@ -20,6 +26,7 @@ targets_seg <- function() {
       insbin_enrichment = insulin_enrichment_gradient(seus, fterms),
       insbin_cor = get_insulin_bin_correlation(seus, assay = "Spatial.Polygons"),
       insbin_top = select_correlated_markers(insbin_enrichment$markers, insbin_cor, n_top = 30, min_n_bin = 3, min_pct = 0.25),
+      sav_signalp_fasta = prepare_insbin_fasta(insbin_enrichment, uniprot_info, uniprot_fasta, file.path("cache", paste0("insbin_uniprot_", NAME, ".fasta"))),
 
       # CellChat
       cellchat_seg = create_cellchat(seus) |> preprocess_cellchat(),
@@ -34,7 +41,7 @@ targets_seg <- function() {
       # to the cluster node, run spacebender on the cluster (script "scripts/run_spacebender.py"),
       # and copy the results back to the local machine. Then, you can create "seus_sb".
       sav_seus_sb = save_data_for_spacebender_from_seurat(seus, NAME, assay = "Spatial.Polygons"),
-      seus_sb = read_spacebender_clean_file(seus, NAME, assay = "Spatial.Polygons") |> NormalizeData(),
+      seus_sb = read_spacebender_clean_file(seus, NAME, ambient_radius = "15um", assay = "Spatial.Polygons") |> NormalizeData(),
       sb_comp = get_seurat_comparison(seus, seus_sb),
       mn_hormone_overlap_sb = mn_plot_hormone_overlap(seus_sb, file.path("manuscript/fig", paste0("hormone_overlap_sb_", NAME, ".pdf")), 8, 3),
       mn_ins_neurog3_sb = mn_plot_gene_segmentation(seus_sb, genes = c("INS", "NEUROG3"), box = ZOOM, add_grid = TRUE) |> 
@@ -59,6 +66,8 @@ targets_seg <- function() {
         gp("insulin_expression", sample = NAME, width = 6, height = 3, path = "manuscript/fig"),
       mn_enrichment_gradient = mn_plot_enrichment_gradient(insbin_enrichment$enrichment) |> 
         gp("enrichment_gradient", sample = NAME, width = 6.7, height = 10, path = "manuscript/fig"),
+      mn_insbin_heatmap = plot_insulin_bin_heatmap(seus, insbin_top$gene_symbol) |> 
+        gp("insulin_bin_heatmap", sample = NAME, width = 3.5, height = 9, path = "manuscript/fig"),
       
       mn_ins_neurog3 = mn_plot_gene_segmentation(seus, genes = c("INS", "NEUROG3"), box = ZOOM, add_grid = TRUE) |> 
         gp("ins_neurog3", sample = NAME, width = 7, height = 4, path = "manuscript/fig"),

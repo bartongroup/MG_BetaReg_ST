@@ -37,7 +37,10 @@ targets_main <- function() {
     goi = jsonlite::read_json(genes_of_interest_file, simplifyVector = TRUE),
 
     tissue_markers = get_unique_markers(goi$tissue_markers_positive, goi$tissue_markers_negative),
-    tissue_markers_endoc = tissue_markers |> filter(cell_type %in% c("MPC", "EP", "Beta", "Alpha", "Delta", "Epsilon", "PP")) |> droplevels()
+    tissue_markers_endoc = tissue_markers |> filter(cell_type %in% c("MPC", "EP", "Beta", "Alpha", "Delta", "Epsilon", "PP")) |> droplevels(),
+
+    uniprot_fasta = download_full_uniprot_fasta(),
+    uniprot_info = parse_uniprot_names(uniprot_fasta)
   )
 
   for_manuscript <- tar_plan(

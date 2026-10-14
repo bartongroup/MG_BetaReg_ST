@@ -2031,11 +2031,11 @@ plot_markers_heatmap <- function(markers, genes, max_fc = 8) {
 }
 
 plot_genes_group_mean <- function(seu, genes, group = "cluster", layer = "data", remove_g = TRUE) {
-  ex <- AverageExpression(seu, features = genes, group.by = group, layer = layer)
-  tab <- ex[[1]] |> 
-    as.matrix()
-  tab <- log2(tab / rowMeans(tab))
-
+  # This give log-normalized data
+  ex <- AggregateExpression(seu, assays = assay, group.by = group_var, return.seurat = TRUE) |> 
+    GetAssayData(layer = layer)
+  tab <- ex[genes, ]
+    tab <- tab - rowMeans(tab)
   mn <- min(tab[is.finite(tab)])
   mx <- max(tab[is.finite(tab)])
 
@@ -2049,6 +2049,17 @@ plot_genes_group_mean <- function(seu, genes, group = "cluster", layer = "data",
   ggheatmap(tab, order.col = FALSE, with.y.text = TRUE, palette = "div", legend.name = expression(log[2]~(expr/mean)))  
 }
 
+plot_insulin_bin_heatmap <- function(seu, genes, assay = "Spatial.Polygons") {
+  # This give log-normalized data
+  ex <- AggregateExpression(seu, assays = assay, group.by = "insulin_bin", return.seurat = TRUE) |> 
+    GetAssayData(layer = "data")
+  genes <- setdiff(genes, "INS")
+  tab <- ex[genes, ]
+  tab <- tab - tab[, 1]
+
+  colnames(tab) <- gsub("g", "", colnames(tab))
+  ggheatmap(tab, order.col = FALSE, with.y.text = TRUE, palette = "div", legend.name = expression(log[2]~(expr/bin[0])))
+}
 
 plot_cluster_match_samples <- function(cluster_markers_1, cluster_markers_2, n_top = 50) {
   jaccard_cluster_cluster(cluster_markers_1, cluster_markers_2, n_top) |> 

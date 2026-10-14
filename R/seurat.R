@@ -855,6 +855,7 @@ get_seurat_comparison <- function(seu, seu_clean) {
 }
 
 
+# Find Pearson's correlation between groups
 get_group_correlation <- function(seu, assay = "Spatial.008um", group = "cluster", layer = "data") {
   ex <- get_average_expression(seu, assay, group_var = group)
   ex |> 
@@ -872,6 +873,7 @@ add_insulin_bin <- function(seu, bins = 6) {
   seu
 }
 
+# Find Pearson's correlation between insulin and other genes, with expression averaged over insulin bins
 get_insulin_bin_correlation <- function(seu, assay = "Spatial.008um") {
   cr <- get_group_correlation(seu, assay = assay, group = "insulin_bin", layer = "data")
   cr <- cr["INS", ]
@@ -879,17 +881,19 @@ get_insulin_bin_correlation <- function(seu, assay = "Spatial.008um") {
   tibble(
     gene_symbol = names(cr),
     correlation = cr
-  )
+  ) |> 
+    filter(gene_symbol != "INS")
 }
 
-select_correlated_markers <- function(markers, bincor, n_top = 30, min_n_bin = 5, min_pct = 0.25) {
+select_correlated_markers <- function(markers, bincor, n_top = 30, min_n_bin = 5, min_pct = 0.25, max_fdr = 0.01) {
   good <- markers |> 
     group_by(gene_symbol) |>
     summarise(
       n_bin = n(),
-      max_pct = max(pct.1, na.rm = TRUE)
+      max_pct = max(c(pct.1, pct.2), na.rm = TRUE),
+      min_fdr = min(p_val_adj, na.rm = TRUE)
     ) |> 
-    filter(n_bin >= min_n_bin & max_pct >= min_pct) |> 
+    filter(n_bin >= min_n_bin & max_pct >= min_pct & min_fdr <= max_fdr) |> 
     pull(gene_symbol)
 
   b <- bincor |> 

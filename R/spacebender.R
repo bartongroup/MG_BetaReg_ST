@@ -202,8 +202,8 @@ save_data_for_spacebender_from_seurat <- function(seu, sample, assay = "Spatial.
 #'   by load_visium_data(). If NULL, use human gene symbols starting with MT-.
 #' @return A new counts-only Seurat object ready for normalization.
 read_spacebender_clean_file <- function(seu, sample, assay = "Spatial.008um",
-                                       mito_genes = NULL) {
-  h5ad_file <- file.path("spacebender_data", paste0(sample, "_cleaned.h5ad"))
+                                        ambient_radius = "20um",mito_genes = NULL) {
+  h5ad_file <- file.path("spacebender_data", paste0(sample, "_cleaned_", ambient_radius, ".h5ad"))
   if (!file.exists(h5ad_file)) stop("File does not exist: ", h5ad_file)
   layers <- SeuratObject::Layers(seu[[assay]], search = NA)
   if (!identical(grep("^counts($|\\.)", layers, value = TRUE), "counts")) {

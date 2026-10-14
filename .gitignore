@@ -19,6 +19,8 @@ doc/*
 !doc/report.scss
 info/Spartan_059 clustering report/
 spacebender_data/
+signalp6_fast/
+signalp_results/
 ModuleNetworks/
 TOM/
 commot/my_env/

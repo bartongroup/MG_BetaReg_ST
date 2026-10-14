@@ -743,3 +743,16 @@ correlate_markers <- function(markers, min_pct = 0.25, min_n_bin = 5) {
     pivot_longer(-gene_1, names_to = "gene_2", values_to = "correlation") |> 
     filter(gene_1 < gene_2)
 }
+
+
+prepare_insbin_fasta <- function(insbin_enrichment, uniprot_info, uniprot_fasta, fname) {
+  gns = insbin_enrichment$markers |>
+    dplyr::filter(p_val_adj < 0.01 & abs(avg_log2FC) > 1 & (pct.1 > 0.25 | pct.2 > 0.25)) |>
+    dplyr::pull(gene_symbol) |> 
+    unique()
+  idx = uniprot_info |>
+    dplyr::filter(gene_symbol %in% gns & reviewed) |>
+    dplyr::pull(index)
+  uniprot_fasta[idx] |>
+    Biostrings::writeXStringSet(fname, format = "fasta")
+}
